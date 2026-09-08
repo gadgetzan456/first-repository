@@ -1,0 +1,709 @@
+<title>組子めいろ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    --font-body: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
+
+    /* light (washi / daytime) */
+    --bg: #E4E0CE;
+    --bg-deep: #C9C2A6;
+    --grid-line: rgba(0, 0, 0, 0.05);
+    --surface: #F1EDDD;
+    --surface-veil: rgba(241, 237, 221, 0.94);
+    --surface-border: #C9BE9C;
+    --ink: #2B2A28;
+    --ink-soft: #6B6555;
+    --wall: #8B5A2B;
+    --wall-shadow: #5E3A1A;
+    --path: #2C4A6E;
+    --path-glow: rgba(44, 74, 110, 0.35);
+    --start: #5C7F3E;
+    --goal: #B94E27;
+    --accent: #2C4A6E;
+    --accent-ink: #F1EDDD;
+    --accent-shadow: #1B3350;
+    --focus: #B94E27;
+    --card-shadow: rgba(60, 45, 20, 0.28);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1B2436;
+      --bg-deep: #10182A;
+      --grid-line: rgba(255, 255, 255, 0.07);
+      --surface: #212C42;
+      --surface-veil: rgba(33, 44, 66, 0.94);
+      --surface-border: #3A4A70;
+      --ink: #EDE6D2;
+      --ink-soft: #ABA48C;
+      --wall: #C9A15A;
+      --wall-shadow: #8F6C33;
+      --path: #F5EFDD;
+      --path-glow: rgba(245, 239, 221, 0.35);
+      --start: #8FCB6B;
+      --goal: #E8794A;
+      --accent: #C9A15A;
+      --accent-ink: #1B2436;
+      --accent-shadow: #8F6C33;
+      --focus: #E8794A;
+      --card-shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #1B2436;
+    --bg-deep: #10182A;
+    --grid-line: rgba(255, 255, 255, 0.07);
+    --surface: #212C42;
+    --surface-veil: rgba(33, 44, 66, 0.94);
+    --surface-border: #3A4A70;
+    --ink: #EDE6D2;
+    --ink-soft: #ABA48C;
+    --wall: #C9A15A;
+    --wall-shadow: #8F6C33;
+    --path: #F5EFDD;
+    --path-glow: rgba(245, 239, 221, 0.35);
+    --start: #8FCB6B;
+    --goal: #E8794A;
+    --accent: #C9A15A;
+    --accent-ink: #1B2436;
+    --accent-shadow: #8F6C33;
+    --focus: #E8794A;
+    --card-shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+  }
+
+  .scene {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(20px, 6vw, 48px) 16px;
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .board-card {
+    width: 100%;
+    max-width: 560px;
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: 28px;
+    padding: clamp(24px, 5vw, 40px);
+    box-shadow: 0 24px 60px -20px var(--card-shadow);
+    animation: cardIn 0.5s ease-out;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-head { text-align: center; }
+
+  .title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(28px, 6vw, 40px);
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .title-sub {
+    font-size: 0.5em;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-left: 0.3em;
+  }
+
+  .tagline {
+    margin: 8px 0 0;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 0.02em;
+  }
+
+  .hud {
+    display: flex;
+    gap: 8px;
+    margin: 22px 0;
+    padding: 12px 4px;
+    border-top: 1px dashed var(--surface-border);
+    border-bottom: 1px dashed var(--surface-border);
+  }
+
+  .hud-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .hud-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--ink-soft);
+  }
+
+  .hud-value {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 19px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .hud-value small {
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 1px;
+    color: var(--ink-soft);
+  }
+
+  .frame {
+    position: relative;
+    width: fit-content;
+    margin: 0 auto;
+    padding: 10px;
+    border-radius: 18px;
+    background: linear-gradient(155deg, var(--wall), var(--wall-shadow));
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+
+  canvas {
+    display: block;
+    border-radius: 10px;
+    background: var(--surface);
+    touch-action: none;
+    cursor: crosshair;
+  }
+
+  .clear-banner {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: var(--surface-veil);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.96);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+  }
+
+  .clear-banner.show {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .clear-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(24px, 6vw, 32px);
+    color: var(--goal);
+  }
+
+  .clear-detail {
+    margin: 8px 0 0;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .status {
+    margin: 20px 0 24px;
+    min-height: 20px;
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  .cta {
+    display: block;
+    margin: 0 auto;
+    min-width: 220px;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 999px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.06em;
+    color: var(--accent-ink);
+    background: var(--accent);
+    box-shadow: 0 6px 0 var(--accent-shadow);
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .cta:hover { filter: brightness(1.04); }
+
+  .cta:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 var(--accent-shadow);
+  }
+
+  .cta:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+
+<div class="scene">
+  <main class="board-card" role="application" aria-label="組子めいろ、ランダム生成の格子迷路パズル">
+    <header class="card-head">
+      <h1 class="title">組子<span class="title-sub">めいろ</span></h1>
+      <p class="tagline">格子模様のランダム迷路を、指でなぞって解くパズル</p>
+    </header>
+
+    <div class="hud">
+      <div class="hud-item">
+        <span class="hud-label">問題</span>
+        <span class="hud-value" id="stageValue">—</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">タイム</span>
+        <span class="hud-value"><span id="timeNum">0.0</span><small>秒</small></span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">最高到達</span>
+        <span class="hud-value" id="bestValue">—</span>
+      </div>
+    </div>
+
+    <div class="frame" id="frame">
+      <canvas id="mazeCanvas" aria-hidden="true"></canvas>
+      <div class="clear-banner" id="clearBanner">
+        <div>
+          <p class="clear-title">クリア!</p>
+          <p class="clear-detail" id="clearDetail"></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="status" id="statusText" aria-live="polite">鳥居からドラッグして、灯籠までなぞろう</p>
+
+    <button class="cta" id="generateBtn" type="button">迷路作成</button>
+  </main>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var canvas = document.getElementById('mazeCanvas');
+  var ctx = canvas.getContext('2d');
+  var frame = document.getElementById('frame');
+  var clearBanner = document.getElementById('clearBanner');
+  var clearDetail = document.getElementById('clearDetail');
+  var statusText = document.getElementById('statusText');
+  var stageValue = document.getElementById('stageValue');
+  var timeNum = document.getElementById('timeNum');
+  var bestValue = document.getElementById('bestValue');
+  var generateBtn = document.getElementById('generateBtn');
+
+  var STORAGE_KEY = 'kumikoMeiroBestStage';
+  var DIRS = [
+    { dr: -1, dc: 0, wall: 'top', opp: 'bottom' },
+    { dr: 0, dc: 1, wall: 'right', opp: 'left' },
+    { dr: 1, dc: 0, wall: 'bottom', opp: 'top' },
+    { dr: 0, dc: -1, wall: 'left', opp: 'right' }
+  ];
+
+  var state = {
+    stage: 0,
+    cols: 0,
+    rows: 0,
+    grid: null,
+    goal: null,
+    path: [],
+    drawing: false,
+    cleared: false,
+    timerRunning: false,
+    startTime: null
+  };
+
+  var cellSize = 0;
+  var activePointerId = null;
+  var timerHandle = null;
+  var advanceTimer = null;
+  var bestStage = 0;
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function debounce(fn, wait) {
+    var t;
+    return function () {
+      var args = arguments;
+      clearTimeout(t);
+      t = setTimeout(function () { fn.apply(null, args); }, wait);
+    };
+  }
+
+  function buildMaze(cols, rows) {
+    var grid = [];
+    var visited = [];
+    for (var r = 0; r < rows; r++) {
+      grid.push([]);
+      visited.push([]);
+      for (var c = 0; c < cols; c++) {
+        grid[r].push({ top: true, right: true, bottom: true, left: true });
+        visited[r].push(false);
+      }
+    }
+
+    var stack = [{ r: 0, c: 0 }];
+    visited[0][0] = true;
+
+    while (stack.length) {
+      var cur = stack[stack.length - 1];
+      var options = [];
+      for (var i = 0; i < DIRS.length; i++) {
+        var d = DIRS[i];
+        var nr = cur.r + d.dr;
+        var nc = cur.c + d.dc;
+        if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
+          options.push({ r: nr, c: nc, dir: d });
+        }
+      }
+      if (options.length) {
+        var pick = options[Math.floor(Math.random() * options.length)];
+        grid[cur.r][cur.c][pick.dir.wall] = false;
+        grid[pick.r][pick.c][pick.dir.opp] = false;
+        visited[pick.r][pick.c] = true;
+        stack.push({ r: pick.r, c: pick.c });
+      } else {
+        stack.pop();
+      }
+    }
+    return grid;
+  }
+
+  function cellCenter(cell) {
+    return { x: cell.c * cellSize + cellSize / 2, y: cell.r * cellSize + cellSize / 2 };
+  }
+
+  function findInPath(cell) {
+    for (var i = 0; i < state.path.length; i++) {
+      if (state.path[i].r === cell.r && state.path[i].c === cell.c) return i;
+    }
+    return -1;
+  }
+
+  function isAdjacent(a, b) {
+    return (Math.abs(a.r - b.r) + Math.abs(a.c - b.c)) === 1;
+  }
+
+  function canMove(a, b) {
+    var cell = state.grid[a.r][a.c];
+    if (b.r === a.r - 1) return !cell.top;
+    if (b.r === a.r + 1) return !cell.bottom;
+    if (b.c === a.c - 1) return !cell.left;
+    if (b.c === a.c + 1) return !cell.right;
+    return false;
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawTorii(cx, cy, s, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1.5, s * 0.11);
+    ctx.lineCap = 'round';
+    var legGap = s * 0.26;
+    var legTop = cy - s * 0.22;
+    var legBottom = cy + s * 0.34;
+    ctx.beginPath();
+    ctx.moveTo(cx - legGap, legTop);
+    ctx.lineTo(cx - legGap, legBottom);
+    ctx.moveTo(cx + legGap, legTop);
+    ctx.lineTo(cx + legGap, legBottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - legGap * 1.7, legTop - s * 0.08);
+    ctx.lineTo(cx + legGap * 1.7, legTop - s * 0.08);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - legGap * 1.15, legTop + s * 0.12);
+    ctx.lineTo(cx + legGap * 1.15, legTop + s * 0.12);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLantern(cx, cy, s, color) {
+    ctx.save();
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.48, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function render() {
+    if (!state.grid || !cellSize) return;
+    var boardPx = cellSize * state.cols;
+
+    ctx.clearRect(0, 0, boardPx, boardPx);
+
+    ctx.fillStyle = cssVar('--surface');
+    roundRect(0, 0, boardPx, boardPx, Math.min(10, cellSize * 0.3));
+    ctx.fill();
+
+    ctx.strokeStyle = cssVar('--wall');
+    ctx.lineWidth = Math.max(2, cellSize * 0.09);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (var r = 0; r < state.rows; r++) {
+      for (var c = 0; c < state.cols; c++) {
+        var cell = state.grid[r][c];
+        var x = c * cellSize;
+        var y = r * cellSize;
+        if (cell.top) { ctx.moveTo(x, y); ctx.lineTo(x + cellSize, y); }
+        if (cell.left) { ctx.moveTo(x, y); ctx.lineTo(x, y + cellSize); }
+        if (c === state.cols - 1 && cell.right) { ctx.moveTo(x + cellSize, y); ctx.lineTo(x + cellSize, y + cellSize); }
+        if (r === state.rows - 1 && cell.bottom) { ctx.moveTo(x, y + cellSize); ctx.lineTo(x + cellSize, y + cellSize); }
+      }
+    }
+    ctx.stroke();
+
+    var startCenter = cellCenter({ r: 0, c: 0 });
+    drawTorii(startCenter.x, startCenter.y, cellSize * 0.8, cssVar('--start'));
+
+    var goalCenter = cellCenter(state.goal);
+    drawLantern(goalCenter.x, goalCenter.y, cellSize * 0.8, cssVar('--goal'));
+
+    if (state.path.length > 1) {
+      ctx.save();
+      ctx.shadowColor = cssVar('--path-glow');
+      ctx.shadowBlur = cellSize * 0.6;
+      ctx.strokeStyle = cssVar('--path');
+      ctx.lineWidth = Math.max(3, cellSize * 0.26);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (var i = 0; i < state.path.length; i++) {
+        var p = cellCenter(state.path[i]);
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (!state.cleared && state.path.length) {
+      var tip = cellCenter(state.path[state.path.length - 1]);
+      ctx.fillStyle = cssVar('--path');
+      ctx.beginPath();
+      ctx.arc(tip.x, tip.y, Math.max(3, cellSize * 0.14), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function computeLayout() {
+    var available = Math.max(200, Math.min(window.innerWidth - 96, 440));
+    cellSize = Math.max(14, Math.floor(available / state.cols));
+    var boardPx = cellSize * state.cols;
+    canvas.style.width = boardPx + 'px';
+    canvas.style.height = boardPx + 'px';
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(boardPx * dpr);
+    canvas.height = Math.round(boardPx * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function stopTimer() {
+    state.timerRunning = false;
+    clearInterval(timerHandle);
+  }
+
+  function startTimer() {
+    state.timerRunning = true;
+    state.startTime = performance.now();
+    clearInterval(timerHandle);
+    timerHandle = setInterval(function () {
+      var t = (performance.now() - state.startTime) / 1000;
+      timeNum.textContent = t.toFixed(1);
+    }, 100);
+  }
+
+  function completeMaze() {
+    state.cleared = true;
+    state.drawing = false;
+    var elapsed = state.startTime ? (performance.now() - state.startTime) / 1000 : 0;
+    stopTimer();
+    timeNum.textContent = elapsed.toFixed(1);
+    render();
+
+    statusText.textContent = 'みごと!参道を渡り切りました(' + elapsed.toFixed(1) + '秒)';
+    clearDetail.textContent = '第' + state.stage + '問 突破・' + elapsed.toFixed(1) + '秒';
+    clearBanner.style.pointerEvents = 'auto';
+    requestAnimationFrame(function () { clearBanner.classList.add('show'); });
+
+    if (state.stage > bestStage) {
+      bestStage = state.stage;
+      try { localStorage.setItem(STORAGE_KEY, String(bestStage)); } catch (e) { /* ignore */ }
+      bestValue.textContent = '第' + bestStage + '問';
+    }
+
+    clearTimeout(advanceTimer);
+    advanceTimer = setTimeout(function () {
+      clearBanner.classList.remove('show');
+      clearBanner.style.pointerEvents = 'none';
+      generateNewMaze();
+    }, 1400);
+  }
+
+  function generateNewMaze() {
+    state.stage = (state.stage || 0) + 1;
+    var size = Math.min(7 + (state.stage - 1), 14);
+    state.cols = size;
+    state.rows = size;
+    state.grid = buildMaze(size, size);
+    state.goal = { r: size - 1, c: size - 1 };
+    state.path = [{ r: 0, c: 0 }];
+    state.cleared = false;
+    state.drawing = false;
+    stopTimer();
+    state.startTime = null;
+
+    timeNum.textContent = '0.0';
+    stageValue.textContent = '第' + state.stage + '問';
+    statusText.textContent = '鳥居からドラッグして、灯籠までなぞろう';
+
+    computeLayout();
+    render();
+  }
+
+  function eventToCell(evt) {
+    var rect = canvas.getBoundingClientRect();
+    var x = evt.clientX - rect.left;
+    var y = evt.clientY - rect.top;
+    var c = Math.floor(x / cellSize);
+    var r = Math.floor(y / cellSize);
+    if (r < 0 || r >= state.rows || c < 0 || c >= state.cols) return null;
+    return { r: r, c: c };
+  }
+
+  function handleDown(evt) {
+    if (!state.grid || state.cleared) return;
+    var cell = eventToCell(evt);
+    if (!cell) return;
+    var idx = findInPath(cell);
+    if (idx === -1) return;
+    state.path = state.path.slice(0, idx + 1);
+    state.drawing = true;
+    activePointerId = evt.pointerId;
+    try { canvas.setPointerCapture(evt.pointerId); } catch (e) { /* ignore */ }
+    render();
+    evt.preventDefault();
+  }
+
+  function handleMove(evt) {
+    if (!state.grid || !state.drawing || state.cleared) return;
+    if (evt.pointerId !== activePointerId) return;
+    var cell = eventToCell(evt);
+    if (!cell) return;
+    var last = state.path[state.path.length - 1];
+    if (cell.r === last.r && cell.c === last.c) return;
+
+    var idxExisting = findInPath(cell);
+    if (idxExisting !== -1) {
+      state.path = state.path.slice(0, idxExisting + 1);
+      render();
+      return;
+    }
+
+    if (isAdjacent(last, cell) && canMove(last, cell)) {
+      state.path.push(cell);
+      if (state.path.length === 2 && !state.timerRunning) startTimer();
+      render();
+      if (cell.r === state.goal.r && cell.c === state.goal.c) completeMaze();
+    }
+    evt.preventDefault();
+  }
+
+  function handleUp(evt) {
+    if (evt.pointerId !== activePointerId) return;
+    state.drawing = false;
+    activePointerId = null;
+  }
+
+  canvas.addEventListener('pointerdown', handleDown);
+  canvas.addEventListener('pointermove', handleMove);
+  canvas.addEventListener('pointerup', handleUp);
+  canvas.addEventListener('pointercancel', handleUp);
+
+  generateBtn.addEventListener('click', function () {
+    clearTimeout(advanceTimer);
+    clearBanner.classList.remove('show');
+    clearBanner.style.pointerEvents = 'none';
+    generateNewMaze();
+  });
+
+  window.addEventListener('resize', debounce(function () {
+    if (state.grid) { computeLayout(); render(); }
+  }, 150));
+
+  if (window.matchMedia) {
+    var darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    var onThemeChange = function () { if (state.grid) render(); };
+    if (darkQuery.addEventListener) darkQuery.addEventListener('change', onThemeChange);
+    else if (darkQuery.addListener) darkQuery.addListener(onThemeChange);
+  }
+
+  try {
+    bestStage = parseInt(localStorage.getItem(STORAGE_KEY) || '0', 10) || 0;
+  } catch (e) {
+    bestStage = 0;
+  }
+  bestValue.textContent = bestStage > 0 ? '第' + bestStage + '問' : '—';
+
+  generateNewMaze();
+}());
+</script>
