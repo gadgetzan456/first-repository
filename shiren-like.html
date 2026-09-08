@@ -351,7 +351,7 @@
 
   <!-- Dungeon canvas -->
   <div class="panel stage-wrap">
-    <canvas id="stage" width="748" height="396"></canvas>
+    <canvas id="stage" width="884" height="468"></canvas>
   </div>
 
   <!-- Message log -->
@@ -397,28 +397,29 @@
      定数・データテーブル
   ========================================================= */
   var W = 34, H = 18;
-  var TILE = 22;
+  var TILE = 26;
   var MAX_FLOOR = 50;
   var INV_CAP = 8;
   var SAVE_KEY = "meikyu50_save_v1";
 
   var T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
 
+  // dropRate: 撃破時にアイテムを落とす確率(0〜1)。ボスは常に(1.0)ドロップする。
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2 },
-    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1 },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35 },
-    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true },
-    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15 },
-    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15 },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35 },
-    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15 },
-    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1 },
-    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2 },
-    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15 },
-    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1 },
-    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1 },
-    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15 }
+    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15 },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12 },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15 },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18 },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2 },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22 },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22 },
+    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25 },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28 },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28 },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3 },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3 },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35 },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35 }
   ];
 
   var BOSS_TABLE = {
@@ -428,6 +429,7 @@
     40: { name: "氷牙のフェンリク", sym: "氷", color: "#6fb0c9", hp: 245, atk: 38, def: 20, exp: 430 },
     50: { name: "深淵の王ザガレス", sym: "覇", color: "#b03050", hp: 400, atk: 50, def: 26, exp: 1000 }
   };
+  var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
 
   var ITEM_TYPES = [
     { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, minDepth: 1, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
@@ -610,6 +612,7 @@
       exp: def.exp + Math.round(over * def.exp * 0.05),
       poison: !!def.poison,
       erratic: def.erratic || 0,
+      dropRate: typeof def.dropRate === "number" ? def.dropRate : 0.15,
       awake: !chance(def.sleepy || 0.15),
       x: 0, y: 0
     };
@@ -637,7 +640,7 @@
       G.enemies.push({
         key: "boss" + depth, name: b.name, sym: b.sym, color: b.color,
         hp: b.hp, maxHp: b.hp, atk: b.atk, def: b.def, exp: b.exp,
-        poison: false, erratic: 0, awake: true, boss: true,
+        poison: false, erratic: 0, dropRate: BOSS_DROP_RATE, awake: true, boss: true,
         x: spot2.x, y: spot2.y
       });
     }
@@ -860,6 +863,40 @@
     return Math.max(1, dmg);
   }
 
+  // 敵を倒した位置の近くに空いている床マスを探す(アイテムドロップ用)
+  function findDropSpot(x, y) {
+    var candidates = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    for (var i = 0; i < candidates.length; i++) {
+      var nx = x + candidates[i][0], ny = y + candidates[i][1];
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
+      var occupiedByItem = false;
+      for (var j = 0; j < G.floorItems.length; j++) {
+        if (G.floorItems[j].x === nx && G.floorItems[j].y === ny) { occupiedByItem = true; break; }
+      }
+      if (occupiedByItem) continue;
+      return { x: nx, y: ny };
+    }
+    return null;
+  }
+
+  // 敵撃破時のアイテムドロップ判定。ボスは必ず(装備品・巻物を優先して)ドロップする。
+  function rollEnemyDrop(enemy) {
+    var rate = enemy.boss ? BOSS_DROP_RATE : (typeof enemy.dropRate === "number" ? enemy.dropRate : 0.15);
+    if (!chance(rate)) return;
+    var depth = G.floor;
+    var pool = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    if (enemy.boss) {
+      var richPool = pool.filter(function (it) { return it.cat === "weapon" || it.cat === "shield" || it.cat === "scroll"; });
+      if (richPool.length) pool = richPool;
+    }
+    if (!pool.length) return;
+    var def = weightedPick(pool);
+    var spot = findDropSpot(enemy.x, enemy.y);
+    if (!spot) return;
+    G.floorItems.push({ x: spot.x, y: spot.y, def: def });
+    addMessage(enemy.name + "は" + def.name + "を落とした!", "note");
+  }
+
   function playerAttackEnemy(enemy) {
     var dmg = computeDamage(effAtk(), enemy.def);
     enemy.hp -= dmg;
@@ -870,6 +907,7 @@
       gainExp(enemy.exp);
       var idx = G.enemies.indexOf(enemy);
       if (idx >= 0) G.enemies.splice(idx, 1);
+      rollEnemyDrop(enemy);
       if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
     }
   }
@@ -1037,6 +1075,214 @@
     el.innerHTML = html;
   }
 
+  /* ---- タイルの質感描画ヘルパー ---- */
+
+  // 座標から決定的な0〜1の疑似乱数を得る(毎フレーム同じ値になり、ちらつかない)
+  function hash2(x, y) {
+    var s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return s - Math.floor(s);
+  }
+
+  // hexカラーを percent(-1〜1) だけ明るく/暗くする
+  function shadeColor(hex, percent) {
+    var f = parseInt(hex.slice(1), 16);
+    var t = percent < 0 ? 0 : 255;
+    var p = Math.abs(percent);
+    var r = f >> 16, g = (f >> 8) & 0xff, b = f & 0xff;
+    var nr = Math.round((t - r) * p) + r;
+    var ng = Math.round((t - g) * p) + g;
+    var nb = Math.round((t - b) * p) + b;
+    return "#" + (0x1000000 + nr * 0x10000 + ng * 0x100 + nb).toString(16).slice(1);
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  var WALL_LIT = "#4d4028", WALL_DIM = "#2a2318";
+  var FLOOR_LIT = "#7a6748", FLOOR_DIM = "#332c22";
+  var STAIRS_LIT = "#E9D08A", STAIRS_DIM = "#7a6f4a";
+
+  function drawWallTile(x, y, lit) {
+    var px = x * TILE, py = y * TILE;
+    var base = lit ? WALL_LIT : WALL_DIM;
+    var shade = (hash2(x, y) - 0.5) * 0.16;
+    ctx.fillStyle = shadeColor(base, shade);
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = shadeColor(base, shade + (lit ? 0.16 : 0.05));
+    ctx.fillRect(px, py, TILE, Math.max(1, TILE * 0.08));
+    ctx.fillStyle = shadeColor(base, shade - (lit ? 0.22 : 0.08));
+    ctx.fillRect(px, py + TILE - Math.max(1, TILE * 0.08), TILE, Math.max(1, TILE * 0.08));
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(px + TILE - 1, py, 1, TILE);
+    ctx.fillRect(px, py + TILE - 1, TILE, 1);
+  }
+
+  function drawFloorTile(x, y, lit) {
+    var px = x * TILE, py = y * TILE;
+    var base = lit ? FLOOR_LIT : FLOOR_DIM;
+    var v = hash2(x + 91.7, y + 41.3);
+    var shade = (v - 0.5) * 0.14;
+    ctx.fillStyle = shadeColor(base, shade);
+    ctx.fillRect(px, py, TILE, TILE);
+    if (v > 0.86) {
+      ctx.fillStyle = shadeColor(base, shade - 0.16);
+      ctx.fillRect(px + TILE * 0.28, py + TILE * 0.5, TILE * 0.4, Math.max(1, TILE * 0.05));
+    }
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.fillRect(px + TILE - 1, py, 1, TILE);
+    ctx.fillRect(px, py + TILE - 1, TILE, 1);
+  }
+
+  function drawStairsTile(x, y, lit) {
+    drawFloorTile(x, y, lit);
+    var px = x * TILE, py = y * TILE;
+    var cx = px + TILE / 2, cy = py + TILE / 2;
+    if (lit) {
+      var grad = ctx.createRadialGradient(cx, cy, 1, cx, cy, TILE * 0.85);
+      grad.addColorStop(0, "rgba(233,208,138,0.55)");
+      grad.addColorStop(1, "rgba(233,208,138,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(px - TILE * 0.5, py - TILE * 0.5, TILE * 2, TILE * 2);
+    }
+    ctx.fillStyle = lit ? STAIRS_LIT : STAIRS_DIM;
+    var stepH = TILE * 0.11;
+    for (var i = 0; i < 3; i++) {
+      var w = TILE * 0.56 - i * TILE * 0.14;
+      ctx.fillRect(cx - w / 2, cy - TILE * 0.16 + i * stepH, w, stepH);
+    }
+  }
+
+  function drawShadow(cx, cy, w) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w, w * 0.36, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 敵・アイテムの丸アイコン描画(冒険者本体は drawPlayerFigure が別途担当)
+  function drawEntityGlyph(x, y, glyph, color, alpha, isBoss) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    var r = isBoss ? TILE / 2 - 1 : TILE / 2 - 3;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    if (isBoss) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#1b1712";
+    ctx.font = "bold " + Math.floor(TILE * 0.5) + "px 'Zen Maru Gothic', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(glyph, cx, cy + 1);
+    ctx.restore();
+  }
+
+  // 冒険者本体をヒト型で描画する
+  function drawPlayerFigure(x, y) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var skin = "#e0b48a", hair = "#5a3c28", tunic = "#3f6b52", cape = "#a5502c", leg = "#3a2e22";
+    ctx.save();
+
+    drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
+
+    // マント(体の後ろ側)
+    ctx.fillStyle = cape;
+    ctx.beginPath();
+    ctx.moveTo(cx - TILE * 0.15, cy - TILE * 0.16);
+    ctx.lineTo(cx + TILE * 0.15, cy - TILE * 0.16);
+    ctx.lineTo(cx + TILE * 0.23, cy + TILE * 0.30);
+    ctx.lineTo(cx - TILE * 0.23, cy + TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 脚
+    ctx.fillStyle = leg;
+    ctx.fillRect(cx - TILE * 0.12, cy + TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(cx + TILE * 0.03, cy + TILE * 0.07, TILE * 0.09, TILE * 0.24);
+
+    // 盾(左手、装備時のみ)
+    if (G.player && G.player.shield) {
+      ctx.fillStyle = "#9aa4ad";
+      ctx.beginPath();
+      ctx.ellipse(cx - TILE * 0.29, cy + TILE * 0.02, TILE * 0.09, TILE * 0.13, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#5f6a72";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // 胴体(丸みのあるチュニック)
+    ctx.fillStyle = tunic;
+    roundRectPath(cx - TILE * 0.17, cy - TILE * 0.09, TILE * 0.34, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(cx - TILE * 0.17, cy + TILE * 0.11, TILE * 0.34, TILE * 0.035);
+
+    // 腕
+    ctx.fillStyle = skin;
+    ctx.fillRect(cx - TILE * 0.23, cy - TILE * 0.05, TILE * 0.065, TILE * 0.19);
+    ctx.fillRect(cx + TILE * 0.165, cy - TILE * 0.05, TILE * 0.065, TILE * 0.19);
+
+    // 剣(右手、装備時のみ。未装備でも簡単なナイフを持たせる)
+    if (G.player && G.player.weapon) {
+      ctx.strokeStyle = "#d8dee4";
+      ctx.lineWidth = TILE * 0.05;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx + TILE * 0.24, cy + TILE * 0.12);
+      ctx.lineTo(cx + TILE * 0.36, cy - TILE * 0.22);
+      ctx.stroke();
+      ctx.strokeStyle = "#D9A441";
+      ctx.lineWidth = TILE * 0.065;
+      ctx.beginPath();
+      ctx.moveTo(cx + TILE * 0.19, cy + TILE * 0.03);
+      ctx.lineTo(cx + TILE * 0.29, cy + TILE * 0.03);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "#8a7250";
+      ctx.lineWidth = TILE * 0.035;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(cx + TILE * 0.25, cy + TILE * 0.10);
+      ctx.lineTo(cx + TILE * 0.31, cy - TILE * 0.06);
+      ctx.stroke();
+    }
+
+    // 頭
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.arc(cx, cy - TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 髪/フード
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.arc(cx, cy - TILE * 0.31, TILE * 0.15, Math.PI, 0);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   function renderStage() {
     if (!ctx) return;
     ctx.clearRect(0, 0, W * TILE, H * TILE);
@@ -1045,42 +1291,22 @@
         if (!G.discovered[y][x]) continue;
         var t = G.grid[y][x];
         var lit = G.visible[y][x];
-        var color;
-        if (t === T_WALL) color = lit ? "#4a3d2c" : "#2a2318";
-        else if (t === T_STAIRS) color = lit ? "#E9D08A" : "#7a6f4a";
-        else color = lit ? "#766449" : "#332c22";
-        ctx.fillStyle = color;
-        ctx.fillRect(x * TILE, y * TILE, TILE - 1, TILE - 1);
+        if (t === T_WALL) drawWallTile(x, y, lit);
+        else if (t === T_STAIRS) drawStairsTile(x, y, lit);
+        else drawFloorTile(x, y, lit);
       }
     }
     for (var i = 0; i < G.floorItems.length; i++) {
       var it = G.floorItems[i];
       if (!G.discovered[it.y][it.x]) continue;
-      drawGlyph(it.x, it.y, it.def.sym, it.def.color, G.visible[it.y][it.x] ? 1 : 0.45);
+      drawEntityGlyph(it.x, it.y, it.def.sym, it.def.color, G.visible[it.y][it.x] ? 1 : 0.45, false);
     }
     for (var j = 0; j < G.enemies.length; j++) {
       var e = G.enemies[j];
       if (!G.visible[e.y][e.x]) continue;
-      drawGlyph(e.x, e.y, e.sym, e.color, 1, e.boss);
+      drawEntityGlyph(e.x, e.y, e.sym, e.color, 1, e.boss);
     }
-    drawGlyph(G.player.x, G.player.y, "人", "#E9D08A", 1);
-  }
-
-  function drawGlyph(x, y, glyph, color, alpha, isBoss) {
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
-    ctx.arc(cx, cy, TILE / 2 - 2, 0, Math.PI * 2);
-    ctx.fill();
-    if (isBoss) { ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); }
-    ctx.fillStyle = "#1b1712";
-    ctx.font = "bold " + Math.floor(TILE * 0.55) + "px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(glyph, cx, cy + 1);
-    ctx.restore();
+    drawPlayerFigure(G.player.x, G.player.y);
   }
 
   /* =========================================================
