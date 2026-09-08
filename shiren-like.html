@@ -405,21 +405,22 @@
   var T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
 
   // dropRate: 撃破時にアイテムを落とす確率(0〜1)。ボスは常に(1.0)ドロップする。
+  // shape/accessory: モンスターのビジュアル形状の指定(drawMonsterで使用)
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15 },
-    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12 },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15 },
-    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18 },
-    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2 },
-    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22 },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22 },
-    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25 },
-    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28 },
-    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28 },
-    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3 },
-    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3 },
-    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35 },
-    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35 }
+    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
+    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
   ];
 
   var BOSS_TABLE = {
@@ -495,7 +496,8 @@
         poison: 0,
         weapon: null,
         shield: null,
-        inventory: []
+        inventory: [],
+        facing: { dx: 0, dy: 1 }
       },
       log: []
     };
@@ -613,6 +615,9 @@
       poison: !!def.poison,
       erratic: def.erratic || 0,
       dropRate: typeof def.dropRate === "number" ? def.dropRate : 0.15,
+      shape: def.shape || "humanoid",
+      accessory: def.accessory || "none",
+      big: !!def.big,
       awake: !chance(def.sleepy || 0.15),
       x: 0, y: 0
     };
@@ -641,6 +646,7 @@
         key: "boss" + depth, name: b.name, sym: b.sym, color: b.color,
         hp: b.hp, maxHp: b.hp, atk: b.atk, def: b.def, exp: b.exp,
         poison: false, erratic: 0, dropRate: BOSS_DROP_RATE, awake: true, boss: true,
+        shape: "humanoid", accessory: "crown", big: true,
         x: spot2.x, y: spot2.y
       });
     }
@@ -928,6 +934,7 @@
   function movePlayer(dx, dy) {
     if (!G || G.gameOver) return;
     if (dx === 0 && dy === 0) { doTurn(); return; }
+    G.player.facing = { dx: dx, dy: dy };
     var nx = G.player.x + dx, ny = G.player.y + dy;
     if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) return;
 
@@ -1077,12 +1084,6 @@
 
   /* ---- タイルの質感描画ヘルパー ---- */
 
-  // 座標から決定的な0〜1の疑似乱数を得る(毎フレーム同じ値になり、ちらつかない)
-  function hash2(x, y) {
-    var s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
-    return s - Math.floor(s);
-  }
-
   // hexカラーを percent(-1〜1) だけ明るく/暗くする
   function shadeColor(hex, percent) {
     var f = parseInt(hex.slice(1), 16);
@@ -1105,21 +1106,22 @@
     ctx.closePath();
   }
 
-  var WALL_LIT = "#4d4028", WALL_DIM = "#2a2318";
-  var FLOOR_LIT = "#7a6748", FLOOR_DIM = "#332c22";
+  // 壁・床はそれぞれ1色に統一(タイルごとのランダムな濃淡は付けない)し、
+  // はっきり見分けられるよう明度差を大きくしてある。
+  var WALL_LIT = "#332a1f", WALL_DIM = "#1c1712";
+  var FLOOR_LIT = "#a3895f", FLOOR_DIM = "#463a29";
   var STAIRS_LIT = "#E9D08A", STAIRS_DIM = "#7a6f4a";
 
   function drawWallTile(x, y, lit) {
     var px = x * TILE, py = y * TILE;
     var base = lit ? WALL_LIT : WALL_DIM;
-    var shade = (hash2(x, y) - 0.5) * 0.16;
-    ctx.fillStyle = shadeColor(base, shade);
+    ctx.fillStyle = base;
     ctx.fillRect(px, py, TILE, TILE);
-    ctx.fillStyle = shadeColor(base, shade + (lit ? 0.16 : 0.05));
+    ctx.fillStyle = shadeColor(base, lit ? 0.18 : 0.06);
     ctx.fillRect(px, py, TILE, Math.max(1, TILE * 0.08));
-    ctx.fillStyle = shadeColor(base, shade - (lit ? 0.22 : 0.08));
+    ctx.fillStyle = shadeColor(base, lit ? -0.24 : -0.1);
     ctx.fillRect(px, py + TILE - Math.max(1, TILE * 0.08), TILE, Math.max(1, TILE * 0.08));
-    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(px + TILE - 1, py, 1, TILE);
     ctx.fillRect(px, py + TILE - 1, TILE, 1);
   }
@@ -1127,15 +1129,9 @@
   function drawFloorTile(x, y, lit) {
     var px = x * TILE, py = y * TILE;
     var base = lit ? FLOOR_LIT : FLOOR_DIM;
-    var v = hash2(x + 91.7, y + 41.3);
-    var shade = (v - 0.5) * 0.14;
-    ctx.fillStyle = shadeColor(base, shade);
+    ctx.fillStyle = base;
     ctx.fillRect(px, py, TILE, TILE);
-    if (v > 0.86) {
-      ctx.fillStyle = shadeColor(base, shade - 0.16);
-      ctx.fillRect(px + TILE * 0.28, py + TILE * 0.5, TILE * 0.4, Math.max(1, TILE * 0.05));
-    }
-    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
     ctx.fillRect(px + TILE - 1, py, 1, TILE);
     ctx.fillRect(px, py + TILE - 1, TILE, 1);
   }
@@ -1197,34 +1193,236 @@
     ctx.restore();
   }
 
-  // 冒険者本体をヒト型で描画する
+  /* ---- モンスターのビジュアル(shapeごとに描き分ける) ---- */
+
+  function drawEyes(cx, cy, spread, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(cx - spread, cy, size, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + spread, cy, size, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawBlobMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy - r * 0.1);
+    ctx.quadraticCurveTo(cx - r, cy + r * 0.7, cx - r * 0.5, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx, cy + r * 0.92, cx + r * 0.5, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx + r, cy + r * 0.7, cx + r, cy - r * 0.1);
+    ctx.quadraticCurveTo(cx + r * 0.6, cy - r * 0.9, cx, cy - r * 0.95);
+    ctx.quadraticCurveTo(cx - r * 0.6, cy - r * 0.9, cx - r, cy - r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.32, cy - r * 0.38, r * 0.22, r * 0.14, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    drawEyes(cx, cy + r * 0.08, r * 0.26, r * 0.09, "#1b1712");
+  }
+
+  function drawBeastMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.18, r * 0.6, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.32, r * 0.36, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.28, cy - r * 0.52); ctx.lineTo(cx - r * 0.44, cy - r * 0.82); ctx.lineTo(cx - r * 0.1, cy - r * 0.62); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.28, cy - r * 0.52); ctx.lineTo(cx + r * 0.44, cy - r * 0.82); ctx.lineTo(cx + r * 0.1, cy - r * 0.62); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.52, cy + r * 0.35);
+    ctx.quadraticCurveTo(cx + r * 1.0, cy + r * 0.15, cx + r * 0.9, cy - r * 0.22);
+    ctx.stroke();
+    drawEyes(cx, cy - r * 0.34, r * 0.15, r * 0.06, "#1b1712");
+  }
+
+  function drawFlyerMonster(cx, cy, r, color, big) {
+    var wingReach = big ? 1.15 : 1.0;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - r * wingReach, cy - r * 0.55);
+    ctx.lineTo(cx - r * 0.5, cy + r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * wingReach, cy - r * 0.55);
+    ctx.lineTo(cx + r * 0.5, cy + r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.34, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.18, cy - r * 0.32); ctx.lineTo(cx - r * 0.28, cy - r * 0.6); ctx.lineTo(cx - r * 0.02, cy - r * 0.38); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.18, cy - r * 0.32); ctx.lineTo(cx + r * 0.28, cy - r * 0.6); ctx.lineTo(cx + r * 0.02, cy - r * 0.38); ctx.closePath(); ctx.fill();
+    drawEyes(cx, cy - r * 0.05, r * 0.13, r * 0.06, "#ffdca0");
+  }
+
+  function drawPlantMonster(cx, cy, r, color) {
+    ctx.fillStyle = "#e8ddc0";
+    ctx.fillRect(cx - r * 0.18, cy - r * 0.05, r * 0.36, r * 0.58);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.05, r * 0.64, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = shadeColor(color, 0.3);
+    ctx.beginPath(); ctx.arc(cx - r * 0.22, cy - r * 0.28, r * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.24, cy - r * 0.18, r * 0.08, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.02, cy - r * 0.4, r * 0.07, 0, Math.PI * 2); ctx.fill();
+    drawEyes(cx, cy + r * 0.2, r * 0.14, r * 0.06, "#1b1712");
+  }
+
+  function drawGhostMonster(cx, cy, r, color) {
+    ctx.save();
+    ctx.globalAlpha *= 0.85;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.08, r * 0.62, Math.PI, 0);
+    var waves = 3, ww = (r * 1.24) / waves, bx = cx + r * 0.62;
+    ctx.lineTo(bx, cy + r * 0.5);
+    for (var i = 0; i < waves; i++) {
+      ctx.quadraticCurveTo(bx - ww * 0.5, cy + r * 0.76, bx - ww, cy + r * 0.5);
+      bx -= ww;
+    }
+    ctx.closePath();
+    ctx.fill();
+    drawEyes(cx, cy - r * 0.08, r * 0.2, r * 0.07, "#1b1712");
+    ctx.restore();
+  }
+
+  function drawRobedMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.15);
+    ctx.lineTo(cx + r * 0.55, cy + r * 0.78);
+    ctx.lineTo(cx - r * 0.55, cy + r * 0.78);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#d8c8a8";
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.3, r * 0.24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = shadeColor(color, -0.15);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.34, cy - r * 0.44);
+    ctx.lineTo(cx + r * 0.34, cy - r * 0.44);
+    ctx.lineTo(cx, cy - r * 1.0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(cx - r * 0.38, cy - r * 0.46, r * 0.76, r * 0.08);
+    drawEyes(cx, cy - r * 0.28, r * 0.12, r * 0.05, "#1b1712");
+  }
+
+  function drawHumanoidMonster(cx, cy, r, color, accessory) {
+    var skin = shadeColor(color, 0.3);
+    ctx.fillStyle = shadeColor(color, -0.3);
+    ctx.fillRect(cx - r * 0.28, cy + r * 0.15, r * 0.22, r * 0.5);
+    ctx.fillRect(cx + r * 0.06, cy + r * 0.15, r * 0.22, r * 0.5);
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - r * 0.58, cy - r * 0.05, r * 0.18, r * 0.42);
+    ctx.fillRect(cx + r * 0.40, cy - r * 0.05, r * 0.18, r * 0.42);
+    ctx.fillStyle = color;
+    roundRectPath(cx - r * 0.42, cy - r * 0.15, r * 0.84, r * 0.55, r * 0.15);
+    ctx.fill();
+    ctx.fillStyle = accessory === "skull" ? "#e8e0cc" : skin;
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.5, r * 0.34, 0, Math.PI * 2); ctx.fill();
+
+    if (accessory === "tusk") {
+      ctx.fillStyle = "#f0ead8";
+      ctx.beginPath(); ctx.moveTo(cx - r * 0.14, cy - r * 0.4); ctx.lineTo(cx - r * 0.22, cy - r * 0.26); ctx.lineTo(cx - r * 0.06, cy - r * 0.32); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + r * 0.14, cy - r * 0.4); ctx.lineTo(cx + r * 0.22, cy - r * 0.26); ctx.lineTo(cx + r * 0.06, cy - r * 0.32); ctx.closePath(); ctx.fill();
+    } else if (accessory === "horn") {
+      ctx.fillStyle = "#241d18";
+      ctx.beginPath(); ctx.moveTo(cx - r * 0.22, cy - r * 0.7); ctx.lineTo(cx - r * 0.34, cy - r * 1.08); ctx.lineTo(cx - r * 0.08, cy - r * 0.78); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + r * 0.22, cy - r * 0.7); ctx.lineTo(cx + r * 0.34, cy - r * 1.08); ctx.lineTo(cx + r * 0.08, cy - r * 0.78); ctx.closePath(); ctx.fill();
+    } else if (accessory === "helm") {
+      ctx.fillStyle = shadeColor(color, -0.2);
+      ctx.beginPath(); ctx.arc(cx, cy - r * 0.5, r * 0.4, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#1b1712";
+      ctx.fillRect(cx - r * 0.05, cy - r * 0.46, r * 0.1, r * 0.06);
+    } else if (accessory === "skull") {
+      ctx.fillStyle = "#1b1712";
+      ctx.beginPath(); ctx.arc(cx - r * 0.1, cy - r * 0.52, r * 0.06, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + r * 0.1, cy - r * 0.52, r * 0.06, 0, Math.PI * 2); ctx.fill();
+    }
+    if (accessory === "crown") {
+      ctx.fillStyle = "#f0d060";
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.32, cy - r * 0.78);
+      ctx.lineTo(cx - r * 0.18, cy - r * 1.05);
+      ctx.lineTo(cx, cy - r * 0.82);
+      ctx.lineTo(cx + r * 0.18, cy - r * 1.05);
+      ctx.lineTo(cx + r * 0.32, cy - r * 0.78);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = shadeColor("#f0d060", -0.3);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    if (accessory !== "skull" && accessory !== "helm") {
+      drawEyes(cx, cy - r * 0.5, r * 0.13, r * 0.05, "#1b1712");
+    }
+  }
+
+  // 敵1体分の見た目をshapeに応じて描き分ける
+  function drawMonster(x, y, enemy) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = (enemy.boss ? TILE * 0.44 : (enemy.big ? TILE * 0.4 : TILE * 0.34));
+    ctx.save();
+    drawShadow(cx, cy + r * 0.85, r * 0.85);
+    if (enemy.boss) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    switch (enemy.shape) {
+      case "blob": drawBlobMonster(cx, cy, r, enemy.color); break;
+      case "beast": drawBeastMonster(cx, cy, r, enemy.color); break;
+      case "flyer": drawFlyerMonster(cx, cy, r, enemy.color, enemy.big); break;
+      case "plant": drawPlantMonster(cx, cy, r, enemy.color); break;
+      case "ghost": drawGhostMonster(cx, cy, r, enemy.color); break;
+      case "robed": drawRobedMonster(cx, cy, r, enemy.color); break;
+      default: drawHumanoidMonster(cx, cy, r, enemy.color, enemy.accessory); break;
+    }
+    ctx.restore();
+  }
+
+  // 冒険者本体をヒト型で描画する。向いている方向(facing)に合わせて絵姿ごと回転させる。
+  // 基準ポーズは「下(dy=+1)」を向いた状態で描いてあるため、その分だけ角度を補正する。
   function drawPlayerFigure(x, y) {
     var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
     var skin = "#e0b48a", hair = "#5a3c28", tunic = "#3f6b52", cape = "#a5502c", leg = "#3a2e22";
-    ctx.save();
+    var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
+    var angle = Math.atan2(facing.dy, facing.dx) - Math.PI / 2;
 
     drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
 
     // マント(体の後ろ側)
     ctx.fillStyle = cape;
     ctx.beginPath();
-    ctx.moveTo(cx - TILE * 0.15, cy - TILE * 0.16);
-    ctx.lineTo(cx + TILE * 0.15, cy - TILE * 0.16);
-    ctx.lineTo(cx + TILE * 0.23, cy + TILE * 0.30);
-    ctx.lineTo(cx - TILE * 0.23, cy + TILE * 0.30);
+    ctx.moveTo(-TILE * 0.15, -TILE * 0.16);
+    ctx.lineTo(TILE * 0.15, -TILE * 0.16);
+    ctx.lineTo(TILE * 0.23, TILE * 0.30);
+    ctx.lineTo(-TILE * 0.23, TILE * 0.30);
     ctx.closePath();
     ctx.fill();
 
     // 脚
     ctx.fillStyle = leg;
-    ctx.fillRect(cx - TILE * 0.12, cy + TILE * 0.07, TILE * 0.09, TILE * 0.24);
-    ctx.fillRect(cx + TILE * 0.03, cy + TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(-TILE * 0.12, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(TILE * 0.03, TILE * 0.07, TILE * 0.09, TILE * 0.24);
 
     // 盾(左手、装備時のみ)
     if (G.player && G.player.shield) {
       ctx.fillStyle = "#9aa4ad";
       ctx.beginPath();
-      ctx.ellipse(cx - TILE * 0.29, cy + TILE * 0.02, TILE * 0.09, TILE * 0.13, 0, 0, Math.PI * 2);
+      ctx.ellipse(-TILE * 0.29, TILE * 0.02, TILE * 0.09, TILE * 0.13, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = "#5f6a72";
       ctx.lineWidth = 1;
@@ -1233,15 +1431,15 @@
 
     // 胴体(丸みのあるチュニック)
     ctx.fillStyle = tunic;
-    roundRectPath(cx - TILE * 0.17, cy - TILE * 0.09, TILE * 0.34, TILE * 0.27, TILE * 0.07);
+    roundRectPath(-TILE * 0.17, -TILE * 0.09, TILE * 0.34, TILE * 0.27, TILE * 0.07);
     ctx.fill();
     ctx.fillStyle = "#241d12";
-    ctx.fillRect(cx - TILE * 0.17, cy + TILE * 0.11, TILE * 0.34, TILE * 0.035);
+    ctx.fillRect(-TILE * 0.17, TILE * 0.11, TILE * 0.34, TILE * 0.035);
 
     // 腕
     ctx.fillStyle = skin;
-    ctx.fillRect(cx - TILE * 0.23, cy - TILE * 0.05, TILE * 0.065, TILE * 0.19);
-    ctx.fillRect(cx + TILE * 0.165, cy - TILE * 0.05, TILE * 0.065, TILE * 0.19);
+    ctx.fillRect(-TILE * 0.23, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
+    ctx.fillRect(TILE * 0.165, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
 
     // 剣(右手、装備時のみ。未装備でも簡単なナイフを持たせる)
     if (G.player && G.player.weapon) {
@@ -1249,35 +1447,35 @@
       ctx.lineWidth = TILE * 0.05;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(cx + TILE * 0.24, cy + TILE * 0.12);
-      ctx.lineTo(cx + TILE * 0.36, cy - TILE * 0.22);
+      ctx.moveTo(TILE * 0.24, TILE * 0.12);
+      ctx.lineTo(TILE * 0.36, -TILE * 0.22);
       ctx.stroke();
       ctx.strokeStyle = "#D9A441";
       ctx.lineWidth = TILE * 0.065;
       ctx.beginPath();
-      ctx.moveTo(cx + TILE * 0.19, cy + TILE * 0.03);
-      ctx.lineTo(cx + TILE * 0.29, cy + TILE * 0.03);
+      ctx.moveTo(TILE * 0.19, TILE * 0.03);
+      ctx.lineTo(TILE * 0.29, TILE * 0.03);
       ctx.stroke();
     } else {
       ctx.strokeStyle = "#8a7250";
       ctx.lineWidth = TILE * 0.035;
       ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.moveTo(cx + TILE * 0.25, cy + TILE * 0.10);
-      ctx.lineTo(cx + TILE * 0.31, cy - TILE * 0.06);
+      ctx.moveTo(TILE * 0.25, TILE * 0.10);
+      ctx.lineTo(TILE * 0.31, -TILE * 0.06);
       ctx.stroke();
     }
 
     // 頭
     ctx.fillStyle = skin;
     ctx.beginPath();
-    ctx.arc(cx, cy - TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
+    ctx.arc(0, -TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
     ctx.fill();
 
     // 髪/フード
     ctx.fillStyle = hair;
     ctx.beginPath();
-    ctx.arc(cx, cy - TILE * 0.31, TILE * 0.15, Math.PI, 0);
+    ctx.arc(0, -TILE * 0.31, TILE * 0.15, Math.PI, 0);
     ctx.fill();
 
     ctx.restore();
@@ -1304,7 +1502,7 @@
     for (var j = 0; j < G.enemies.length; j++) {
       var e = G.enemies[j];
       if (!G.visible[e.y][e.x]) continue;
-      drawEntityGlyph(e.x, e.y, e.sym, e.color, 1, e.boss);
+      drawMonster(e.x, e.y, e);
     }
     drawPlayerFigure(G.player.x, G.player.y);
   }
