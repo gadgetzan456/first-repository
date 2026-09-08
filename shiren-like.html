@@ -401,6 +401,8 @@
   var MAX_FLOOR = 50;
   var INV_CAP = 8;
   var SAVE_KEY = "meikyu50_save_v1";
+  var WANDER_SPAWN_CHANCE = 0.03; // 行動1回ごとに新しい敵が湧く確率(低確率)
+  var WANDER_MAX_ENEMIES = 16; // 湧きすぎ防止のための1フロアあたりの敵数上限
 
   var T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
 
@@ -658,6 +660,25 @@
       var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
       G.floorItems.push({ x: ispot.x, y: ispot.y, def: idef });
     }
+  }
+
+  // フロア移動時だけでなく、プレイヤーの行動のたびに低確率で新しい敵が湧く(徘徊モンスター)。
+  // ゲーム進行を妨害しないよう、出現率は低く、フロアあたりの敵数には上限を設ける。
+  function trySpawnWanderingMonster() {
+    if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
+    if (!chance(WANDER_SPAWN_CHANCE)) return;
+    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= G.floor; });
+    if (!pool.length) return;
+    var def = weightedPick(pool);
+    var spot = randomFloorTile(G, function (x, y) {
+      return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 5) || tileOccupied(x, y) ||
+        (x === G.stairsX && y === G.stairsY);
+    });
+    if (spot.x === G.player.x && spot.y === G.player.y) return; // 有効な湧き場所が見つからなかった
+    var e = scaledEnemy(def, G.floor);
+    e.x = spot.x; e.y = spot.y;
+    G.enemies.push(e);
+    addMessage("微かな気配を感じた…", "");
   }
 
   function enterFloor(depth, keepPlayerStats) {
@@ -972,6 +993,7 @@
     if (G.turn % 25 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
       G.player.hp = Math.min(G.player.maxHp, G.player.hp + 1);
     }
+    trySpawnWanderingMonster();
     if (checkPlayerDeath()) return;
 
     enemyTurn();
