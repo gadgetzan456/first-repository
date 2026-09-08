@@ -1,0 +1,1205 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>迷宮五十階</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+    --font-body: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
+
+    --bg: #1b1712;
+    --bg-deep: #0f0d0a;
+    --panel: #262019;
+    --panel-border: #4a3d2c;
+    --ink: #ECE3CE;
+    --ink-soft: #B3A688;
+    --accent: #D9A441;
+    --accent-ink: #241d12;
+    --danger: #C9503F;
+    --good: #6FA85A;
+    --wall: #3a3226;
+    --wall-line: #1f1a13;
+    --floor: #55493a;
+    --floor-lit: #766449;
+    --stairs: #E9D08A;
+    --hp-bar: #C9503F;
+    --hp-bg: #3a2016;
+    --hunger-bar: #B98A3E;
+    --hunger-bg: #3a2c16;
+    --exp-bar: #5C7FB0;
+    --exp-bg: #1c2a3a;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 16px 10px 32px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 860px;
+    position: relative;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.12em;
+    font-size: clamp(22px, 4vw, 30px);
+    margin: 4px 0 14px;
+    color: var(--accent);
+    text-shadow: 0 2px 6px var(--shadow);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px var(--shadow);
+  }
+
+  /* ---------- Overlays (title / game over) ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 8, 5, 0.86);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 20px;
+  }
+  .overlay[hidden] { display: none; }
+
+  .overlay-card {
+    max-width: 460px;
+    width: 100%;
+    padding: 28px 26px 24px;
+    text-align: center;
+  }
+
+  .overlay-card h2 {
+    font-family: var(--font-display);
+    color: var(--accent);
+    font-size: 24px;
+    margin: 0 0 10px;
+  }
+
+  .overlay-card p {
+    color: var(--ink-soft);
+    line-height: 1.7;
+    font-size: 14px;
+    margin: 0 0 18px;
+  }
+
+  .overlay-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    text-align: left;
+    font-size: 14px;
+    margin: 0 0 20px;
+    color: var(--ink);
+  }
+  .overlay-stats span.label { color: var(--ink-soft); }
+
+  button {
+    font-family: var(--font-body);
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  .btn-main {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+  }
+  .btn-main:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--ink-soft);
+  }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px 14px;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .hud .floor-badge {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .hud .lv-badge { color: var(--ink-soft); white-space: nowrap; }
+  .bar-row { display: flex; align-items: center; gap: 6px; }
+  .bar-row .bar-label { width: 30px; font-size: 11px; color: var(--ink-soft); flex-shrink: 0; }
+  .bar {
+    flex: 1;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--hp-bg);
+    position: relative;
+    min-width: 60px;
+  }
+  .bar-fill { height: 100%; transition: width 0.2s ease; }
+  .bar-text {
+    grid-column: 3;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage-wrap {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  canvas#stage {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    background: var(--bg-deep);
+  }
+
+  .log {
+    height: 108px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .log p { margin: 0; }
+  .log p.msg-warn { color: var(--danger); }
+  .log p.msg-good { color: var(--good); }
+  .log p.msg-note { color: var(--accent); }
+
+  /* ---------- Lower area: controls + panels ---------- */
+  .lower {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 620px) {
+    .lower { grid-template-columns: 1fr; }
+  }
+
+  .controls {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+    gap: 4px;
+  }
+  .dpad button {
+    background: var(--floor);
+    color: var(--ink);
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .dpad button:active { background: var(--accent); color: var(--accent-ink); }
+  .dpad button.center { background: var(--wall); color: var(--ink-soft); font-size: 11px; }
+  .help-text {
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .panels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel-block { padding: 10px 12px; }
+  .panel-block h3 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 6px;
+  }
+  .equip-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    padding: 3px 0;
+    color: var(--ink);
+  }
+  .equip-row .label { color: var(--ink-soft); }
+
+  .inv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 210px;
+    overflow-y: auto;
+  }
+  .inv-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 12.5px;
+  }
+  .inv-item .sym {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .inv-item .name { flex: 1; min-width: 0; }
+  .inv-item .name small { display: block; color: var(--ink-soft); font-size: 10.5px; }
+  .inv-item .acts { display: flex; gap: 4px; flex-shrink: 0; }
+  .inv-item .acts button {
+    font-size: 10.5px;
+    padding: 4px 6px;
+    background: var(--wall);
+    color: var(--ink);
+  }
+  .inv-item .acts button:active { background: var(--accent); color: var(--accent-ink); }
+  .inv-empty { color: var(--ink-soft); font-size: 12px; padding: 4px 2px; }
+</style>
+
+<div class="app">
+  <h1>迷宮五十階</h1>
+
+  <!-- Title screen -->
+  <div class="overlay" id="screen-title">
+    <div class="panel overlay-card">
+      <h2>迷宮五十階</h2>
+      <p>
+        地下1階から50階まで続く迷宮に挑む、ターン制のダンジョン探索ゲームです。<br>
+        力尽きればそこで終わり、最初の階からやり直しとなります。<br>
+        矢印キー / WASD、または下の方向パッドで移動します。敵のいる方向へ進むと攻撃です。
+      </p>
+      <button class="btn-main" id="btn-new-game">最初から始める</button>
+      <button class="btn-main btn-ghost" id="btn-continue" hidden>続きから始める</button>
+    </div>
+  </div>
+
+  <!-- Game over / clear screen -->
+  <div class="overlay" id="screen-end" hidden>
+    <div class="panel overlay-card">
+      <h2 id="end-title">力尽きた…</h2>
+      <p id="end-desc"></p>
+      <div class="overlay-stats" id="end-stats"></div>
+      <button class="btn-main" id="btn-restart">最初からやり直す</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="panel hud">
+    <div class="floor-badge" id="hud-floor">B1F</div>
+    <div>
+      <div class="bar-row">
+        <span class="bar-label">HP</span>
+        <div class="bar"><div class="bar-fill" id="bar-hp" style="background:var(--hp-bar);width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">満腹</span>
+        <div class="bar"><div class="bar-fill" id="bar-hunger" style="background:var(--hunger-bar);width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">EXP</span>
+        <div class="bar"><div class="bar-fill" id="bar-exp" style="background:var(--exp-bar);width:0%"></div></div>
+      </div>
+    </div>
+    <div class="lv-badge" id="hud-lv">Lv.1</div>
+  </div>
+
+  <!-- Dungeon canvas -->
+  <div class="panel stage-wrap">
+    <canvas id="stage" width="748" height="396"></canvas>
+  </div>
+
+  <!-- Message log -->
+  <div class="panel log" id="log"></div>
+
+  <div class="lower">
+    <div class="panel controls">
+      <div class="dpad" id="dpad">
+        <button data-dx="-1" data-dy="-1">↖</button>
+        <button data-dx="0" data-dy="-1">↑</button>
+        <button data-dx="1" data-dy="-1">↗</button>
+        <button data-dx="-1" data-dy="0">←</button>
+        <button class="center" data-dx="0" data-dy="0">待機</button>
+        <button data-dx="1" data-dy="0">→</button>
+        <button data-dx="-1" data-dy="1">↙</button>
+        <button data-dx="0" data-dy="1">↓</button>
+        <button data-dx="1" data-dy="1">↘</button>
+      </div>
+      <div class="help-text">矢印 / WASD でも移動できます<br>階段の上に乗ると自動で降ります</div>
+    </div>
+
+    <div class="panels">
+      <div class="panel panel-block">
+        <h3>装備</h3>
+        <div class="equip-row"><span class="label">武器</span><span id="equip-weapon">なし</span></div>
+        <div class="equip-row"><span class="label">盾</span><span id="equip-shield">なし</span></div>
+        <div class="equip-row"><span class="label">攻撃力</span><span id="equip-atk">-</span></div>
+        <div class="equip-row"><span class="label">防御力</span><span id="equip-def">-</span></div>
+      </div>
+      <div class="panel panel-block">
+        <h3>持ち物</h3>
+        <div class="inv-list" id="inv-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     定数・データテーブル
+  ========================================================= */
+  var W = 34, H = 18;
+  var TILE = 22;
+  var MAX_FLOOR = 50;
+  var INV_CAP = 8;
+  var SAVE_KEY = "meikyu50_save_v1";
+
+  var T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
+
+  var ENEMY_TYPES = [
+    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2 },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1 },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35 },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15 },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15 },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35 },
+    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15 },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1 },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2 },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15 },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1 },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1 },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15 }
+  ];
+
+  var BOSS_TABLE = {
+    10: { name: "牙の王ボアグラ", sym: "王", color: "#c94f3d", hp: 65, atk: 14, def: 6, exp: 90 },
+    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#8f8f9c", hp: 115, atk: 22, def: 12, exp: 170 },
+    30: { name: "業火のバルザック", sym: "炎", color: "#d9702c", hp: 175, atk: 30, def: 16, exp: 290 },
+    40: { name: "氷牙のフェンリク", sym: "氷", color: "#6fb0c9", hp: 245, atk: 38, def: 20, exp: 430 },
+    50: { name: "深淵の王ザガレス", sym: "覇", color: "#b03050", hp: 400, atk: 50, def: 26, exp: 1000 }
+  };
+
+  var ITEM_TYPES = [
+    { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, minDepth: 1, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
+    { key: "antidote", name: "毒消し草", cat: "herb", sub: "antidote", value: 0, minDepth: 1, weight: 3, sym: "毒", color: "#5a9a7a", desc: "毒を治す" },
+    { key: "fullpotion", name: "全回復の薬", cat: "herb", sub: "fullheal", value: 0, minDepth: 8, weight: 1, sym: "全", color: "#d9a441", desc: "HPを完全に回復する" },
+    { key: "onigiri", name: "おにぎり", cat: "food", sub: "small", value: 40, minDepth: 1, weight: 6, sym: "食", color: "#c9a15a", desc: "満腹度を40回復する" },
+    { key: "onigiri_big", name: "大きなおにぎり", cat: "food", sub: "big", value: 75, minDepth: 6, weight: 3, sym: "食", color: "#e0b96a", desc: "満腹度を75回復する" },
+    { key: "sw_wood", name: "木の剣", cat: "weapon", value: 2, minDepth: 1, weight: 5, sym: "剣", color: "#a9895a", desc: "攻撃力+2" },
+    { key: "sw_copper", name: "銅の剣", cat: "weapon", value: 4, minDepth: 4, weight: 4, sym: "剣", color: "#c9793f", desc: "攻撃力+4" },
+    { key: "sw_iron", name: "鉄の剣", cat: "weapon", value: 7, minDepth: 10, weight: 3, sym: "剣", color: "#b0b0b8", desc: "攻撃力+7" },
+    { key: "sw_steel", name: "鋼の剣", cat: "weapon", value: 11, minDepth: 18, weight: 2, sym: "剣", color: "#d0d8e0", desc: "攻撃力+11" },
+    { key: "sw_silver", name: "銀の剣", cat: "weapon", value: 16, minDepth: 28, weight: 2, sym: "剣", color: "#e8eef2", desc: "攻撃力+16" },
+    { key: "sw_dragon", name: "竜牙の剣", cat: "weapon", value: 22, minDepth: 40, weight: 1, sym: "剣", color: "#e04040", desc: "攻撃力+22" },
+    { key: "sh_wood", name: "木の盾", cat: "shield", value: 2, minDepth: 1, weight: 5, sym: "盾", color: "#a9895a", desc: "防御力+2" },
+    { key: "sh_copper", name: "銅の盾", cat: "shield", value: 4, minDepth: 5, weight: 4, sym: "盾", color: "#c9793f", desc: "防御力+4" },
+    { key: "sh_iron", name: "鉄の盾", cat: "shield", value: 7, minDepth: 12, weight: 3, sym: "盾", color: "#b0b0b8", desc: "防御力+7" },
+    { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, minDepth: 20, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
+    { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, minDepth: 30, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
+    { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, minDepth: 42, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
+    { key: "scroll_enchant", name: "強化の巻物", cat: "scroll", sub: "enchant", value: 0, minDepth: 3, weight: 3, sym: "巻", color: "#d9a441", desc: "装備を1段階強化する" },
+    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 2, sym: "巻", color: "#5c7fb0", desc: "この階の別の場所へ飛ぶ" }
+  ];
+
+  /* =========================================================
+     乱数ユーティリティ
+  ========================================================= */
+  function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function chance(p) { return Math.random() < p; }
+  function pick(arr) { return arr[rnd(0, arr.length - 1)]; }
+  function weightedPick(list) {
+    var total = 0;
+    for (var i = 0; i < list.length; i++) total += (list[i].weight || 1);
+    var r = Math.random() * total;
+    for (var j = 0; j < list.length; j++) {
+      r -= (list[j].weight || 1);
+      if (r <= 0) return list[j];
+    }
+    return list[list.length - 1];
+  }
+
+  /* =========================================================
+     ゲーム状態
+  ========================================================= */
+  var G = null; // 現在の実行状態(1周分)。タイトル画面ではnull。
+
+  function newRunState() {
+    return {
+      floor: 1,
+      turn: 0,
+      grid: null,
+      roomId: null,
+      rooms: null,
+      visible: null,
+      discovered: null,
+      enemies: [],
+      floorItems: [],
+      player: {
+        x: 0, y: 0,
+        hp: 30, maxHp: 30,
+        level: 1, exp: 0, expNext: 12,
+        atk: 4, def: 2,
+        hunger: 100, maxHunger: 100,
+        poison: 0,
+        weapon: null,
+        shield: null,
+        inventory: []
+      },
+      log: []
+    };
+  }
+
+  /* =========================================================
+     ダンジョン生成
+  ========================================================= */
+  function inBounds(x, y) { return x >= 0 && y >= 0 && x < W && y < H; }
+
+  function generateFloor(depth) {
+    var grid = [];
+    var roomId = [];
+    for (var y = 0; y < H; y++) {
+      grid.push(new Array(W).fill(T_WALL));
+      roomId.push(new Array(W).fill(-1));
+    }
+
+    var rooms = [];
+    var targetRooms = rnd(6, 9);
+    var attempts = 0;
+    while (rooms.length < targetRooms && attempts < 300) {
+      attempts++;
+      var rw = rnd(4, 7), rh = rnd(3, 5);
+      var rx = rnd(1, W - rw - 2);
+      var ry = rnd(1, H - rh - 2);
+      var overlaps = false;
+      for (var i = 0; i < rooms.length; i++) {
+        var r = rooms[i];
+        if (rx - 1 < r.x + r.w + 1 && rx + rw + 1 > r.x - 1 &&
+            ry - 1 < r.y + r.h + 1 && ry + rh + 1 > r.y - 1) {
+          overlaps = true; break;
+        }
+      }
+      if (overlaps) continue;
+      var room = { x: rx, y: ry, w: rw, h: rh, cx: rx + (rw >> 1), cy: ry + (rh >> 1), id: rooms.length };
+      rooms.push(room);
+      for (var yy = ry; yy < ry + rh; yy++) {
+        for (var xx = rx; xx < rx + rw; xx++) {
+          grid[yy][xx] = T_FLOOR;
+          roomId[yy][xx] = room.id;
+        }
+      }
+    }
+
+    function carveH(x1, x2, y) {
+      var a = Math.min(x1, x2), b = Math.max(x1, x2);
+      for (var x = a; x <= b; x++) { if (grid[y][x] === T_WALL) grid[y][x] = T_FLOOR; }
+    }
+    function carveV(y1, y2, x) {
+      var a = Math.min(y1, y2), b = Math.max(y1, y2);
+      for (var y = a; y <= b; y++) { if (grid[y][x] === T_WALL) grid[y][x] = T_FLOOR; }
+    }
+    function connect(a, b) {
+      if (chance(0.5)) { carveH(a.cx, b.cx, a.cy); carveV(a.cy, b.cy, b.cx); }
+      else { carveV(a.cy, b.cy, a.cx); carveH(a.cx, b.cx, b.cy); }
+    }
+
+    for (var i2 = 1; i2 < rooms.length; i2++) connect(rooms[i2 - 1], rooms[i2]);
+    var extraLinks = rnd(1, 3);
+    for (var i3 = 0; i3 < extraLinks && rooms.length > 2; i3++) {
+      connect(pick(rooms), pick(rooms));
+    }
+
+    // 部屋の外周1マスも視界演出のため覚えておく
+    for (var i4 = 0; i4 < rooms.length; i4++) {
+      var rr = rooms[i4];
+      rr.bx0 = Math.max(0, rr.x - 1);
+      rr.by0 = Math.max(0, rr.y - 1);
+      rr.bx1 = Math.min(W - 1, rr.x + rr.w);
+      rr.by1 = Math.min(H - 1, rr.y + rr.h);
+    }
+
+    var startRoom = rooms[0];
+    var stairsRoom = rooms[rooms.length - 1];
+    var best = stairsRoom, bestDist = -1;
+    for (var i5 = 0; i5 < rooms.length; i5++) {
+      var d = Math.abs(rooms[i5].cx - startRoom.cx) + Math.abs(rooms[i5].cy - startRoom.cy);
+      if (d > bestDist) { bestDist = d; best = rooms[i5]; }
+    }
+    stairsRoom = best;
+    grid[stairsRoom.cy][stairsRoom.cx] = T_STAIRS;
+
+    return {
+      grid: grid, roomId: roomId, rooms: rooms,
+      startX: startRoom.cx, startY: startRoom.cy,
+      stairsX: stairsRoom.cx, stairsY: stairsRoom.cy
+    };
+  }
+
+  function randomFloorTile(g, avoid) {
+    for (var tries = 0; tries < 500; tries++) {
+      var x = rnd(1, W - 2), y = rnd(1, H - 2);
+      if (g.grid[y][x] === T_FLOOR && !(avoid && avoid(x, y))) return { x: x, y: y };
+    }
+    return { x: g.startX, y: g.startY };
+  }
+
+  function tileOccupied(x, y) {
+    if (G.player.x === x && G.player.y === y) return true;
+    for (var i = 0; i < G.enemies.length; i++) if (G.enemies[i].x === x && G.enemies[i].y === y) return true;
+    for (var j = 0; j < G.floorItems.length; j++) if (G.floorItems[j].x === x && G.floorItems[j].y === y) return true;
+    return false;
+  }
+
+  function scaledEnemy(def, depth) {
+    var over = Math.max(0, depth - def.minDepth);
+    return {
+      key: def.key, name: def.name, sym: def.sym, color: def.color,
+      hp: Math.round(def.hp * (1 + over * 0.045)),
+      maxHp: Math.round(def.hp * (1 + over * 0.045)),
+      atk: Math.round(def.atk * (1 + over * 0.03)),
+      def: Math.round(def.def * (1 + over * 0.03)),
+      exp: def.exp + Math.round(over * def.exp * 0.05),
+      poison: !!def.poison,
+      erratic: def.erratic || 0,
+      awake: !chance(def.sleepy || 0.15),
+      x: 0, y: 0
+    };
+  }
+
+  function populateFloor(depth) {
+    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+    var count = Math.min(12, rnd(3, 4) + Math.floor(depth / 4));
+    for (var i = 0; i < count; i++) {
+      var def = weightedPick(pool);
+      var spot = randomFloorTile(G, function (x, y) {
+        return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 4) || tileOccupied(x, y) ||
+          (x === G.__stairsX && y === G.__stairsY);
+      });
+      var e = scaledEnemy(def, depth);
+      e.x = spot.x; e.y = spot.y;
+      G.enemies.push(e);
+    }
+
+    if (BOSS_TABLE[depth]) {
+      var b = BOSS_TABLE[depth];
+      var spot2 = randomFloorTile(G, function (x, y) {
+        return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 6) || tileOccupied(x, y);
+      });
+      G.enemies.push({
+        key: "boss" + depth, name: b.name, sym: b.sym, color: b.color,
+        hp: b.hp, maxHp: b.hp, atk: b.atk, def: b.def, exp: b.exp,
+        poison: false, erratic: 0, awake: true, boss: true,
+        x: spot2.x, y: spot2.y
+      });
+    }
+
+    var itemPool = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    var icount = Math.min(7, rnd(2, 3) + Math.floor(depth / 10));
+    for (var j = 0; j < icount; j++) {
+      var idef = weightedPick(itemPool);
+      var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
+      G.floorItems.push({ x: ispot.x, y: ispot.y, def: idef });
+    }
+  }
+
+  function enterFloor(depth, keepPlayerStats) {
+    var g = generateFloor(depth);
+    G.floor = depth;
+    G.grid = g.grid;
+    G.roomId = g.roomId;
+    G.rooms = g.rooms;
+    G.__stairsX = g.stairsX; G.__stairsY = g.stairsY;
+    G.visible = [];
+    G.discovered = [];
+    for (var y = 0; y < H; y++) { G.visible.push(new Array(W).fill(false)); G.discovered.push(new Array(W).fill(false)); }
+    G.enemies = [];
+    G.floorItems = [];
+    G.player.x = g.startX;
+    G.player.y = g.startY;
+    G.stairsX = g.stairsX;
+    G.stairsY = g.stairsY;
+    populateFloor(depth);
+    computeVisibility();
+    addMessage((depth === 1 ? "迷宮" : "地下" + depth + "階") + "に降り立った。", "note");
+  }
+
+  /* =========================================================
+     視界
+  ========================================================= */
+  function computeVisibility() {
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) G.visible[y][x] = false;
+    var px = G.player.x, py = G.player.y;
+    var rid = G.roomId[py][px];
+    if (rid >= 0) {
+      var r = G.rooms[rid];
+      for (var y2 = r.by0; y2 <= r.by1; y2++) {
+        for (var x2 = r.bx0; x2 <= r.bx1; x2++) { G.visible[y2][x2] = true; G.discovered[y2][x2] = true; }
+      }
+    } else {
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          var nx = px + dx, ny = py + dy;
+          if (inBounds(nx, ny)) { G.visible[ny][nx] = true; G.discovered[ny][nx] = true; }
+        }
+      }
+    }
+    G.visible[py][px] = true; G.discovered[py][px] = true;
+  }
+
+  /* =========================================================
+     メッセージログ
+  ========================================================= */
+  function addMessage(text, kind) {
+    G.log.push({ text: text, kind: kind || "" });
+    if (G.log.length > 200) G.log.shift();
+    renderLog();
+  }
+
+  function renderLog() {
+    var el = document.getElementById("log");
+    var html = "";
+    var start = Math.max(0, G.log.length - 60);
+    for (var i = start; i < G.log.length; i++) {
+      var m = G.log[i];
+      var cls = m.kind === "warn" ? "msg-warn" : m.kind === "good" ? "msg-good" : m.kind === "note" ? "msg-note" : "";
+      html += '<p class="' + cls + '">' + escapeHtml(m.text) + "</p>";
+    }
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* =========================================================
+     プレイヤーの能力・装備
+  ========================================================= */
+  function effAtk() { return G.player.atk + (G.player.weapon ? G.player.weapon.value : 0); }
+  function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
+
+  function gainExp(amount) {
+    G.player.exp += amount;
+    while (G.player.exp >= G.player.expNext) {
+      G.player.exp -= G.player.expNext;
+      G.player.level++;
+      G.player.expNext = Math.round(G.player.expNext * 1.35) + 4;
+      var hpUp = rnd(6, 10), atkUp = rnd(1, 2), defUp = 1;
+      G.player.maxHp += hpUp; G.player.hp = G.player.maxHp;
+      G.player.atk += atkUp; G.player.def += defUp;
+      addMessage("レベルが" + G.player.level + "に上がった!(HP+" + hpUp + " 攻撃+" + atkUp + " 防御+" + defUp + ")", "good");
+    }
+  }
+
+  /* =========================================================
+     持ち物
+  ========================================================= */
+  function addItemToInventory(def) {
+    if (def.cat === "weapon" || def.cat === "shield") {
+      if (G.player.inventory.length >= INV_CAP) return false;
+      G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: 1 });
+      return true;
+    }
+    for (var i = 0; i < G.player.inventory.length; i++) {
+      var slot = G.player.inventory[i];
+      if (slot.key === def.key) { slot.count++; return true; }
+    }
+    if (G.player.inventory.length >= INV_CAP) return false;
+    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: 1 });
+    return true;
+  }
+
+  function tryPickup(x, y) {
+    for (var i = 0; i < G.floorItems.length; i++) {
+      var it = G.floorItems[i];
+      if (it.x === x && it.y === y) {
+        if (addItemToInventory(it.def)) {
+          addMessage(it.def.name + "を拾った。", "note");
+          G.floorItems.splice(i, 1);
+        } else {
+          addMessage("荷物がいっぱいで" + it.def.name + "を拾えなかった。", "warn");
+        }
+        return;
+      }
+    }
+  }
+
+  function useInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot) return;
+    if (slot.cat === "weapon" || slot.cat === "shield") { equipInventorySlot(index); return; }
+    var consumed = true;
+    if (slot.cat === "herb") {
+      if (slot.sub === "heal") {
+        var heal = Math.min(slot.value, G.player.maxHp - G.player.hp);
+        G.player.hp = Math.min(G.player.maxHp, G.player.hp + slot.value);
+        addMessage(slot.name + "を使い、HPが" + heal + "回復した。", "good");
+      } else if (slot.sub === "fullheal") {
+        G.player.hp = G.player.maxHp;
+        addMessage(slot.name + "を使い、HPが全回復した!", "good");
+      } else if (slot.sub === "antidote") {
+        if (G.player.poison > 0) { G.player.poison = 0; addMessage(slot.name + "を使い、毒が治った。", "good"); }
+        else { addMessage(slot.name + "を使ったが、毒ではなかった。", ""); }
+      }
+    } else if (slot.cat === "food") {
+      G.player.hunger = Math.min(G.player.maxHunger, G.player.hunger + slot.value);
+      addMessage(slot.name + "を食べた。満腹度が回復した。", "good");
+    } else if (slot.cat === "scroll") {
+      if (slot.sub === "enchant") {
+        if (G.player.weapon) { G.player.weapon.value += 1; addMessage(slot.name + "の力で" + G.player.weapon.name + "が強化された!(攻撃+1)", "good"); }
+        else if (G.player.shield) { G.player.shield.value += 1; addMessage(slot.name + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
+        else { addMessage(slot.name + "を読んだが、強化する装備がなく力は消えた。", "warn"); }
+      } else if (slot.sub === "teleport") {
+        var spot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
+        G.player.x = spot.x; G.player.y = spot.y;
+        addMessage(slot.name + "の光に包まれ、瞬間移動した!", "note");
+        computeVisibility();
+      }
+    } else { consumed = false; }
+    if (consumed) {
+      slot.count--;
+      if (slot.count <= 0) G.player.inventory.splice(index, 1);
+    }
+    renderAll();
+    saveGame();
+  }
+
+  function equipInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield")) return;
+    G.player.inventory.splice(index, 1);
+    var slotName = slot.cat === "weapon" ? "weapon" : "shield";
+    var prev = G.player[slotName];
+    G.player[slotName] = { name: slot.name, value: slot.value, key: slot.key };
+    addMessage(slot.name + "を装備した。", "note");
+    if (prev) {
+      var restored = addItemToInventory({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
+      if (!restored) {
+        G.floorItems.push({ x: G.player.x, y: G.player.y, def: { key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" } });
+        addMessage(prev.name + "は足元に置かれた。", "");
+      }
+    }
+    renderAll();
+    saveGame();
+  }
+
+  function dropInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot) return;
+    for (var i = 0; i < G.floorItems.length; i++) {
+      if (G.floorItems[i].x === G.player.x && G.floorItems[i].y === G.player.y) {
+        addMessage("ここには物を置けない。", "warn");
+        return;
+      }
+    }
+    G.floorItems.push({ x: G.player.x, y: G.player.y, def: { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc } });
+    addMessage(slot.name + "を置いた。", "");
+    slot.count--;
+    if (slot.count <= 0) G.player.inventory.splice(index, 1);
+    renderAll();
+    saveGame();
+  }
+
+  /* =========================================================
+     戦闘
+  ========================================================= */
+  function computeDamage(atk, def) {
+    var base = Math.max(1, atk - def * 0.6);
+    var variance = 0.8 + Math.random() * 0.4;
+    var dmg = Math.round(base * variance);
+    if (chance(0.08)) dmg *= 2;
+    return Math.max(1, dmg);
+  }
+
+  function playerAttackEnemy(enemy) {
+    var dmg = computeDamage(effAtk(), enemy.def);
+    enemy.hp -= dmg;
+    enemy.awake = true;
+    addMessage(enemy.name + "に" + dmg + "のダメージ!", "");
+    if (enemy.hp <= 0) {
+      addMessage(enemy.name + "を倒した!", "good");
+      gainExp(enemy.exp);
+      var idx = G.enemies.indexOf(enemy);
+      if (idx >= 0) G.enemies.splice(idx, 1);
+      if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
+    }
+  }
+
+  function enemyAttackPlayer(enemy) {
+    var dmg = computeDamage(enemy.atk, effDef());
+    G.player.hp -= dmg;
+    addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
+    if (enemy.poison && chance(0.5) && G.player.poison <= 0) {
+      G.player.poison = 6;
+      addMessage("毒を受けてしまった…", "warn");
+    }
+  }
+
+  /* =========================================================
+     行動・ターン処理
+  ========================================================= */
+  function movePlayer(dx, dy) {
+    if (!G || G.gameOver) return;
+    if (dx === 0 && dy === 0) { doTurn(); return; }
+    var nx = G.player.x + dx, ny = G.player.y + dy;
+    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) return;
+
+    var target = null;
+    for (var i = 0; i < G.enemies.length; i++) if (G.enemies[i].x === nx && G.enemies[i].y === ny) { target = G.enemies[i]; break; }
+
+    if (target) {
+      playerAttackEnemy(target);
+    } else {
+      G.player.x = nx; G.player.y = ny;
+      tryPickup(nx, ny);
+      if (G.grid[ny][nx] === T_STAIRS) {
+        doTurn();
+        descend();
+        return;
+      }
+    }
+    doTurn();
+  }
+
+  function doTurn() {
+    G.turn++;
+    if (G.player.hunger > 0) {
+      if (G.turn % 3 === 0) G.player.hunger = Math.max(0, G.player.hunger - 1);
+    }
+    if (G.player.hunger <= 0) {
+      G.player.hp -= 2;
+      addMessage("お腹が空いて力が入らない…", "warn");
+    }
+    if (G.player.poison > 0) {
+      G.player.poison--;
+      G.player.hp -= 2;
+      addMessage("毒で体がむしばまれる…", "warn");
+    }
+    if (G.turn % 25 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
+      G.player.hp = Math.min(G.player.maxHp, G.player.hp + 1);
+    }
+    if (checkPlayerDeath()) return;
+
+    enemyTurn();
+    if (checkPlayerDeath()) return;
+
+    computeVisibility();
+    renderAll();
+    saveGame();
+  }
+
+  function enemyTurn() {
+    var list = G.enemies.slice();
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (G.enemies.indexOf(e) === -1) continue;
+      var dist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
+      if (!e.awake) {
+        if (dist <= 5 && chance(0.5 + (5 - dist) * 0.1)) e.awake = true;
+        else continue;
+      }
+      if (dist <= 1) { enemyAttackPlayer(e); continue; }
+      var dx = 0, dy = 0;
+      if (e.erratic && chance(e.erratic)) {
+        dx = rnd(-1, 1); dy = rnd(-1, 1);
+      } else {
+        dx = e.x < G.player.x ? 1 : (e.x > G.player.x ? -1 : 0);
+        dy = e.y < G.player.y ? 1 : (e.y > G.player.y ? -1 : 0);
+      }
+      if (dx === 0 && dy === 0) continue;
+      var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
+      for (var m = 0; m < tryMoves.length; m++) {
+        var mx = e.x + tryMoves[m][0], my = e.y + tryMoves[m][1];
+        if (tryMoves[m][0] === 0 && tryMoves[m][1] === 0) continue;
+        if (!inBounds(mx, my) || G.grid[my][mx] === T_WALL) continue;
+        if (mx === G.player.x && my === G.player.y) continue;
+        var occ = false;
+        for (var k = 0; k < G.enemies.length; k++) if (G.enemies[k] !== e && G.enemies[k].x === mx && G.enemies[k].y === my) { occ = true; break; }
+        if (occ) continue;
+        e.x = mx; e.y = my;
+        break;
+      }
+    }
+  }
+
+  function checkPlayerDeath() {
+    if (G.player.hp <= 0 && !G.gameOver) {
+      G.player.hp = 0;
+      G.gameOver = true;
+      renderAll();
+      triggerGameOver();
+      return true;
+    }
+    return false;
+  }
+
+  function descend() {
+    if (G.floor >= MAX_FLOOR) { triggerClear(); return; }
+    enterFloor(G.floor + 1);
+    renderAll();
+    saveGame();
+  }
+
+  /* =========================================================
+     描画
+  ========================================================= */
+  var ctx = null;
+
+  function renderAll() {
+    renderHud();
+    renderStage();
+    renderEquip();
+    renderInventory();
+  }
+
+  function renderHud() {
+    document.getElementById("hud-floor").textContent = "B" + G.floor + "F";
+    document.getElementById("hud-lv").textContent = "Lv." + G.player.level;
+    var hpPct = Math.max(0, G.player.hp / G.player.maxHp * 100);
+    document.getElementById("bar-hp").style.width = hpPct + "%";
+    document.getElementById("bar-hunger").style.width = Math.max(0, G.player.hunger) + "%";
+    document.getElementById("bar-exp").style.width = Math.max(0, G.player.exp / G.player.expNext * 100) + "%";
+  }
+
+  function renderEquip() {
+    document.getElementById("equip-weapon").textContent = G.player.weapon ? G.player.weapon.name : "なし";
+    document.getElementById("equip-shield").textContent = G.player.shield ? G.player.shield.name : "なし";
+    document.getElementById("equip-atk").textContent = effAtk();
+    document.getElementById("equip-def").textContent = effDef();
+  }
+
+  function renderInventory() {
+    var el = document.getElementById("inv-list");
+    if (G.player.inventory.length === 0) {
+      el.innerHTML = '<div class="inv-empty">何も持っていない</div>';
+      return;
+    }
+    var html = "";
+    for (var i = 0; i < G.player.inventory.length; i++) {
+      var it = G.player.inventory[i];
+      var actionLabel = (it.cat === "weapon" || it.cat === "shield") ? "装備" : "使う";
+      html += '<div class="inv-item">' +
+        '<div class="sym" style="background:' + it.color + '22;color:' + it.color + '">' + it.sym + '</div>' +
+        '<div class="name">' + escapeHtml(it.name) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(it.desc || "") + '</small></div>' +
+        '<div class="acts"><button data-act="use" data-idx="' + i + '">' + actionLabel + '</button>' +
+        '<button data-act="drop" data-idx="' + i + '">捨てる</button></div>' +
+        '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function renderStage() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W * TILE, H * TILE);
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (!G.discovered[y][x]) continue;
+        var t = G.grid[y][x];
+        var lit = G.visible[y][x];
+        var color;
+        if (t === T_WALL) color = lit ? "#4a3d2c" : "#2a2318";
+        else if (t === T_STAIRS) color = lit ? "#E9D08A" : "#7a6f4a";
+        else color = lit ? "#766449" : "#332c22";
+        ctx.fillStyle = color;
+        ctx.fillRect(x * TILE, y * TILE, TILE - 1, TILE - 1);
+      }
+    }
+    for (var i = 0; i < G.floorItems.length; i++) {
+      var it = G.floorItems[i];
+      if (!G.discovered[it.y][it.x]) continue;
+      drawGlyph(it.x, it.y, it.def.sym, it.def.color, G.visible[it.y][it.x] ? 1 : 0.45);
+    }
+    for (var j = 0; j < G.enemies.length; j++) {
+      var e = G.enemies[j];
+      if (!G.visible[e.y][e.x]) continue;
+      drawGlyph(e.x, e.y, e.sym, e.color, 1, e.boss);
+    }
+    drawGlyph(G.player.x, G.player.y, "人", "#E9D08A", 1);
+  }
+
+  function drawGlyph(x, y, glyph, color, alpha, isBoss) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    ctx.arc(cx, cy, TILE / 2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+    if (isBoss) { ctx.lineWidth = 2; ctx.strokeStyle = "#fff"; ctx.stroke(); }
+    ctx.fillStyle = "#1b1712";
+    ctx.font = "bold " + Math.floor(TILE * 0.55) + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(glyph, cx, cy + 1);
+    ctx.restore();
+  }
+
+  /* =========================================================
+     セーブ / ロード
+  ========================================================= */
+  function saveGame() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) { /* ignore */ }
+  }
+  function loadSavedGame() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function clearSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+  }
+
+  /* =========================================================
+     開始 / 終了フロー
+  ========================================================= */
+  function startNewGame() {
+    clearSave();
+    G = newRunState();
+    document.getElementById("screen-title").hidden = true;
+    document.getElementById("screen-end").hidden = true;
+    enterFloor(1);
+    renderAll();
+    saveGame();
+  }
+
+  function continueGame(saved) {
+    G = saved;
+    G.gameOver = false;
+    document.getElementById("screen-title").hidden = true;
+    document.getElementById("screen-end").hidden = true;
+    computeVisibility();
+    addMessage("続きから再開した。", "note");
+    renderAll();
+  }
+
+  function triggerGameOver() {
+    clearSave();
+    document.getElementById("end-title").textContent = "力尽きた…";
+    document.getElementById("end-desc").textContent = "迷宮の奥深く、地下" + G.floor + "階で力尽きてしまった。";
+    fillEndStats();
+    document.getElementById("screen-end").hidden = false;
+  }
+
+  function triggerClear() {
+    clearSave();
+    G.gameOver = true;
+    document.getElementById("end-title").textContent = "迷宮を制覇した!";
+    document.getElementById("end-desc").textContent = "ついに地下50階の王を討ち、迷宮の最深部を制覇した。";
+    fillEndStats();
+    document.getElementById("screen-end").hidden = false;
+  }
+
+  function fillEndStats() {
+    var el = document.getElementById("end-stats");
+    el.innerHTML =
+      '<span class="label">到達階</span><span>地下' + G.floor + '階</span>' +
+      '<span class="label">レベル</span><span>Lv.' + G.player.level + '</span>' +
+      '<span class="label">経過ターン</span><span>' + G.turn + '</span>' +
+      '<span class="label">攻撃力/防御力</span><span>' + effAtk() + ' / ' + effDef() + '</span>';
+  }
+
+  /* =========================================================
+     入力
+  ========================================================= */
+  var KEY_MAP = {
+    ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+    w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0],
+    q: [-1, -1], e: [1, -1], z: [-1, 1], c: [1, 1],
+    " ": [0, 0], ".": [0, 0]
+  };
+
+  window.addEventListener("keydown", function (ev) {
+    if (!G || G.gameOver) return;
+    var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    var v = KEY_MAP[key];
+    if (v) { ev.preventDefault(); movePlayer(v[0], v[1]); }
+  });
+
+  document.getElementById("dpad").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn || !G || G.gameOver) return;
+    movePlayer(parseInt(btn.getAttribute("data-dx"), 10), parseInt(btn.getAttribute("data-dy"), 10));
+  });
+
+  document.getElementById("inv-list").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn || !G || G.gameOver) return;
+    var idx = parseInt(btn.getAttribute("data-idx"), 10);
+    var act = btn.getAttribute("data-act");
+    if (act === "use") useInventorySlot(idx);
+    else if (act === "drop") dropInventorySlot(idx);
+  });
+
+  document.getElementById("btn-new-game").addEventListener("click", startNewGame);
+  document.getElementById("btn-restart").addEventListener("click", startNewGame);
+  document.getElementById("btn-continue").addEventListener("click", function () {
+    var saved = loadSavedGame();
+    if (saved) continueGame(saved);
+    else startNewGame();
+  });
+
+  /* =========================================================
+     初期化
+  ========================================================= */
+  function init() {
+    ctx = document.getElementById("stage").getContext("2d");
+    var saved = loadSavedGame();
+    if (saved && !saved.gameOver) {
+      document.getElementById("btn-continue").hidden = false;
+    }
+  }
+
+  init();
+})();
+</script>
