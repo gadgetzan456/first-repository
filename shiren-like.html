@@ -236,6 +236,15 @@
   }
   .dpad button:active { background: var(--accent); color: var(--accent-ink); }
   .dpad button.center { background: var(--wall); color: var(--ink-soft); font-size: 11px; }
+  .btn-attack {
+    width: 100%;
+    padding: 10px;
+    background: var(--danger);
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+  .btn-attack:active { filter: brightness(0.88); transform: translateY(1px); }
   .help-text {
     font-size: 11px;
     color: var(--ink-soft);
@@ -312,7 +321,7 @@
       <p>
         地下1階から50階まで続く迷宮に挑む、ターン制のダンジョン探索ゲームです。<br>
         力尽きればそこで終わり、最初の階からやり直しとなります。<br>
-        矢印キー / WASD、または下の方向パッドで移動します。敵のいる方向へ進むと攻撃です。
+        矢印キー / WASD、または下の方向パッドで移動・向き変更をします。向いている方向にZキー(または「攻撃」ボタン)を押すと攻撃です。
       </p>
       <button class="btn-main" id="btn-new-game">最初から始める</button>
       <button class="btn-main btn-ghost" id="btn-continue" hidden>続きから始める</button>
@@ -370,7 +379,8 @@
         <button data-dx="0" data-dy="1">↓</button>
         <button data-dx="1" data-dy="1">↘</button>
       </div>
-      <div class="help-text">矢印 / WASD でも移動できます<br>階段の上に乗ると自動で降ります</div>
+      <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
+      <div class="help-text">矢印 / WASD で移動・向き変更<br>Zキーまたは上のボタンで攻撃<br>階段の上に乗ると自動で降ります</div>
     </div>
 
     <div class="panels">
@@ -408,29 +418,31 @@
 
   // dropRate: 撃破時にアイテムを落とす確率(0〜1)。ボスは常に(1.0)ドロップする。
   // shape/accessory: モンスターのビジュアル形状の指定(drawMonsterで使用)
+  // color: 床(明るいタン)・壁(濃い焦げ茶)どちらの上でも埋もれないよう、
+  // 彩度・明度をやや濃いめに寄せてある。
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#7ec788", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
-    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#9c9488", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#a988c7", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
-    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#d488b8", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
-    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#8ba85a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
-    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#d8cdb0", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#8a5fb0", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
-    { key: "orc", name: "オーク", sym: "オ", color: "#4f7a3a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
-    { key: "armor", name: "鎧武者", sym: "鎧", color: "#b7c2cc", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
-    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#6a6ac2", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
-    { key: "wraith", name: "死霊", sym: "霊", color: "#7d95a8", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
-    { key: "ogre", name: "大鬼", sym: "鬼", color: "#a85a3e", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
-    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#4a8f8f", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
-    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a6a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
+    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 3, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 2, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 3, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 3, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 5, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 6, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 7, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
+    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 8, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 10, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 12, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 14, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 15, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 20, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 24, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
   ];
 
   var BOSS_TABLE = {
-    10: { name: "牙の王ボアグラ", sym: "王", color: "#c94f3d", hp: 65, atk: 14, def: 6, exp: 90 },
-    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#8f8f9c", hp: 115, atk: 22, def: 12, exp: 170 },
-    30: { name: "業火のバルザック", sym: "炎", color: "#d9702c", hp: 175, atk: 30, def: 16, exp: 290 },
-    40: { name: "氷牙のフェンリク", sym: "氷", color: "#6fb0c9", hp: 245, atk: 38, def: 20, exp: 430 },
-    50: { name: "深淵の王ザガレス", sym: "覇", color: "#b03050", hp: 400, atk: 50, def: 26, exp: 1000 }
+    10: { name: "牙の王ボアグラ", sym: "王", color: "#b23d2c", hp: 65, atk: 14, def: 6, exp: 90 },
+    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#6f6f7c", hp: 115, atk: 22, def: 12, exp: 170 },
+    30: { name: "業火のバルザック", sym: "炎", color: "#c25f22", hp: 175, atk: 30, def: 16, exp: 290 },
+    40: { name: "氷牙のフェンリク", sym: "氷", color: "#3f8ca8", hp: 245, atk: 38, def: 20, exp: 430 },
+    50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 50, def: 26, exp: 1000 }
   };
   var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
 
@@ -510,6 +522,49 @@
   ========================================================= */
   function inBounds(x, y) { return x >= 0 && y >= 0 && x < W && y < H; }
 
+  // 床マスから4方向に塗りつぶして到達可能なマスを調べる(通路幅の正規化で使用)
+  function floodFillFrom(grid, sx, sy) {
+    var seen = [];
+    for (var y = 0; y < H; y++) seen.push(new Array(W).fill(false));
+    var stack = [[sx, sy]];
+    seen[sy][sx] = true;
+    while (stack.length) {
+      var p = stack.pop(), x = p[0], y2 = p[1];
+      var neighbors = [[x + 1, y2], [x - 1, y2], [x, y2 + 1], [x, y2 - 1]];
+      for (var i = 0; i < neighbors.length; i++) {
+        var nx = neighbors[i][0], ny = neighbors[i][1];
+        if (!inBounds(nx, ny) || seen[ny][nx] || grid[ny][nx] === T_WALL) continue;
+        seen[ny][nx] = true;
+        stack.push([nx, ny]);
+      }
+    }
+    return seen;
+  }
+
+  // 通路は基本的に幅1マスにする。2x2がすべて床(=通路が2マス幅になっている)箇所を検出し、
+  // 全部屋への到達可能性を壊さない範囲で片方を壁に戻す。部屋の内部はそのまま残す。
+  function normalizeCorridorWidth(grid, roomId, rooms) {
+    for (var y = 0; y < H - 1; y++) {
+      for (var x = 0; x < W - 1; x++) {
+        if (grid[y][x] !== T_FLOOR || grid[y + 1][x] !== T_FLOOR ||
+            grid[y][x + 1] !== T_FLOOR || grid[y + 1][x + 1] !== T_FLOOR) continue;
+        var corners = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]];
+        var firstRoom = roomId[y][x];
+        var sameRoom = firstRoom >= 0 && corners.every(function (p) { return roomId[p[1]][p[0]] === firstRoom; });
+        if (sameRoom) continue; // 部屋の内部はそのまま(部屋の形状は既存ルール通り)
+        var candidates = corners.filter(function (p) { return roomId[p[1]][p[0]] === -1; });
+        for (var ci = 0; ci < candidates.length; ci++) {
+          var cx = candidates[ci][0], cy = candidates[ci][1];
+          grid[cy][cx] = T_WALL;
+          var reach = floodFillFrom(grid, rooms[0].cx, rooms[0].cy);
+          var ok = rooms.every(function (r) { return reach[r.cy][r.cx]; });
+          if (ok) break;
+          grid[cy][cx] = T_FLOOR; // 到達不能になるなら戻す
+        }
+      }
+    }
+  }
+
   function generateFloor(depth) {
     var grid = [];
     var roomId = [];
@@ -563,6 +618,8 @@
     for (var i3 = 0; i3 < extraLinks && rooms.length > 2; i3++) {
       connect(pick(rooms), pick(rooms));
     }
+
+    normalizeCorridorWidth(grid, roomId, rooms);
 
     // 部屋の外周1マスも視界演出のため覚えておく
     for (var i4 = 0; i4 < rooms.length; i4++) {
@@ -890,6 +947,16 @@
     return Math.max(1, dmg);
   }
 
+  // 斜め攻撃の可否判定。(x,y)から(dx,dy)方向へ斜めに攻撃しようとしたとき、
+  // 直交する2マス(x+dx,y)と(x,y+dy)がどちらも壁なら「壁の角」に阻まれて攻撃できない。
+  // プレイヤー→敵・敵→プレイヤーの両方でこの判定を使う。
+  function isDiagonalAttackBlocked(x, y, dx, dy) {
+    if (dx === 0 || dy === 0) return false;
+    var wallA = !inBounds(x + dx, y) || G.grid[y][x + dx] === T_WALL;
+    var wallB = !inBounds(x, y + dy) || G.grid[y + dy][x] === T_WALL;
+    return wallA && wallB;
+  }
+
   // 敵を倒した位置の近くに空いている床マスを探す(アイテムドロップ用)
   function findDropSpot(x, y) {
     var candidates = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
@@ -952,27 +1019,46 @@
   /* =========================================================
      行動・ターン処理
   ========================================================= */
+  // 移動キーは「移動(と向きを変える)」専用。攻撃はZキー/攻撃ボタンで行う(performPlayerAction)。
+  // 壁や敵にぶつかったときはその方向を向くだけで、ターンは消費しない。
   function movePlayer(dx, dy) {
     if (!G || G.gameOver) return;
     if (dx === 0 && dy === 0) { doTurn(); return; }
     G.player.facing = { dx: dx, dy: dy };
     var nx = G.player.x + dx, ny = G.player.y + dy;
-    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) return;
+    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) { renderStage(); return; }
 
-    var target = null;
-    for (var i = 0; i < G.enemies.length; i++) if (G.enemies[i].x === nx && G.enemies[i].y === ny) { target = G.enemies[i]; break; }
-
-    if (target) {
-      playerAttackEnemy(target);
-    } else {
-      G.player.x = nx; G.player.y = ny;
-      tryPickup(nx, ny);
-      if (G.grid[ny][nx] === T_STAIRS) {
-        doTurn();
-        descend();
-        return;
-      }
+    for (var i = 0; i < G.enemies.length; i++) {
+      if (G.enemies[i].x === nx && G.enemies[i].y === ny) { renderStage(); return; }
     }
+
+    G.player.x = nx; G.player.y = ny;
+    tryPickup(nx, ny);
+    if (G.grid[ny][nx] === T_STAIRS) {
+      doTurn();
+      descend();
+      return;
+    }
+    doTurn();
+  }
+
+  // Zキー/攻撃ボタン:向いている方向の1マス先に敵がいれば攻撃する。
+  function performPlayerAction() {
+    if (!G || G.gameOver) return;
+    var facing = G.player.facing || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+    var tx = G.player.x + dx, ty = G.player.y + dy;
+    if (!inBounds(tx, ty)) return;
+    var target = null;
+    for (var i = 0; i < G.enemies.length; i++) {
+      if (G.enemies[i].x === tx && G.enemies[i].y === ty) { target = G.enemies[i]; break; }
+    }
+    if (!target) return;
+    if (isDiagonalAttackBlocked(G.player.x, G.player.y, dx, dy)) {
+      addMessage("壁の角に阻まれて攻撃が届かない!", "warn");
+      return;
+    }
+    playerAttackEnemy(target);
     doTurn();
   }
 
@@ -1014,13 +1100,18 @@
         if (dist <= 5 && chance(0.5 + (5 - dist) * 0.1)) e.awake = true;
         else continue;
       }
-      if (dist <= 1) { enemyAttackPlayer(e); continue; }
+      var pdx = e.x < G.player.x ? 1 : (e.x > G.player.x ? -1 : 0);
+      var pdy = e.y < G.player.y ? 1 : (e.y > G.player.y ? -1 : 0);
+      if (dist <= 1) {
+        // 斜め方向で壁の角に阻まれている場合は攻撃できない(プレイヤー側と同じ判定)
+        var blocked = pdx !== 0 && pdy !== 0 && isDiagonalAttackBlocked(e.x, e.y, pdx, pdy);
+        if (!blocked) { enemyAttackPlayer(e); continue; }
+      }
       var dx = 0, dy = 0;
       if (e.erratic && chance(e.erratic)) {
         dx = rnd(-1, 1); dy = rnd(-1, 1);
       } else {
-        dx = e.x < G.player.x ? 1 : (e.x > G.player.x ? -1 : 0);
-        dy = e.y < G.player.y ? 1 : (e.y > G.player.y ? -1 : 0);
+        dx = pdx; dy = pdy;
       }
       if (dx === 0 && dy === 0) continue;
       var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
@@ -1158,23 +1249,51 @@
     ctx.fillRect(px, py + TILE - 1, TILE, 1);
   }
 
+  // RPGゲームによくある「下り階段の穴」を描く: 石枠+暗い縦穴+奥に向かって
+  // 小さくなっていく段差(遠近感)で表現する。
   function drawStairsTile(x, y, lit) {
     drawFloorTile(x, y, lit);
     var px = x * TILE, py = y * TILE;
     var cx = px + TILE / 2, cy = py + TILE / 2;
+
     if (lit) {
       var grad = ctx.createRadialGradient(cx, cy, 1, cx, cy, TILE * 0.85);
-      grad.addColorStop(0, "rgba(233,208,138,0.55)");
+      grad.addColorStop(0, "rgba(233,208,138,0.5)");
       grad.addColorStop(1, "rgba(233,208,138,0)");
       ctx.fillStyle = grad;
       ctx.fillRect(px - TILE * 0.5, py - TILE * 0.5, TILE * 2, TILE * 2);
     }
-    ctx.fillStyle = lit ? STAIRS_LIT : STAIRS_DIM;
-    var stepH = TILE * 0.11;
-    for (var i = 0; i < 3; i++) {
-      var w = TILE * 0.56 - i * TILE * 0.14;
-      ctx.fillRect(cx - w / 2, cy - TILE * 0.16 + i * stepH, w, stepH);
+
+    // 石の外枠
+    roundRectPath(px + TILE * 0.10, py + TILE * 0.08, TILE * 0.80, TILE * 0.84, TILE * 0.1);
+    ctx.fillStyle = lit ? shadeColor(STAIRS_LIT, -0.55) : shadeColor(STAIRS_DIM, -0.4);
+    ctx.fill();
+
+    // 中の暗い縦穴
+    var holeX = px + TILE * 0.18, holeY = py + TILE * 0.16, holeW = TILE * 0.64, holeH = TILE * 0.68;
+    roundRectPath(holeX, holeY, holeW, holeH, TILE * 0.06);
+    ctx.fillStyle = lit ? "#241a10" : "#140f09";
+    ctx.fill();
+
+    // 奥に向かって小さくなる段差(遠近感のある下り階段)
+    ctx.save();
+    roundRectPath(holeX, holeY, holeW, holeH, TILE * 0.06);
+    ctx.clip();
+    var steps = 5;
+    for (var i = 0; i < steps; i++) {
+      var t0 = i / steps, t1 = (i + 1) / steps;
+      var inset = (steps - 1 - i) * (holeW * 0.09); // 奥(iが小さい)ほど幅が狭い
+      var y0 = holeY + t0 * holeH, y1 = holeY + t1 * holeH;
+      var stepColor = shadeColor(lit ? STAIRS_LIT : STAIRS_DIM, lit ? (-0.5 + i * 0.11) : (-0.35 + i * 0.06));
+      ctx.fillStyle = stepColor;
+      ctx.fillRect(holeX + inset, y0, holeW - inset * 2, (y1 - y0) - Math.max(1, TILE * 0.02));
     }
+    ctx.restore();
+
+    ctx.strokeStyle = lit ? shadeColor(STAIRS_LIT, -0.6) : shadeColor(STAIRS_DIM, -0.45);
+    ctx.lineWidth = 1;
+    roundRectPath(px + TILE * 0.10, py + TILE * 0.08, TILE * 0.80, TILE * 0.84, TILE * 0.1);
+    ctx.stroke();
   }
 
   function drawShadow(cx, cy, w) {
@@ -1598,16 +1717,19 @@
   /* =========================================================
      入力
   ========================================================= */
+  // 移動キー一覧(z は攻撃アクション専用にするため移動には割り当てない。
+  // 代わりに左下斜め移動を x に割り当てて8方向キー入力を維持する)
   var KEY_MAP = {
     ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
     w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0],
-    q: [-1, -1], e: [1, -1], z: [-1, 1], c: [1, 1],
+    q: [-1, -1], e: [1, -1], x: [-1, 1], c: [1, 1],
     " ": [0, 0], ".": [0, 0]
   };
 
   window.addEventListener("keydown", function (ev) {
     if (!G || G.gameOver) return;
     var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    if (key === "z") { ev.preventDefault(); performPlayerAction(); return; }
     var v = KEY_MAP[key];
     if (v) { ev.preventDefault(); movePlayer(v[0], v[1]); }
   });
@@ -1616,6 +1738,10 @@
     var btn = ev.target.closest("button");
     if (!btn || !G || G.gameOver) return;
     movePlayer(parseInt(btn.getAttribute("data-dx"), 10), parseInt(btn.getAttribute("data-dy"), 10));
+  });
+
+  document.getElementById("btn-action").addEventListener("click", function () {
+    performPlayerAction();
   });
 
   document.getElementById("inv-list").addEventListener("click", function (ev) {
