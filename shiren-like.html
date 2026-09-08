@@ -948,13 +948,13 @@
   }
 
   // 斜め攻撃の可否判定。(x,y)から(dx,dy)方向へ斜めに攻撃しようとしたとき、
-  // 直交する2マス(x+dx,y)と(x,y+dy)がどちらも壁なら「壁の角」に阻まれて攻撃できない。
+  // 直交する2マス(x+dx,y)と(x,y+dy)のどちらか一方でも壁なら「壁の角」に阻まれて攻撃できない。
   // プレイヤー→敵・敵→プレイヤーの両方でこの判定を使う。
   function isDiagonalAttackBlocked(x, y, dx, dy) {
     if (dx === 0 || dy === 0) return false;
     var wallA = !inBounds(x + dx, y) || G.grid[y][x + dx] === T_WALL;
     var wallB = !inBounds(x, y + dy) || G.grid[y + dy][x] === T_WALL;
-    return wallA && wallB;
+    return wallA || wallB;
   }
 
   // 敵を倒した位置の近くに空いている床マスを探す(アイテムドロップ用)
