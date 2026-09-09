@@ -456,6 +456,7 @@
     50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 106, def: 26, exp: 1000 }
   };
   var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
+  var HIT_CHANCE = 0.78; // 命中率の基本値。プレイヤー→敵・敵→プレイヤーの通常攻撃どちらにも適用
 
   var ITEM_TYPES = [
     { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, minDepth: 1, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
@@ -1221,14 +1222,24 @@
       addMessage(enemy.name + "が攻撃を受け流した!", "");
       return;
     }
-    var dmg = computeDamage(effAtk(), enemy.def);
     enemy.awake = true;
+    // 命中判定(基本78%)。外れた場合はダメージなしでターンを消費するのみ。
+    if (!chance(HIT_CHANCE)) {
+      addMessage(enemy.name + "への攻撃が外れた!", "");
+      return;
+    }
+    var dmg = computeDamage(effAtk(), enemy.def);
     addMessage(enemy.name + "に" + dmg + "のダメージ!", "");
     var killed = applyEnemyDamage(enemy, dmg);
     if (!killed && enemy.ability === "split") trySplitEnemy(enemy);
   }
 
   function enemyAttackPlayer(enemy) {
+    // 命中判定(基本78%)。外れた場合はダメージ・吸血・毒付与のいずれも発生しない。
+    if (!chance(HIT_CHANCE)) {
+      addMessage(enemy.name + "の攻撃!外れた!", "");
+      return;
+    }
     var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
     var defFactor = enemy.ability === "pierce" ? 0.25 : undefined; // 竜鱗の戦士:防御貫通
     var dmg = computeDamage(enemy.atk, effDef(), critChance, defFactor);
@@ -1311,8 +1322,9 @@
       G.player.hp -= 2;
       addMessage("毒で体がむしばまれる…", "warn");
     }
-    // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)
-    if (G.turn % 10 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
+    // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)。
+    // 現在は8ターンごとにHP+2(以前の10ターンごとから回復速度を1.25倍に調整)。
+    if (G.turn % 8 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
       G.player.hp = Math.min(G.player.maxHp, G.player.hp + 2);
     }
     if (G.player.megaEvolveTurns > 0) {
