@@ -750,7 +750,8 @@
     var icount = Math.min(7, rnd(2, 3) + Math.floor(depth / 10));
     for (var j = 0; j < icount; j++) {
       var idef = weightedPick(itemPool);
-      var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
+      // 通路(roomId===-1)には出現させない。部屋の中にだけ置く
+      var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y) || G.roomId[y][x] < 0; });
       G.floorItems.push({ x: ispot.x, y: ispot.y, def: idef });
     }
 
@@ -948,11 +949,21 @@
     for (var i = 0; i < G.floorItems.length; i++) {
       var it = G.floorItems[i];
       if (it.x === x && it.y === y) {
-        if (addItemToInventory(it.def)) {
-          addMessage(it.def.name + "を拾った。", "note");
+        var def = it.def;
+        // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
+        if (def.cat === "weapon" && !G.player.weapon) {
+          G.player.weapon = { name: def.name, value: def.value, key: def.key };
+          addMessage(def.name + "を拾い、自動的に装備した!", "note");
+          G.floorItems.splice(i, 1);
+        } else if (def.cat === "shield" && !G.player.shield) {
+          G.player.shield = { name: def.name, value: def.value, key: def.key };
+          addMessage(def.name + "を拾い、自動的に装備した!", "note");
+          G.floorItems.splice(i, 1);
+        } else if (addItemToInventory(def)) {
+          addMessage(def.name + "を拾った。", "note");
           G.floorItems.splice(i, 1);
         } else {
-          addMessage("荷物がいっぱいで" + it.def.name + "を拾えなかった。", "warn");
+          addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
         }
         return;
       }
