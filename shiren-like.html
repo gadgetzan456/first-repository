@@ -1323,9 +1323,11 @@
       addMessage("毒で体がむしばまれる…", "warn");
     }
     // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)。
-    // 現在は8ターンごとにHP+2(以前の10ターンごとから回復速度を1.25倍に調整)。
+    // 8ターンごとに、現在の最大HPの3%を回復する(固定値ではなく最大HP依存にすることで、
+    // 最大HPが伸びる後半のフロアでも回復量が薄くなりすぎないようにしている)。
     if (G.turn % 8 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
-      G.player.hp = Math.min(G.player.maxHp, G.player.hp + 2);
+      var regenAmount = Math.max(1, Math.round(G.player.maxHp * 0.03));
+      G.player.hp = Math.min(G.player.maxHp, G.player.hp + regenAmount);
     }
     if (G.player.megaEvolveTurns > 0) {
       G.player.megaEvolveTurns--;
