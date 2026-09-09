@@ -522,6 +522,7 @@
       monsterHouseRoomId: -1,
       monsterHouseActivated: false,
       mapRevealActive: false,
+      attackEffect: null,
       player: {
         x: 0, y: 0,
         hp: 23, maxHp: 23,
@@ -1279,16 +1280,18 @@
     var dx = facing.dx, dy = facing.dy;
     var tx = G.player.x + dx, ty = G.player.y + dy;
     if (!inBounds(tx, ty)) return;
-    var target = null;
-    for (var i = 0; i < G.enemies.length; i++) {
-      if (G.enemies[i].x === tx && G.enemies[i].y === ty) { target = G.enemies[i]; break; }
-    }
-    if (!target) return;
     if (isDiagonalAttackBlocked(G.player.x, G.player.y, dx, dy)) {
       addMessage("壁の角に阻まれて攻撃が届かない!", "warn");
       return;
     }
-    playerAttackEnemy(target);
+    var target = null;
+    for (var i = 0; i < G.enemies.length; i++) {
+      if (G.enemies[i].x === tx && G.enemies[i].y === ty) { target = G.enemies[i]; break; }
+    }
+    // 攻撃先のマスに拳/剣のエフェクトを表示する(装備によって見た目が変わる)。
+    // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
+    triggerAttackEffect(tx, ty);
+    if (target) { playerAttackEnemy(target); }
     doTurn();
   }
 
@@ -1933,6 +1936,79 @@
       drawMonster(e.x, e.y, e);
     }
     drawPlayerFigure(G.player.x, G.player.y);
+    drawAttackEffect();
+  }
+
+  // Zキー攻撃の視覚フィードバック:攻撃先のマスに拳(素手)/剣(装備時)のマークを
+  // 0.3秒ほど表示する。敵の有無に関わらず、攻撃(素振り含む)のたびに呼び出す。
+  var ATTACK_EFFECT_MS = 300;
+  var attackEffectTimer = null;
+
+  function triggerAttackEffect(x, y) {
+    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
+    G.attackEffect = { x: x, y: y, kind: G.player.weapon ? "sword" : "fist" };
+    renderStage();
+    attackEffectTimer = setTimeout(function () {
+      attackEffectTimer = null;
+      if (!G) return;
+      G.attackEffect = null;
+      renderStage();
+    }, ATTACK_EFFECT_MS);
+  }
+
+  function drawAttackEffect() {
+    if (!G.attackEffect) return;
+    var cx = G.attackEffect.x * TILE + TILE / 2, cy = G.attackEffect.y * TILE + TILE / 2;
+    ctx.save();
+    if (G.attackEffect.kind === "fist") {
+      // 打撃の余波(放射状の線)
+      ctx.strokeStyle = "rgba(255,220,150,0.9)";
+      ctx.lineWidth = Math.max(1, TILE * 0.05);
+      ctx.lineCap = "round";
+      for (var a = 0; a < 6; a++) {
+        var ang = (a / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * TILE * 0.26, cy + Math.sin(ang) * TILE * 0.26);
+        ctx.lineTo(cx + Math.cos(ang) * TILE * 0.48, cy + Math.sin(ang) * TILE * 0.48);
+        ctx.stroke();
+      }
+      // こぶし本体
+      ctx.fillStyle = "#e0b48a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, TILE * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#8a5a3a";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.strokeStyle = "#8a5a3a";
+      ctx.lineWidth = 1;
+      for (var k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + k * TILE * 0.09, cy - TILE * 0.15);
+        ctx.lineTo(cx + k * TILE * 0.09, cy - TILE * 0.02);
+        ctx.stroke();
+      }
+    } else {
+      // 振り下ろした剣の軌跡(残像の二重線+着弾の光)
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(230,236,240,0.5)";
+      ctx.lineWidth = Math.max(1, TILE * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(cx - TILE * 0.42, cy - TILE * 0.5);
+      ctx.lineTo(cx + TILE * 0.3, cy + TILE * 0.22);
+      ctx.stroke();
+      ctx.strokeStyle = "#eef3f6";
+      ctx.lineWidth = Math.max(1, TILE * 0.11);
+      ctx.beginPath();
+      ctx.moveTo(cx - TILE * 0.34, cy - TILE * 0.42);
+      ctx.lineTo(cx + TILE * 0.38, cy + TILE * 0.3);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(cx + TILE * 0.38, cy + TILE * 0.3, TILE * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   /* =========================================================
@@ -1957,6 +2033,7 @@
   ========================================================= */
   function startNewGame() {
     clearSave();
+    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
     G = newRunState();
     document.getElementById("screen-title").hidden = true;
     document.getElementById("screen-end").hidden = true;
@@ -1966,8 +2043,10 @@
   }
 
   function continueGame(saved) {
+    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
     G = saved;
     G.gameOver = false;
+    G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
     document.getElementById("screen-title").hidden = true;
     document.getElementById("screen-end").hidden = true;
     computeVisibility();
