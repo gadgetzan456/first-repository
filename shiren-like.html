@@ -420,31 +420,31 @@
   // shape/accessory: モンスターのビジュアル形状の指定(drawMonsterで使用)
   // color: 床(明るいタン)・壁(濃い焦げ茶)どちらの上でも埋もれないよう、
   // 彩度・明度をやや濃いめに寄せてある。
-  // atk は敵の脅威度を上げるため通常敵・ボスともさらに約2倍に引き上げてある
-  // (合わせてプレイヤーの最大HPも半分に調整し、緊張感のあるバランスにしている)。
+  // atk はさらに0.8倍に調整済み(合わせてプレイヤーの最大HPも1.5倍にして、
+  // 緊張感を保ちつつ少し遊びやすいバランスにしている)。
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 8, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
-    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 6, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 8, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
-    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 8, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
-    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 14, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
-    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 18, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 20, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
-    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 24, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
-    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 30, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
-    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 34, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
-    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 40, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
-    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 44, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
-    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 56, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
-    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 68, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
+    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 5, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
+    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 32, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 35, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 45, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 54, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
   ];
 
   var BOSS_TABLE = {
-    10: { name: "牙の王ボアグラ", sym: "王", color: "#b23d2c", hp: 65, atk: 38, def: 6, exp: 90 },
-    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#6f6f7c", hp: 115, atk: 58, def: 12, exp: 170 },
-    30: { name: "業火のバルザック", sym: "炎", color: "#c25f22", hp: 175, atk: 80, def: 16, exp: 290 },
-    40: { name: "氷牙のフェンリク", sym: "氷", color: "#3f8ca8", hp: 245, atk: 100, def: 20, exp: 430 },
-    50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 132, def: 26, exp: 1000 }
+    10: { name: "牙の王ボアグラ", sym: "王", color: "#b23d2c", hp: 65, atk: 30, def: 6, exp: 90 },
+    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#6f6f7c", hp: 115, atk: 46, def: 12, exp: 170 },
+    30: { name: "業火のバルザック", sym: "炎", color: "#c25f22", hp: 175, atk: 64, def: 16, exp: 290 },
+    40: { name: "氷牙のフェンリク", sym: "氷", color: "#3f8ca8", hp: 245, atk: 80, def: 20, exp: 430 },
+    50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 106, def: 26, exp: 1000 }
   };
   var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
 
@@ -505,7 +505,7 @@
       floorItems: [],
       player: {
         x: 0, y: 0,
-        hp: 15, maxHp: 15,
+        hp: 23, maxHp: 23,
         level: 1, exp: 0, expNext: 12,
         atk: 4, def: 2,
         hunger: 100, maxHunger: 100,
@@ -822,7 +822,7 @@
       G.player.exp -= G.player.expNext;
       G.player.level++;
       G.player.expNext = Math.round(G.player.expNext * 1.35) + 4;
-      var hpUp = rnd(3, 5), atkUp = rnd(1, 2), defUp = 1; // 基礎HPを半分にしたのでレベルアップ時のHP増加量も半分に
+      var hpUp = rnd(5, 8), atkUp = rnd(1, 2), defUp = 1; // 基礎HPを1.5倍にしたのでレベルアップ時のHP増加量も同じ比率で調整
       G.player.maxHp += hpUp; G.player.hp = G.player.maxHp;
       G.player.atk += atkUp; G.player.def += defUp;
       addMessage("レベルが" + G.player.level + "に上がった!(HP+" + hpUp + " 攻撃+" + atkUp + " 防御+" + defUp + ")", "good");
