@@ -390,6 +390,7 @@
         <div class="equip-row"><span class="label">盾</span><span id="equip-shield">なし</span></div>
         <div class="equip-row"><span class="label">攻撃力</span><span id="equip-atk">-</span></div>
         <div class="equip-row"><span class="label">防御力</span><span id="equip-def">-</span></div>
+        <div class="equip-row" id="equip-status-row" hidden><span class="label">状態</span><span id="equip-status"></span></div>
       </div>
       <div class="panel panel-block">
         <h3>持ち物</h3>
@@ -473,9 +474,15 @@
     { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, minDepth: 20, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
     { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, minDepth: 30, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
     { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, minDepth: 42, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
-    { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, minDepth: 3, weight: 2, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
-    { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, minDepth: 3, weight: 1, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
-    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 2, sym: "巻", color: "#5c7fb0", desc: "この階の別の場所へ飛ぶ" }
+    // 巻物6種の重み合計は旧3種の合計(2+1+2=5)と同じ5になるよう調整してあり、
+    // アイテム全体に占める「巻物」というカテゴリの出現割合そのものは変えていない
+    // (既存3種は0.7倍に圧縮し、その分を新規3種に配分している)。
+    { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, minDepth: 3, weight: 1.4, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
+    { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, minDepth: 3, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
+    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の場所へ飛ぶ" },
+    { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, minDepth: 4, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
+    { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, minDepth: 8, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
+    { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, minDepth: 6, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" }
   ];
 
   /* =========================================================
@@ -513,6 +520,7 @@
       floorItems: [],
       monsterHouseRoomId: -1,
       monsterHouseActivated: false,
+      mapRevealActive: false,
       player: {
         x: 0, y: 0,
         hp: 23, maxHp: 23,
@@ -520,6 +528,7 @@
         atk: 4, def: 2,
         hunger: 100, maxHunger: 100,
         poison: 0,
+        megaEvolveTurns: 0,
         weapon: null,
         shield: null,
         inventory: [],
@@ -834,6 +843,7 @@
     G.stairsY = g.stairsY;
     G.monsterHouseRoomId = g.monsterHouseRoomId;
     G.monsterHouseActivated = false;
+    G.mapRevealActive = false; // 明かりの巻物の効果はフロアを移動するとリセットされる
     populateFloor(depth);
     computeVisibility();
     addMessage((depth === 1 ? "迷宮" : "地下" + depth + "階") + "に降り立った。", "note");
@@ -896,7 +906,10 @@
   /* =========================================================
      プレイヤーの能力・装備
   ========================================================= */
-  function effAtk() { return G.player.atk + (G.player.weapon ? G.player.weapon.value : 0); }
+  function effAtk() {
+    var base = G.player.atk + (G.player.weapon ? G.player.weapon.value : 0);
+    return G.player.megaEvolveTurns > 0 ? base * 2 : base; // メガシンカ中は攻撃力2倍
+  }
   function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
 
   function gainExp(amount) {
@@ -977,6 +990,33 @@
         G.player.x = spot.x; G.player.y = spot.y;
         addMessage(slot.name + "の光に包まれ、瞬間移動した!", "note");
         computeVisibility();
+      } else if (slot.sub === "reveal") {
+        // 明かりの巻物:この階の通路の形を全て見えるようにし、
+        // 敵の位置もこの階にいる間ずっと分かるようにする(フロア移動でリセット)
+        for (var ry = 0; ry < H; ry++) for (var rx = 0; rx < W; rx++) G.discovered[ry][rx] = true;
+        G.mapRevealActive = true;
+        addMessage(slot.name + "を使い、この階の様子が頭に浮かんだ!", "note");
+      } else if (slot.sub === "megaevolve") {
+        G.player.megaEvolveTurns = slot.value;
+        addMessage(slot.name + "の力で体が漲る!" + slot.value + "ターンの間、攻撃力が2倍になった!", "good");
+      } else if (slot.sub === "vacuum") {
+        var homeRoom = G.roomId[G.player.y][G.player.x];
+        if (homeRoom < 0) {
+          addMessage(slot.name + "を使ったが、ここは部屋ではないため効果がなかった。", "warn");
+        } else {
+          var vDmg = G.player.level * 10;
+          var targets = G.enemies.filter(function (en) { return G.roomId[en.y][en.x] === homeRoom; });
+          if (targets.length === 0) {
+            addMessage(slot.name + "を使ったが、部屋に敵はいなかった。", "");
+          } else {
+            addMessage(slot.name + "の真空波が部屋を切り裂いた!", "note");
+            for (var vi = 0; vi < targets.length; vi++) {
+              var vt = targets[vi];
+              addMessage(vt.name + "に" + vDmg + "のダメージ!", "");
+              applyEnemyDamage(vt, vDmg);
+            }
+          }
+        }
       }
     } else { consumed = false; }
     if (consumed) {
@@ -1137,6 +1177,30 @@
     addMessage(enemy.name + "は" + def.name + "を落とした!", "note");
   }
 
+  // 敵にダメージを与え、致命傷なら撃破処理(不死判定・経験値・ドロップ・クリア判定)を
+  // まとめて行う共通処理。通常攻撃と真空切りの巻物のどちらからも呼ばれる。
+  // 戻り値:実際に倒した(=Gから取り除いた)場合はtrue
+  function applyEnemyDamage(enemy, dmg) {
+    enemy.hp -= dmg;
+    if (enemy.hp <= 0) {
+      // スケルトンの「不死」:1戦につき1度だけ、致命傷をHP1で耐える
+      if (enemy.ability === "undying" && !enemy.undyingUsed) {
+        enemy.undyingUsed = true;
+        enemy.hp = 1;
+        addMessage(enemy.name + "は死を免れた!", "warn");
+        return false;
+      }
+      addMessage(enemy.name + "を倒した!", "good");
+      gainExp(enemy.exp);
+      var idx = G.enemies.indexOf(enemy);
+      if (idx >= 0) G.enemies.splice(idx, 1);
+      rollEnemyDrop(enemy);
+      if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
+      return true;
+    }
+    return false;
+  }
+
   function playerAttackEnemy(enemy) {
     // 鎧武者の「受け流し」:一定確率で攻撃そのものを完全に無効化する
     if (enemy.ability === "guard" && chance(0.2)) {
@@ -1145,26 +1209,10 @@
       return;
     }
     var dmg = computeDamage(effAtk(), enemy.def);
-    enemy.hp -= dmg;
     enemy.awake = true;
     addMessage(enemy.name + "に" + dmg + "のダメージ!", "");
-    if (enemy.hp <= 0) {
-      // スケルトンの「不死」:1戦につき1度だけ、致命傷をHP1で耐える
-      if (enemy.ability === "undying" && !enemy.undyingUsed) {
-        enemy.undyingUsed = true;
-        enemy.hp = 1;
-        addMessage(enemy.name + "は死を免れた!", "warn");
-        return;
-      }
-      addMessage(enemy.name + "を倒した!", "good");
-      gainExp(enemy.exp);
-      var idx = G.enemies.indexOf(enemy);
-      if (idx >= 0) G.enemies.splice(idx, 1);
-      rollEnemyDrop(enemy);
-      if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
-    } else if (enemy.ability === "split") {
-      trySplitEnemy(enemy);
-    }
+    var killed = applyEnemyDamage(enemy, dmg);
+    if (!killed && enemy.ability === "split") trySplitEnemy(enemy);
   }
 
   function enemyAttackPlayer(enemy) {
@@ -1249,6 +1297,10 @@
     // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)
     if (G.turn % 10 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
       G.player.hp = Math.min(G.player.maxHp, G.player.hp + 2);
+    }
+    if (G.player.megaEvolveTurns > 0) {
+      G.player.megaEvolveTurns--;
+      if (G.player.megaEvolveTurns === 0) addMessage("メガシンカの効果が切れた。", "note");
     }
     trySpawnWanderingMonster();
     if (checkPlayerDeath()) return;
@@ -1388,6 +1440,13 @@
     document.getElementById("equip-shield").textContent = G.player.shield ? G.player.shield.name : "なし";
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
+    var statusRow = document.getElementById("equip-status-row");
+    if (G.player.megaEvolveTurns > 0) {
+      statusRow.hidden = false;
+      document.getElementById("equip-status").textContent = "メガシンカ中(残り" + G.player.megaEvolveTurns + "ターン)";
+    } else {
+      statusRow.hidden = true;
+    }
   }
 
   function renderInventory() {
@@ -1857,7 +1916,8 @@
     }
     for (var j = 0; j < G.enemies.length; j++) {
       var e = G.enemies[j];
-      if (!G.visible[e.y][e.x]) continue;
+      // 明かりの巻物の効果中は、視界に入っていない敵の位置も分かるようにする
+      if (!G.visible[e.y][e.x] && !G.mapRevealActive) continue;
       drawMonster(e.x, e.y, e);
     }
     drawPlayerFigure(G.player.x, G.player.y);
