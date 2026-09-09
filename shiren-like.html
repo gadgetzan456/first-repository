@@ -422,21 +422,28 @@
   // 彩度・明度をやや濃いめに寄せてある。
   // atk はさらに0.8倍に調整済み(合わせてプレイヤーの最大HPも1.5倍にして、
   // 緊張感を保ちつつ少し遊びやすいバランスにしている)。
+  // ability: モンスターごとの特殊能力(1体1つ)。詳細は各処理箇所のコメントを参照。
+  //   split=分裂(スライム) flee=瀕死で逃走(ネズミ) drain=吸血(コウモリ系)
+  //   poison=毒(毒キノコ、既存のpoisonフラグと連動) alert=仲間を起こす(ゴブリン)
+  //   undying=致命傷を1度だけ耐える(スケルトン) enrage=瀕死で攻撃力上昇(オーク)
+  //   guard=攻撃を受け流す(鎧武者) ranged=2マス先まで攻撃可(妖術師)
+  //   phase=壁をすり抜ける(死霊) heavycrit=会心率上昇(大鬼)
+  //   pierce=防御力を貫通(竜鱗の戦士) teleport=瞬間移動で接近(深淵の魔物)
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob" },
-    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 5, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast" },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer" },
-    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant" },
-    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none" },
-    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull" },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true },
-    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk" },
-    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm" },
-    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed" },
-    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 32, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost" },
-    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 35, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true },
-    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 45, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn" },
-    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 54, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true }
+    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob", ability: "split" },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 5, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast", ability: "flee" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer", ability: "drain" },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant", ability: "poison" },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none", ability: "alert" },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull", ability: "undying" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true, ability: "drain" },
+    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk", ability: "enrage" },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm", ability: "guard" },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed", ability: "ranged" },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 32, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost", ability: "phase" },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 35, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true, ability: "heavycrit" },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 45, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn", ability: "pierce" },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 54, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true, ability: "teleport" }
   ];
 
   var BOSS_TABLE = {
@@ -503,6 +510,8 @@
       discovered: null,
       enemies: [],
       floorItems: [],
+      monsterHouseRoomId: -1,
+      monsterHouseActivated: false,
       player: {
         x: 0, y: 0,
         hp: 23, maxHp: 23,
@@ -642,10 +651,20 @@
     stairsRoom = best;
     grid[stairsRoom.cy][stairsRoom.cx] = T_STAIRS;
 
+    // モンスターハウス:地下4階以降、開始部屋を除く各部屋に3%の確率で発生する。
+    // 1フロアに1部屋までなので、最初に当たった時点で以降の抽選は行わない。
+    var monsterHouseRoomId = -1;
+    if (depth >= 4) {
+      for (var mh = 1; mh < rooms.length; mh++) {
+        if (chance(0.03)) { rooms[mh].isMonsterHouse = true; monsterHouseRoomId = rooms[mh].id; break; }
+      }
+    }
+
     return {
       grid: grid, roomId: roomId, rooms: rooms,
       startX: startRoom.cx, startY: startRoom.cy,
-      stairsX: stairsRoom.cx, stairsY: stairsRoom.cy
+      stairsX: stairsRoom.cx, stairsY: stairsRoom.cy,
+      monsterHouseRoomId: monsterHouseRoomId
     };
   }
 
@@ -679,6 +698,10 @@
       shape: def.shape || "humanoid",
       accessory: def.accessory || "none",
       big: !!def.big,
+      ability: def.ability || null,
+      enraged: false,
+      undyingUsed: false,
+      monsterHouseDormant: false,
       awake: !chance(def.sleepy || 0.15),
       x: 0, y: 0
     };
@@ -719,6 +742,58 @@
       var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
       G.floorItems.push({ x: ispot.x, y: ispot.y, def: idef });
     }
+
+    if (G.monsterHouseRoomId >= 0) populateMonsterHouse(depth);
+  }
+
+  // モンスターハウス部屋の床マスの7割にモンスターを、残りに多めのアイテムを配置する。
+  // 配置されたモンスターはプレイヤーがこの部屋に入るまで一切行動しない(monsterHouseDormant)。
+  function populateMonsterHouse(depth) {
+    var room = G.rooms[G.monsterHouseRoomId];
+    var tiles = [];
+    for (var y = room.y; y < room.y + room.h; y++) {
+      for (var x = room.x; x < room.x + room.w; x++) {
+        if (G.grid[y][x] === T_FLOOR && !tileOccupied(x, y)) tiles.push({ x: x, y: y });
+      }
+    }
+    for (var i = tiles.length - 1; i > 0; i--) {
+      var j2 = rnd(0, i);
+      var tmp = tiles[i]; tiles[i] = tiles[j2]; tiles[j2] = tmp;
+    }
+
+    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+    var monsterCount = Math.min(tiles.length, Math.round(room.w * room.h * 0.7));
+    for (var m = 0; m < monsterCount; m++) {
+      var spot = tiles.pop();
+      var def = weightedPick(pool);
+      var e = scaledEnemy(def, depth);
+      e.x = spot.x; e.y = spot.y;
+      e.awake = false;
+      e.monsterHouseDormant = true;
+      G.enemies.push(e);
+    }
+
+    var itemPool2 = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    var itemCount = Math.min(tiles.length, rnd(4, 7));
+    for (var n = 0; n < itemCount; n++) {
+      var ispot2 = tiles.pop();
+      var idef2 = weightedPick(itemPool2);
+      G.floorItems.push({ x: ispot2.x, y: ispot2.y, def: idef2 });
+    }
+  }
+
+  // モンスターハウスの起爆:プレイヤーがその部屋に入った瞬間、待機中の敵を一斉に起こす
+  function activateMonsterHouse() {
+    G.monsterHouseActivated = true;
+    var count = 0;
+    for (var i = 0; i < G.enemies.length; i++) {
+      if (G.enemies[i].monsterHouseDormant) {
+        G.enemies[i].monsterHouseDormant = false;
+        G.enemies[i].awake = true;
+        count++;
+      }
+    }
+    if (count > 0) addMessage("モンスターハウスだ!敵が一斉に襲いかかってくる!", "warn");
   }
 
   // フロア移動時だけでなく、プレイヤーの行動のたびに低確率で新しい敵が湧く(徘徊モンスター)。
@@ -756,6 +831,8 @@
     G.player.y = g.startY;
     G.stairsX = g.stairsX;
     G.stairsY = g.stairsY;
+    G.monsterHouseRoomId = g.monsterHouseRoomId;
+    G.monsterHouseActivated = false;
     populateFloor(depth);
     computeVisibility();
     addMessage((depth === 1 ? "迷宮" : "地下" + depth + "階") + "に降り立った。", "note");
@@ -782,6 +859,11 @@
       }
     }
     G.visible[py][px] = true; G.discovered[py][px] = true;
+
+    // プレイヤーがモンスターハウスの部屋に足を踏み入れた瞬間に起動する
+    if (rid >= 0 && rid === G.monsterHouseRoomId && !G.monsterHouseActivated) {
+      activateMonsterHouse();
+    }
   }
 
   /* =========================================================
@@ -941,11 +1023,14 @@
   /* =========================================================
      戦闘
   ========================================================= */
-  function computeDamage(atk, def) {
-    var base = Math.max(1, atk - def * 0.6);
+  // critChance/defFactor は省略可(それぞれ既定の会心率8%、防御反映率0.6倍を使う)。
+  // heavycrit(会心率上昇)・pierce(防御貫通)の特殊能力で上書きするために使う。
+  function computeDamage(atk, def, critChance, defFactor) {
+    var factor = typeof defFactor === "number" ? defFactor : 0.6;
+    var base = Math.max(1, atk - def * factor);
     var variance = 0.8 + Math.random() * 0.4;
     var dmg = Math.round(base * variance);
-    if (chance(0.08)) dmg *= 2;
+    if (chance(typeof critChance === "number" ? critChance : 0.08)) dmg *= 2;
     return Math.max(1, dmg);
   }
 
@@ -975,6 +1060,62 @@
     return null;
   }
 
+  // (x,y)に隣接する、壁でもプレイヤー/敵/アイテムでも塞がれていない床マスを1つ探す。
+  // スライムの分裂や深淵の魔物の瞬間移動先探しに使う。
+  function findFreeAdjacentTile(x, y) {
+    var candidates = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+    for (var i = 0; i < candidates.length; i++) {
+      var nx = x + candidates[i][0], ny = y + candidates[i][1];
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
+      if (tileOccupied(nx, ny)) continue;
+      return { x: nx, y: ny };
+    }
+    return null;
+  }
+
+  // (x1,y1)から(x2,y2)までの間(距離2以内)に壁が挟まっていないかを調べる。
+  // 妖術師の遠隔攻撃(ranged)の射線判定に使う。
+  function hasClearLine(x1, y1, x2, y2) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var steps = Math.max(Math.abs(dx), Math.abs(dy));
+    if (steps <= 1) return true;
+    var sx = dx === 0 ? 0 : dx / Math.abs(dx);
+    var sy = dy === 0 ? 0 : dy / Math.abs(dy);
+    for (var i = 1; i < steps; i++) {
+      var cx = x1 + sx * i, cy = y1 + sy * i;
+      if (!inBounds(cx, cy) || G.grid[cy][cx] === T_WALL) return false;
+    }
+    return true;
+  }
+
+  // スライムの分裂:ダメージを受けても生き残り、隣に空きマスがあれば低確率でHPを
+  // 半分ずつに分けた分身を生み出す。弱りすぎた個体やフロアの敵数上限では分裂しない。
+  function trySplitEnemy(enemy) {
+    if (enemy.hp < 4) return;
+    if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
+    if (!chance(0.3)) return;
+    var spot = findFreeAdjacentTile(enemy.x, enemy.y);
+    if (!spot) return;
+    var halfHp = Math.floor(enemy.hp / 2);
+    enemy.hp -= halfHp;
+    var clone = JSON.parse(JSON.stringify(enemy));
+    clone.hp = halfHp;
+    clone.x = spot.x; clone.y = spot.y;
+    G.enemies.push(clone);
+    addMessage(enemy.name + "が分裂した!", "warn");
+  }
+
+  // ゴブリンの「仲間を呼ぶ」:自分が目覚めたとき、近くの眠っている(モンスターハウス
+  // 待機中を除く)敵をまとめて起こす。
+  function alertNearbyEnemies(source) {
+    for (var i = 0; i < G.enemies.length; i++) {
+      var other = G.enemies[i];
+      if (other === source || other.awake || other.monsterHouseDormant) continue;
+      var d = Math.max(Math.abs(other.x - source.x), Math.abs(other.y - source.y));
+      if (d <= 5) other.awake = true;
+    }
+  }
+
   // 敵撃破時のアイテムドロップ判定。ボスは必ず(装備品・巻物を優先して)ドロップする。
   function rollEnemyDrop(enemy) {
     var rate = enemy.boss ? BOSS_DROP_RATE : (typeof enemy.dropRate === "number" ? enemy.dropRate : 0.15);
@@ -994,24 +1135,48 @@
   }
 
   function playerAttackEnemy(enemy) {
+    // 鎧武者の「受け流し」:一定確率で攻撃そのものを完全に無効化する
+    if (enemy.ability === "guard" && chance(0.2)) {
+      enemy.awake = true;
+      addMessage(enemy.name + "が攻撃を受け流した!", "");
+      return;
+    }
     var dmg = computeDamage(effAtk(), enemy.def);
     enemy.hp -= dmg;
     enemy.awake = true;
     addMessage(enemy.name + "に" + dmg + "のダメージ!", "");
     if (enemy.hp <= 0) {
+      // スケルトンの「不死」:1戦につき1度だけ、致命傷をHP1で耐える
+      if (enemy.ability === "undying" && !enemy.undyingUsed) {
+        enemy.undyingUsed = true;
+        enemy.hp = 1;
+        addMessage(enemy.name + "は死を免れた!", "warn");
+        return;
+      }
       addMessage(enemy.name + "を倒した!", "good");
       gainExp(enemy.exp);
       var idx = G.enemies.indexOf(enemy);
       if (idx >= 0) G.enemies.splice(idx, 1);
       rollEnemyDrop(enemy);
       if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
+    } else if (enemy.ability === "split") {
+      trySplitEnemy(enemy);
     }
   }
 
   function enemyAttackPlayer(enemy) {
-    var dmg = computeDamage(enemy.atk, effDef());
+    var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
+    var defFactor = enemy.ability === "pierce" ? 0.25 : undefined; // 竜鱗の戦士:防御貫通
+    var dmg = computeDamage(enemy.atk, effDef(), critChance, defFactor);
     G.player.hp -= dmg;
     addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
+    if (enemy.ability === "drain") { // コウモリ系の吸血
+      var healed = Math.min(enemy.maxHp - enemy.hp, Math.round(dmg * 0.5));
+      if (healed > 0) {
+        enemy.hp += healed;
+        addMessage(enemy.name + "が生命力を吸い取った!", "warn");
+      }
+    }
     if (enemy.poison && chance(0.5) && G.player.poison <= 0) {
       G.player.poison = 6;
       addMessage("毒を受けてしまった…", "warn");
@@ -1093,23 +1258,78 @@
     saveGame();
   }
 
+  // 敵を(dx,dy)方向へ1マス動かそうと試みる。真っ直ぐ進めなければ軸ごとの移動も試す。
+  // phase(壁をすり抜ける)を持つ敵は壁を無視して進める。
+  function moveEnemyStep(e, dx, dy) {
+    var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
+    for (var m = 0; m < tryMoves.length; m++) {
+      var stepx = tryMoves[m][0], stepy = tryMoves[m][1];
+      if (stepx === 0 && stepy === 0) continue;
+      var mx = e.x + stepx, my = e.y + stepy;
+      if (!inBounds(mx, my) || (G.grid[my][mx] === T_WALL && e.ability !== "phase")) continue;
+      if (mx === G.player.x && my === G.player.y) continue;
+      var occ = false;
+      for (var k = 0; k < G.enemies.length; k++) if (G.enemies[k] !== e && G.enemies[k].x === mx && G.enemies[k].y === my) { occ = true; break; }
+      if (occ) continue;
+      e.x = mx; e.y = my;
+      break;
+    }
+  }
+
   function enemyTurn() {
     var list = G.enemies.slice();
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
       if (G.enemies.indexOf(e) === -1) continue;
+      if (e.monsterHouseDormant) continue; // モンスターハウス:起動前は行動不可
+
       var dist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
       if (!e.awake) {
-        if (dist <= 5 && chance(0.5 + (5 - dist) * 0.1)) e.awake = true;
-        else continue;
+        if (dist <= 5 && chance(0.5 + (5 - dist) * 0.1)) {
+          e.awake = true;
+          if (e.ability === "alert") alertNearbyEnemies(e); // ゴブリン:仲間を起こす
+        } else continue;
       }
+
+      // オークの「怒り」:HPが半分以下になった最初のタイミングで攻撃力が上がる
+      if (e.ability === "enrage" && !e.enraged && e.hp <= e.maxHp * 0.5) {
+        e.enraged = true;
+        e.atk = Math.round(e.atk * 1.5);
+        addMessage(e.name + "が怒り狂った!攻撃力が上がった!", "warn");
+      }
+
       var pdx = e.x < G.player.x ? 1 : (e.x > G.player.x ? -1 : 0);
       var pdy = e.y < G.player.y ? 1 : (e.y > G.player.y ? -1 : 0);
-      if (dist <= 1) {
-        // 斜め方向で壁の角に阻まれている場合は攻撃できない(プレイヤー側と同じ判定)
-        var blocked = pdx !== 0 && pdy !== 0 && isDiagonalAttackBlocked(e.x, e.y, pdx, pdy);
-        if (!blocked) { enemyAttackPlayer(e); continue; }
+
+      // 巨大ネズミの「逃走」:HPが3割以下になると攻撃せずプレイヤーから離れようとする
+      if (e.ability === "flee" && e.hp <= e.maxHp * 0.3) {
+        moveEnemyStep(e, -pdx, -pdy);
+        continue;
       }
+
+      var attackRange = (e.ability === "ranged") ? 2 : 1; // 妖術師は2マス先まで攻撃可
+      if (dist <= attackRange) {
+        var canAttack;
+        if (dist <= 1) {
+          // 斜め方向で壁の角に阻まれている場合は攻撃できない(プレイヤー側と同じ判定)。
+          // ただし死霊(phase)は壁ごと無視できるのでこの制限を受けない。
+          canAttack = !(pdx !== 0 && pdy !== 0 && e.ability !== "phase" && isDiagonalAttackBlocked(e.x, e.y, pdx, pdy));
+        } else {
+          canAttack = hasClearLine(e.x, e.y, G.player.x, G.player.y);
+        }
+        if (canAttack) { enemyAttackPlayer(e); continue; }
+      }
+
+      // 深淵の魔物の「瞬間移動」:離れていると低確率でプレイヤーの隣まで一気に詰め寄る
+      if (e.ability === "teleport" && dist > 1 && chance(0.15)) {
+        var tp = findFreeAdjacentTile(G.player.x, G.player.y);
+        if (tp) {
+          e.x = tp.x; e.y = tp.y;
+          addMessage(e.name + "が瞬間移動した!", "warn");
+          continue;
+        }
+      }
+
       var dx = 0, dy = 0;
       if (e.erratic && chance(e.erratic)) {
         dx = rnd(-1, 1); dy = rnd(-1, 1);
@@ -1117,18 +1337,7 @@
         dx = pdx; dy = pdy;
       }
       if (dx === 0 && dy === 0) continue;
-      var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
-      for (var m = 0; m < tryMoves.length; m++) {
-        var mx = e.x + tryMoves[m][0], my = e.y + tryMoves[m][1];
-        if (tryMoves[m][0] === 0 && tryMoves[m][1] === 0) continue;
-        if (!inBounds(mx, my) || G.grid[my][mx] === T_WALL) continue;
-        if (mx === G.player.x && my === G.player.y) continue;
-        var occ = false;
-        for (var k = 0; k < G.enemies.length; k++) if (G.enemies[k] !== e && G.enemies[k].x === mx && G.enemies[k].y === my) { occ = true; break; }
-        if (occ) continue;
-        e.x = mx; e.y = my;
-        break;
-      }
+      moveEnemyStep(e, dx, dy);
     }
   }
 
