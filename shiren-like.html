@@ -1875,20 +1875,54 @@
 
   // 冒険者本体をヒト型で描画する。向いている方向(facing)に合わせて絵姿ごと回転させる。
   // 基準ポーズは「下(dy=+1)」を向いた状態で描いてあるため、その分だけ角度を補正する。
-  function drawPlayerFigure(x, y) {
-    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
-    var skin = "#e0b48a", hair = "#5a3c28", tunic = "#3f6b52", cape = "#a5502c", leg = "#3a2e22";
-    var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
-    var angle = Math.atan2(facing.dy, facing.dx) - Math.PI / 2;
+  // 剣(装備時)/短剣(未装備時)を、柄の位置(hx,hy)から切っ先の位置(tx,ty)へ描く。
+  // 8方向それぞれの立ち絵から共通で呼び出す。
+  function drawHeldWeapon(hx, hy, tx, ty, hasWeapon) {
+    if (hasWeapon) {
+      ctx.strokeStyle = "#d8dee4";
+      ctx.lineWidth = TILE * 0.05;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      // 柄(刃の根本のあたりに、刃と垂直気味の短い金色のガード)
+      var vx = tx - hx, vy = ty - hy;
+      var len = Math.max(0.0001, Math.sqrt(vx * vx + vy * vy));
+      var nx = -vy / len, ny = vx / len;
+      var gx = hx + vx * 0.12, gy = hy + vy * 0.12;
+      ctx.strokeStyle = "#D9A441";
+      ctx.lineWidth = TILE * 0.065;
+      ctx.beginPath();
+      ctx.moveTo(gx - nx * TILE * 0.05, gy - ny * TILE * 0.05);
+      ctx.lineTo(gx + nx * TILE * 0.05, gy + ny * TILE * 0.05);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "#8a7250";
+      ctx.lineWidth = TILE * 0.035;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(hx + (tx - hx) * 0.25, hy + (ty - hy) * 0.25);
+      ctx.lineTo(tx * 0.85, ty * 0.85);
+      ctx.stroke();
+    }
+  }
 
-    drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
+  // 盾(装備時のみ)を中心(sx,sy)に、半径(rx,ry)の楕円として描く。
+  function drawHeldShield(sx, sy, rx, ry, hasShield) {
+    if (!hasShield) return;
+    ctx.fillStyle = "#9aa4ad";
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#5f6a72";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
 
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(angle);
-
-    // マント(体の後ろ側)
-    ctx.fillStyle = cape;
+  // 正面(下向き)立ち絵。他の7方向の基準にもなる姿勢。
+  function drawFigureDown(c, hasShield, hasWeapon) {
+    ctx.fillStyle = c.cape;
     ctx.beginPath();
     ctx.moveTo(-TILE * 0.15, -TILE * 0.16);
     ctx.lineTo(TILE * 0.15, -TILE * 0.16);
@@ -1897,70 +1931,238 @@
     ctx.closePath();
     ctx.fill();
 
-    // 脚
-    ctx.fillStyle = leg;
+    ctx.fillStyle = c.leg;
     ctx.fillRect(-TILE * 0.12, TILE * 0.07, TILE * 0.09, TILE * 0.24);
     ctx.fillRect(TILE * 0.03, TILE * 0.07, TILE * 0.09, TILE * 0.24);
 
-    // 盾(左手、装備時のみ)
-    if (G.player && G.player.shield) {
-      ctx.fillStyle = "#9aa4ad";
-      ctx.beginPath();
-      ctx.ellipse(-TILE * 0.29, TILE * 0.02, TILE * 0.09, TILE * 0.13, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = "#5f6a72";
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
+    drawHeldShield(-TILE * 0.29, TILE * 0.02, TILE * 0.09, TILE * 0.13, hasShield);
 
-    // 胴体(丸みのあるチュニック)
-    ctx.fillStyle = tunic;
+    ctx.fillStyle = c.tunic;
     roundRectPath(-TILE * 0.17, -TILE * 0.09, TILE * 0.34, TILE * 0.27, TILE * 0.07);
     ctx.fill();
     ctx.fillStyle = "#241d12";
     ctx.fillRect(-TILE * 0.17, TILE * 0.11, TILE * 0.34, TILE * 0.035);
 
-    // 腕
-    ctx.fillStyle = skin;
+    ctx.fillStyle = c.skin;
     ctx.fillRect(-TILE * 0.23, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
     ctx.fillRect(TILE * 0.165, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
 
-    // 剣(右手、装備時のみ。未装備でも簡単なナイフを持たせる)
-    if (G.player && G.player.weapon) {
-      ctx.strokeStyle = "#d8dee4";
-      ctx.lineWidth = TILE * 0.05;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(TILE * 0.24, TILE * 0.12);
-      ctx.lineTo(TILE * 0.36, -TILE * 0.22);
-      ctx.stroke();
-      ctx.strokeStyle = "#D9A441";
-      ctx.lineWidth = TILE * 0.065;
-      ctx.beginPath();
-      ctx.moveTo(TILE * 0.19, TILE * 0.03);
-      ctx.lineTo(TILE * 0.29, TILE * 0.03);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = "#8a7250";
-      ctx.lineWidth = TILE * 0.035;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(TILE * 0.25, TILE * 0.10);
-      ctx.lineTo(TILE * 0.31, -TILE * 0.06);
-      ctx.stroke();
-    }
+    drawHeldWeapon(TILE * 0.19, TILE * 0.03, TILE * 0.36, -TILE * 0.22, hasWeapon);
 
-    // 頭
-    ctx.fillStyle = skin;
+    ctx.fillStyle = c.skin;
     ctx.beginPath();
     ctx.arc(0, -TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
     ctx.fill();
 
-    // 髪/フード
-    ctx.fillStyle = hair;
+    ctx.fillStyle = c.hair;
     ctx.beginPath();
     ctx.arc(0, -TILE * 0.31, TILE * 0.15, Math.PI, 0);
     ctx.fill();
+  }
+
+  // 背面(上向き)立ち絵:顔は見えず、マントが背中いっぱいに広がる。
+  function drawFigureUp(c, hasShield, hasWeapon) {
+    // 背負った盾(輪郭のみ、体の陰でうっすら)
+    if (hasShield) {
+      ctx.strokeStyle = "#5f6a72";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(-TILE * 0.27, TILE * 0.06, TILE * 0.075, TILE * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // マント(背面のほぼ全体を覆う、正面より一回り大きい)
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.20, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.20, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.26, TILE * 0.30);
+    ctx.lineTo(-TILE * 0.26, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 脚(マントより手前に描き、裾から覗かせる)
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.12, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(TILE * 0.03, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.24, -TILE * 0.05, TILE * 0.06, TILE * 0.17);
+    ctx.fillRect(TILE * 0.18, -TILE * 0.05, TILE * 0.06, TILE * 0.17);
+
+    // 背負った剣(柄が右肩の上に覗く)
+    drawHeldWeapon(TILE * 0.15, -TILE * 0.20, TILE * 0.31, -TILE * 0.30, hasWeapon);
+
+    // 頭は髪で完全に覆われ、顔は見えない
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(0, -TILE * 0.27, TILE * 0.155, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 横向き立ち絵(canonicalは左向き=dx<0)。右向きはmirrorして流用する。
+  function drawFigureSide(c, hasShield, hasWeapon) {
+    // 奥足(進行方向と逆側にわずかに残る)→ 手前足(進行方向へ踏み出す)の順に描画
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(TILE * 0.01, TILE * 0.09, TILE * 0.10, TILE * 0.21);
+    ctx.fillRect(-TILE * 0.15, TILE * 0.06, TILE * 0.10, TILE * 0.25);
+
+    // マント(背中側 = 進行方向の反対側にたなびく)
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(TILE * 0.02, -TILE * 0.15);
+    ctx.lineTo(TILE * 0.20, -TILE * 0.10);
+    ctx.lineTo(TILE * 0.27, TILE * 0.28);
+    ctx.lineTo(TILE * 0.04, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 盾を持つ奥腕(背中側にやや隠れて見える)
+    drawHeldShield(TILE * 0.14, TILE * 0.00, TILE * 0.075, TILE * 0.13, hasShield);
+
+    // 胴体(側面なのでやや細身)
+    ctx.fillStyle = c.tunic;
+    roundRectPath(-TILE * 0.12, -TILE * 0.09, TILE * 0.24, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(-TILE * 0.12, TILE * 0.11, TILE * 0.24, TILE * 0.035);
+
+    // 手前腕(進行方向側、武器を前へ構える)
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.19, -TILE * 0.06, TILE * 0.065, TILE * 0.18);
+
+    drawHeldWeapon(-TILE * 0.17, TILE * 0.06, -TILE * 0.38, -TILE * 0.16, hasWeapon);
+
+    // 頭(進行方向側に鼻先のような膨らみを付けて横顔らしくする)
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.13, -TILE * 0.23);
+    ctx.quadraticCurveTo(-TILE * 0.19, -TILE * 0.20, -TILE * 0.13, -TILE * 0.16);
+    ctx.closePath();
+    ctx.fill();
+
+    // 髪(頭の背中側=進行方向と逆側を覆う)
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.155, -Math.PI * 0.65, Math.PI * 0.55);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 斜め下向き立ち絵(canonicalは左下=dx<0,dy>0)。正面と横向きの中間の3/4視点。
+  function drawFigureDiagDown(c, hasShield, hasWeapon) {
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(TILE * 0.00, -TILE * 0.17);
+    ctx.lineTo(TILE * 0.18, -TILE * 0.14);
+    ctx.lineTo(TILE * 0.25, TILE * 0.29);
+    ctx.lineTo(-TILE * 0.12, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.15, TILE * 0.07, TILE * 0.095, TILE * 0.24);
+    ctx.fillRect(TILE * 0.00, TILE * 0.08, TILE * 0.095, TILE * 0.23);
+
+    drawHeldShield(TILE * 0.17, TILE * 0.02, TILE * 0.08, TILE * 0.125, hasShield);
+
+    ctx.fillStyle = c.tunic;
+    roundRectPath(-TILE * 0.16, -TILE * 0.09, TILE * 0.30, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(-TILE * 0.16, TILE * 0.11, TILE * 0.30, TILE * 0.035);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.22, -TILE * 0.05, TILE * 0.065, TILE * 0.18);
+
+    drawHeldWeapon(-TILE * 0.16, TILE * 0.08, -TILE * 0.34, TILE * 0.30, hasWeapon);
+
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 髪は頭の奥側(進行方向と逆側)だけを覆う3/4ビュー
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.155, -Math.PI * 0.95, Math.PI * 0.15);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 斜め上向き立ち絵(canonicalは左上=dx<0,dy<0)。背面と横向きの中間の3/4視点。
+  function drawFigureDiagUp(c, hasShield, hasWeapon) {
+    if (hasShield) {
+      ctx.strokeStyle = "#5f6a72";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(TILE * 0.16, TILE * 0.04, TILE * 0.075, TILE * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.06, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.22, -TILE * 0.20);
+    ctx.lineTo(TILE * 0.27, TILE * 0.29);
+    ctx.lineTo(-TILE * 0.16, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 脚(マントより手前に描き、裾から覗かせる)
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.14, TILE * 0.08, TILE * 0.095, TILE * 0.23);
+    ctx.fillRect(TILE * 0.01, TILE * 0.07, TILE * 0.095, TILE * 0.24);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.21, -TILE * 0.04, TILE * 0.06, TILE * 0.16);
+
+    drawHeldWeapon(TILE * 0.11, -TILE * 0.19, TILE * 0.28, -TILE * 0.29, hasWeapon);
+
+    // 頭はほぼ髪で覆われ、進行方向側にわずかに顔の輪郭が覗く程度
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.01, -TILE * 0.26, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.01, -TILE * 0.26, TILE * 0.155, -Math.PI * 0.4, Math.PI * 0.85);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawPlayerFigure(x, y) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var c = { skin: "#e0b48a", hair: "#5a3c28", tunic: "#3f6b52", cape: "#a5502c", leg: "#3a2e22" };
+    var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+    var hasShield = !!(G.player && G.player.shield);
+    var hasWeapon = !!(G.player && G.player.weapon);
+
+    drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    // 8方向それぞれに専用の立ち絵を用意し、単純な回転では出せない
+    // 「ちゃんと立って、その方向を向いている」見た目にする。左右は左向きの
+    // 絵を鏡像反転して使い回す。
+    if (dx === 0 && dy > 0) {
+      drawFigureDown(c, hasShield, hasWeapon);
+    } else if (dx === 0 && dy < 0) {
+      drawFigureUp(c, hasShield, hasWeapon);
+    } else if (dy === 0) {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureSide(c, hasShield, hasWeapon);
+    } else if (dy > 0) {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureDiagDown(c, hasShield, hasWeapon);
+    } else {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureDiagUp(c, hasShield, hasWeapon);
+    }
 
     ctx.restore();
   }
