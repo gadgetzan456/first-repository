@@ -431,14 +431,16 @@
   //   guard=攻撃を受け流す(鎧武者) ranged=2マス先まで攻撃可(妖術師)
   //   phase=壁をすり抜ける(死霊) heavycrit=会心率上昇(大鬼)
   //   pierce=防御力を貫通(竜鱗の戦士) teleport=瞬間移動で接近(深淵の魔物)
+  // cornerCut: スライムやコウモリのような小柄なモンスターは、壁の角を挟んだ
+  // 斜め移動もすり抜けられる(体が小さく隙間を通れるイメージ)。
   var ENEMY_TYPES = [
-    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob", ability: "split" },
+    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob", ability: "split", cornerCut: true },
     { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 5, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast", ability: "flee" },
-    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer", ability: "drain" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer", ability: "drain", cornerCut: true },
     { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant", ability: "poison" },
     { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none", ability: "alert" },
     { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull", ability: "undying" },
-    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true, ability: "drain" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true, ability: "drain", cornerCut: true },
     { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk", ability: "enrage" },
     { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm", ability: "guard" },
     { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed", ability: "ranged" },
@@ -723,6 +725,7 @@
       accessory: def.accessory || "none",
       big: !!def.big,
       ability: def.ability || null,
+      cornerCut: !!def.cornerCut,
       enraged: false,
       undyingUsed: false,
       monsterHouseDormant: false,
@@ -1106,10 +1109,12 @@
     return Math.max(1, dmg);
   }
 
-  // 斜め攻撃の可否判定。(x,y)から(dx,dy)方向へ斜めに攻撃しようとしたとき、
-  // 直交する2マス(x+dx,y)と(x,y+dy)のどちらか一方でも壁なら「壁の角」に阻まれて攻撃できない。
-  // プレイヤー→敵・敵→プレイヤーの両方でこの判定を使う。
-  function isDiagonalAttackBlocked(x, y, dx, dy) {
+  // 斜め方向(攻撃・移動共通)の可否判定。(x,y)から(dx,dy)方向へ斜めに進もうとしたとき、
+  // 直交する2マス(x+dx,y)と(x,y+dy)のどちらか一方でも壁なら「壁の角」に阻まれて進めない。
+  // プレイヤーの斜め攻撃・斜め移動、敵の斜め攻撃の全てでこの判定を使う
+  // (壁をすり抜けられる死霊(phase)や、小柄で壁の角も抜けられる一部モンスターは
+  // 呼び出し側でこの判定自体をスキップする)。
+  function isDiagonalCornerBlocked(x, y, dx, dy) {
     if (dx === 0 || dy === 0) return false;
     var wallA = !inBounds(x + dx, y) || G.grid[y][x + dx] === T_WALL;
     var wallB = !inBounds(x, y + dy) || G.grid[y + dy][x] === T_WALL;
@@ -1284,6 +1289,8 @@
     G.player.facing = { dx: dx, dy: dy };
     var nx = G.player.x + dx, ny = G.player.y + dy;
     if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) { renderStage(); return; }
+    // 斜め移動は、壁の角(直交する2マスのどちらか一方でも壁)を挟んでいるとすり抜けられない。
+    if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) { renderStage(); return; }
 
     for (var i = 0; i < G.enemies.length; i++) {
       if (G.enemies[i].x === nx && G.enemies[i].y === ny) { renderStage(); return; }
@@ -1308,7 +1315,7 @@
     var dx = facing.dx, dy = facing.dy;
     var tx = G.player.x + dx, ty = G.player.y + dy;
     if (!inBounds(tx, ty)) return;
-    if (isDiagonalAttackBlocked(G.player.x, G.player.y, dx, dy)) {
+    if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) {
       addMessage("壁の角に阻まれて攻撃が届かない!", "warn");
       return;
     }
@@ -1361,6 +1368,8 @@
 
   // 敵を(dx,dy)方向へ1マス動かそうと試みる。真っ直ぐ進めなければ軸ごとの移動も試す。
   // phase(壁をすり抜ける)を持つ敵は壁を無視して進める。
+  // 斜め移動は壁の角に阻まれると進めない(プレイヤーと同じ判定)。ただしphaseの敵と、
+  // スライム・コウモリのような小柄な敵(cornerCut)はこの制限を受けない。
   function moveEnemyStep(e, dx, dy) {
     var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
     for (var m = 0; m < tryMoves.length; m++) {
@@ -1368,6 +1377,8 @@
       if (stepx === 0 && stepy === 0) continue;
       var mx = e.x + stepx, my = e.y + stepy;
       if (!inBounds(mx, my) || (G.grid[my][mx] === T_WALL && e.ability !== "phase")) continue;
+      if (stepx !== 0 && stepy !== 0 && e.ability !== "phase" && !e.cornerCut &&
+          isDiagonalCornerBlocked(e.x, e.y, stepx, stepy)) continue;
       if (mx === G.player.x && my === G.player.y) continue;
       var occ = false;
       for (var k = 0; k < G.enemies.length; k++) if (G.enemies[k] !== e && G.enemies[k].x === mx && G.enemies[k].y === my) { occ = true; break; }
@@ -1414,7 +1425,7 @@
         if (dist <= 1) {
           // 斜め方向で壁の角に阻まれている場合は攻撃できない(プレイヤー側と同じ判定)。
           // ただし死霊(phase)は壁ごと無視できるのでこの制限を受けない。
-          canAttack = !(pdx !== 0 && pdy !== 0 && e.ability !== "phase" && isDiagonalAttackBlocked(e.x, e.y, pdx, pdy));
+          canAttack = !(pdx !== 0 && pdy !== 0 && e.ability !== "phase" && isDiagonalCornerBlocked(e.x, e.y, pdx, pdy));
         } else {
           canAttack = hasClearLine(e.x, e.y, G.player.x, G.player.y);
         }
@@ -2143,6 +2154,11 @@
   // 届くことがあるため。長押し中のキーリピートはこの遅延の対象外にして、
   // 移動の反応が鈍くならないようにしてある)。
   var PLAIN_MOVE_DELAY_MS = 60;
+  // 縦横どちらかの方向キーが既に押されている状態で、もう一方の軸の方向キーが
+  // 新たに押された場合は「斜め移動を狙っている」とみなし、xキーの到着をより長く待つ。
+  // 押す順序(横→縦、縦→横のどちらでも)に関わらず同じロジックで扱われるため、
+  // 片方の順序でしか斜め移動が成立しない、という偏りは起きない。
+  var COMBO_AWAIT_DELAY_MS = 150;
   var pendingMoveTimers = { up: null, down: null, left: null, right: null };
 
   function normalizeDirKey(key) {
@@ -2151,6 +2167,12 @@
     if (key === "ArrowLeft" || key === "a") return "left";
     if (key === "ArrowRight" || key === "d") return "right";
     return null;
+  }
+
+  // dirと反対の軸(上下 vs 左右)の方向キーが今まさに押されているかどうか。
+  function otherAxisHeld(dir) {
+    if (dir === "up" || dir === "down") return heldDir.left || heldDir.right;
+    return heldDir.up || heldDir.down;
   }
 
   // xキーを押しながら上下左右のうち縦横1つずつが押されていれば、
@@ -2177,6 +2199,18 @@
     }, PLAIN_MOVE_DELAY_MS);
   }
 
+  // 既に別の軸の方向キーが押された状態で新たに押されたキー用。xの到着をより長く待ち、
+  // 猶予時間内にxが来なければ(=斜め移動ではなかった)、最後に押したこちらの方向へ
+  // 単発移動する。もう一方の軸の保留中タイマーは呼び出し側で明示的にキャンセルする
+  // ため、xが来なかった場合に2回分の単発移動が二重に発生することはない。
+  function scheduleComboAwaitMove(dir) {
+    cancelPendingMove(dir);
+    pendingMoveTimers[dir] = setTimeout(function () {
+      pendingMoveTimers[dir] = null;
+      if (!xHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
+    }, COMBO_AWAIT_DELAY_MS);
+  }
+
   var DIR_VECTOR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
   window.addEventListener("keydown", function (ev) {
@@ -2194,10 +2228,24 @@
     var dir = normalizeDirKey(key);
     if (dir) {
       ev.preventDefault();
+      // 別軸(縦/横)の方向キーが既に押された状態での新規プレスかどうか。押す順序が
+      // 横→縦・縦→横のどちらでも同じ扱いになるので、斜め移動の成立に偏りは出ない。
+      var comboAttempt = !xHeld && !ev.repeat && otherAxisHeld(dir);
       heldDir[dir] = true;
-      if (xHeld) { cancelPendingMove(dir); tryXComboMove(); }
-      else if (ev.repeat) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); } // 押しっぱなし中は従来通り即座に反応
-      else { schedulePlainMove(dir); } // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
+      if (xHeld) {
+        cancelPendingMove(dir);
+        tryXComboMove();
+      } else if (comboAttempt) {
+        // 斜め移動を狙っている可能性が高いので、両軸の保留中タイマーをキャンセルし、
+        // xの到着をより長く待つ(scheduleComboAwaitMove)。
+        cancelPendingMove("up"); cancelPendingMove("down");
+        cancelPendingMove("left"); cancelPendingMove("right");
+        scheduleComboAwaitMove(dir);
+      } else if (ev.repeat) {
+        movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); // 押しっぱなし中は従来通り即座に反応
+      } else {
+        schedulePlainMove(dir); // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
+      }
       return;
     }
     var v = KEY_MAP[key];
