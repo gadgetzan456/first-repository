@@ -481,7 +481,7 @@
     // (既存3種は0.7倍に圧縮し、その分を新規3種に配分している)。
     { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, minDepth: 3, weight: 1.4, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
     { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, minDepth: 3, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
-    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の場所へ飛ぶ" },
+    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の部屋へ飛ぶ" },
     { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, minDepth: 4, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
     { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, minDepth: 8, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
     { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, minDepth: 6, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" }
@@ -664,11 +664,12 @@
     stairsRoom = best;
     grid[stairsRoom.cy][stairsRoom.cx] = T_STAIRS;
 
-    // モンスターハウス:地下4階以降、開始部屋を除く各部屋に3%の確率で発生する。
-    // 1フロアに1部屋までなので、最初に当たった時点で以降の抽選は行わない。
+    // モンスターハウス:地下4階以降、各部屋に3%の確率で発生する(開始部屋も対象に含む。
+    // テレポートの巻物で別の部屋へ逃げられるため、降り立った部屋がモンスターハウスでも
+    // 詰みにはならない)。1フロアに1部屋までなので、最初に当たった時点で以降の抽選は行わない。
     var monsterHouseRoomId = -1;
     if (depth >= 4) {
-      for (var mh = 1; mh < rooms.length; mh++) {
+      for (var mh = 0; mh < rooms.length; mh++) {
         if (chance(0.03)) { rooms[mh].isMonsterHouse = true; monsterHouseRoomId = rooms[mh].id; break; }
       }
     }
@@ -687,6 +688,16 @@
       if (g.grid[y][x] === T_FLOOR && !(avoid && avoid(x, y))) return { x: x, y: y };
     }
     return { x: g.startX, y: g.startY };
+  }
+
+  // 指定した部屋の中からランダムに床マスを1つ選ぶ(テレポートの巻物で使用)。
+  function randomTileInRoom(room, avoid) {
+    for (var tries = 0; tries < 200; tries++) {
+      var x = rnd(room.x, room.x + room.w - 1);
+      var y = rnd(room.y, room.y + room.h - 1);
+      if (G.grid[y][x] === T_FLOOR && !(avoid && avoid(x, y))) return { x: x, y: y };
+    }
+    return { x: room.cx, y: room.cy };
   }
 
   function tileOccupied(x, y) {
@@ -1000,9 +1011,13 @@
         if (G.player.shield) { G.player.shield.value += 1; addMessage(slot.name + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
         else { addMessage(slot.name + "を読んだが、強化する盾がなく力は消えた。", "warn"); }
       } else if (slot.sub === "teleport") {
-        var spot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y); });
+        // 今いる部屋とは別の部屋へ飛ぶ(通路や同じ部屋への再抽選は避ける)。
+        var curRoomId = G.roomId[G.player.y][G.player.x];
+        var otherRooms = G.rooms.filter(function (r) { return r.id !== curRoomId; });
+        var destRoom = pick(otherRooms.length ? otherRooms : G.rooms);
+        var spot = randomTileInRoom(destRoom, function (x, y) { return tileOccupied(x, y); });
         G.player.x = spot.x; G.player.y = spot.y;
-        addMessage(slot.name + "の光に包まれ、瞬間移動した!", "note");
+        addMessage(slot.name + "の光に包まれ、別の部屋へ瞬間移動した!", "note");
         computeVisibility();
       } else if (slot.sub === "reveal") {
         // 明かりの巻物:この階の通路の形を全て見えるようにし、
