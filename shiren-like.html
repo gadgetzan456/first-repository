@@ -381,7 +381,7 @@
         <button data-dx="1" data-dy="1">↘</button>
       </div>
       <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
-      <div class="help-text">矢印 / WASD で移動・向き変更<br>Zキーまたは上のボタンで攻撃<br>階段の上に乗ると自動で降ります</div>
+      <div class="help-text">矢印 / WASD で移動・向き変更<br>Zキーまたは上のボタンで攻撃<br>階段の上でZキーを押すと降ります</div>
     </div>
 
     <div class="panels">
@@ -1265,17 +1265,19 @@
 
     G.player.x = nx; G.player.y = ny;
     tryPickup(nx, ny);
-    if (G.grid[ny][nx] === T_STAIRS) {
-      doTurn();
-      descend();
-      return;
-    }
+    // 階段は乗っただけでは降りない(誤って踏んだだけで進んでしまう事故を防ぐため)。
+    // 降りるにはこのマスに乗った状態でZキー/攻撃ボタンを押す(performPlayerAction側)。
     doTurn();
   }
 
-  // Zキー/攻撃ボタン:向いている方向の1マス先に敵がいれば攻撃する。
+  // Zキー/攻撃ボタン:階段の上に乗っていれば次の階へ降りる。
+  // そうでなければ、向いている方向の1マス先に敵がいれば攻撃する。
   function performPlayerAction() {
     if (!G || G.gameOver) return;
+    if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
+      descend();
+      return;
+    }
     var facing = G.player.facing || { dx: 0, dy: 1 };
     var dx = facing.dx, dy = facing.dy;
     var tx = G.player.x + dx, ty = G.player.y + dy;
@@ -1439,6 +1441,18 @@
     renderStage();
     renderEquip();
     renderInventory();
+    renderActionButton();
+  }
+
+  // 階段の上にいる間は攻撃ボタンの見た目を「降りる」用に切り替える
+  function renderActionButton() {
+    var btn = document.getElementById("btn-action");
+    if (!btn) return;
+    if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
+      btn.textContent = "階段を降りる (Z)";
+    } else {
+      btn.textContent = "攻撃 (Z)";
+    }
   }
 
   function renderHud() {
