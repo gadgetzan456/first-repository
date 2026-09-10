@@ -467,6 +467,11 @@
     { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk", ability: "enrage" },
     { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm", ability: "guard" },
     { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed", ability: "ranged" },
+    // 呪術師:プレイヤーを視認していて、かつプレイヤーと縦・横・斜めのいずれかに一直線に
+    // 並び、その間に壁が挟まっていなければ、杖(加速を除く5種)のいずれかを重みに応じて
+    // ランダムに選んで唱えてくる。射程は無限(壁は貫通できない)で、並んでさえいれば
+    // 隣接していても通常攻撃の代わりに呪文を選ぶため、常に厄介な相手になる。
+    { key: "witch", name: "呪術師", sym: "呪", color: "#8f2f6a", hp: 40, atk: 24, def: 4, exp: 28, minDepth: 22, weight: 2, sleepy: 0.2, dropRate: 0.3, shape: "robed", ability: "spellcast" },
     { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 32, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost", ability: "phase" },
     { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 35, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true, ability: "heavycrit" },
     { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 45, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn", ability: "pierce" },
@@ -495,6 +500,7 @@
     orc: "怒り狂ったオークの一撃で吹き飛ばされた。",
     armor: "鎧武者の重い一撃を受け、その場に崩れ落ちた。",
     sorcerer: "妖術師の放った呪詛に貫かれた。",
+    witch: "呪術師の呪文で身動きを封じられている間に、力尽きてしまった。",
     wraith: "死霊の凍える手に生気を吸い取られた。",
     ogre: "大鬼の会心の一撃を受け、一瞬で意識を刈り取られた。",
     dragonwarrior: "竜鱗の戦士の一撃が防御をすり抜け、致命傷を負った。",
@@ -635,6 +641,11 @@
         hunger: 100, maxHunger: 100,
         poison: 0,
         megaEvolveTurns: 0,
+        // 呪術師などの呪文による状態異常(効果は杖と共通、プレイヤー側の実装はdoTurn/各行動関数を参照)
+        paralyzed: false,
+        sleepTurns: 0,
+        confusedTurns: 0,
+        weakenTurns: 0,
         weapon: null,
         shield: null,
         throwable: null,
@@ -1111,12 +1122,14 @@
   ========================================================= */
   // メガシンカ中は攻撃力を2倍にする(武器あり/なしどちらの攻撃力にも適用)。
   function megaScale(v) { return G.player.megaEvolveTurns > 0 ? v * 2 : v; }
+  // 呪術師の弱体の呪文を受けている間は攻撃力が半分になる(武器あり/なしどちらにも適用)。
+  function weakenScale(v) { return G.player.weakenTurns > 0 ? Math.round(v * 0.5) : v; }
   function effAtk() {
-    return megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0));
+    return weakenScale(megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0)));
   }
   function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
   // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
-  function unarmedAtk() { return megaScale(G.player.atk); }
+  function unarmedAtk() { return weakenScale(megaScale(G.player.atk)); }
 
   function gainExp(amount) {
     G.player.exp += amount;
@@ -1510,6 +1523,7 @@
     if (!chance(HIT_CHANCE)) {
       addMessage(enemy.name + "の攻撃!外れた!", "");
       triggerMissEffect(G.player.x, G.player.y);
+      G.player.paralyzed = false; // 金縛りは攻撃が外れると解ける
       return;
     }
     var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
@@ -1517,6 +1531,7 @@
     var atk = (enemy.weakenTurns > 0) ? Math.round(enemy.atk * 0.5) : enemy.atk; // 弱体の杖:攻撃力半減
     var dmg = computeDamage(atk, effDef(), critChance, defFactor);
     G.player.hp -= dmg;
+    G.player.paralyzed = false; // 金縛りはダメージを受けると解ける
     G.lastDamageCause = { type: "enemy", key: enemy.key, name: enemy.name, boss: !!enemy.boss };
     addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
     if (enemy.ability === "drain") { // コウモリ系の吸血
@@ -1541,10 +1556,44 @@
   var turnBusy = false;
   var enemyTurnTimer = null;
 
+  // 呪術師の呪文による行動不能/混乱を、行動の入り口(movePlayer/performPlayerAction/
+  // performThrowAction/castWand)でまとめて処理する。行動できない場合はtrueを返し、
+  // 呼び出し元はそのまま入力を打ち切る(=意図した行動は実行されない)。
+  // - 睡眠中/金縛り中:意図した行動はできず、ターンだけが経過する。
+  // - 混乱中:意図した行動の代わりに、ランダムな方向へよろめくだけになる。
+  function handlePlayerIncapacitated() {
+    if (G.player.sleepTurns > 0) {
+      addMessage("眠っていて体が動かない…", "warn");
+      doTurn();
+      return true;
+    }
+    if (G.player.paralyzed) {
+      addMessage("金縛りで体が動かない…", "warn");
+      doTurn();
+      return true;
+    }
+    if (G.player.confusedTurns > 0) {
+      addMessage("混乱していて、ランダムな方向によろめいた…", "warn");
+      var dx = rnd(-1, 1), dy = rnd(-1, 1);
+      if (dx !== 0 || dy !== 0) {
+        var nx = G.player.x + dx, ny = G.player.y + dy;
+        var cornerBlocked = dx !== 0 && dy !== 0 && isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy);
+        if (inBounds(nx, ny) && G.grid[ny][nx] !== T_WALL && !cornerBlocked && !findEnemyAt(nx, ny)) {
+          G.player.x = nx; G.player.y = ny;
+          tryPickup(nx, ny);
+        }
+      }
+      doTurn();
+      return true;
+    }
+    return false;
+  }
+
   // 移動キーは「移動(と向きを変える)」専用。攻撃はZキー/攻撃ボタンで行う(performPlayerAction)。
   // 壁や敵にぶつかったときはその方向を向くだけで、ターンは消費しない。
   function movePlayer(dx, dy) {
     if (!G || G.gameOver || turnBusy) return;
+    if (handlePlayerIncapacitated()) return;
     if (dx === 0 && dy === 0) { doTurn(); return; }
     G.player.facing = { dx: dx, dy: dy };
     var nx = G.player.x + dx, ny = G.player.y + dy;
@@ -1565,6 +1614,7 @@
   // そうでなければ、向いている方向の1マス先に敵がいれば攻撃する。
   function performPlayerAction() {
     if (!G || G.gameOver || turnBusy) return;
+    if (handlePlayerIncapacitated()) return;
     if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
       descend();
       return;
@@ -1600,6 +1650,7 @@
   // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。
   function performThrowAction() {
     if (!G || G.gameOver || turnBusy) return;
+    if (handlePlayerIncapacitated()) return;
     var quiver = G.player.throwable;
     if (!quiver || quiver.count <= 0) {
       addMessage("投げられる物を持っていない。", "warn");
@@ -1651,6 +1702,7 @@
   // 0になったらその杖は持ち物から消える。攻撃と同様、演出が見えるよう敵の行動を少し遅らせる。
   function castWand(index) {
     if (!G || G.gameOver || turnBusy) return;
+    if (handlePlayerIncapacitated()) return;
     var slot = G.player.inventory[index];
     if (!slot || slot.cat !== "wand") return;
     var facing = G.player.facing || { dx: 0, dy: 1 };
@@ -1716,6 +1768,65 @@
     return moved;
   }
 
+  // プレイヤーを(dx,dy)方向へ最大maxDistマス吹き飛ばす(呪術師の衝撃の呪文)。
+  // 壁・敵にぶつかった時点で止まる。着地したマスのアイテムは通常の移動と同様に拾う。
+  function knockbackPlayer(dx, dy, maxDist) {
+    var moved = 0;
+    for (var i = 0; i < maxDist; i++) {
+      var nx = G.player.x + dx, ny = G.player.y + dy;
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) break;
+      if (findEnemyAt(nx, ny)) break;
+      G.player.x = nx; G.player.y = ny;
+      moved++;
+    }
+    if (moved > 0) tryPickup(G.player.x, G.player.y);
+    return moved;
+  }
+
+  // 呪術師などが唱える呪文のプール。杖6種から加速の杖を除いた5種を、対応する杖と
+  // 同じ重みでランダムに選ぶ(プレイヤーが、その杖と同じ効果を受ける側になる)。
+  var SPELL_TYPES = ITEM_TYPES.filter(function (it) { return it.cat === "wand" && it.sub !== "haste"; });
+
+  // 呪文ごとの効果をプレイヤーに適用する。対応する杖の効果(加速を除く)と同じ内容で、
+  // ダメージは与えない。
+  function applySpellToPlayer(sub, caster, dx, dy) {
+    if (sub === "sleep") {
+      G.player.sleepTurns = 5;
+      addMessage(caster.name + "の呪文で、体が動かなくなった!", "warn");
+    } else if (sub === "confuse") {
+      G.player.confusedTurns = 8;
+      addMessage(caster.name + "の呪文で、頭が混乱した!", "warn");
+    } else if (sub === "knockback") {
+      var moved = knockbackPlayer(dx, dy, WAND_KNOCKBACK_DIST);
+      if (moved > 0) addMessage(caster.name + "の呪文で、体が吹き飛ばされた!", "warn");
+      else addMessage(caster.name + "の呪文を受けたが、壁際で吹き飛ばなかった。", "warn");
+    } else if (sub === "weaken") {
+      G.player.weakenTurns = 15;
+      addMessage(caster.name + "の呪文で、力が抜けていく…", "warn");
+    } else if (sub === "paralyze") {
+      G.player.paralyzed = true;
+      addMessage(caster.name + "の呪文で、金縛りにあった!", "warn");
+    }
+  }
+
+  // (sx,sy)から見て(tx,ty)が縦・横・斜めのいずれかに一直線に並んでいるかを調べ、
+  // 並んでいて間に壁が挟まっていなければその方向(単位ベクトル)を返す。呪術師の
+  // 射程無限の呪文の判定に使う(投擲と違い、間に敵がいても素通りして狙いを定められる
+  // ことはない距離感ではなく、あくまでプレイヤーとの整列だけを見る)。
+  function alignedLineDir(sx, sy, tx, ty) {
+    var dx = tx - sx, dy = ty - sy;
+    if (dx === 0 && dy === 0) return null;
+    if (dx !== 0 && dy !== 0 && Math.abs(dx) !== Math.abs(dy)) return null; // 縦・横・斜めのいずれでもない
+    var stepx = dx === 0 ? 0 : (dx > 0 ? 1 : -1);
+    var stepy = dy === 0 ? 0 : (dy > 0 ? 1 : -1);
+    var cx = sx, cy = sy;
+    while (true) {
+      cx += stepx; cy += stepy;
+      if (cx === tx && cy === ty) return { dx: stepx, dy: stepy };
+      if (!inBounds(cx, cy) || G.grid[cy][cx] === T_WALL) return null;
+    }
+  }
+
   // delayEnemyMsを渡すと、ここまで(プレイヤー側の処理)を先に描画してから、その分だけ
   // 間を置いて敵の行動(enemyTurn以降)を行う。攻撃演出とセットで使い、プレイヤーの攻撃と
   // 敵の反応が同時に描かれて見えてしまうのを防ぐ(移動時は省略し、従来通り即座に処理する)。
@@ -1727,14 +1838,20 @@
     if (G.player.hunger <= 0) {
       G.player.hp -= 2;
       G.lastDamageCause = { type: "hunger" };
+      G.player.paralyzed = false; // 金縛りはダメージを受けると解ける(空腹によるものも含む)
       addMessage("お腹が空いて力が入らない…", "warn");
     }
     if (G.player.poison > 0) {
       G.player.poison--;
       G.player.hp -= 2;
       G.lastDamageCause = { type: "poison" };
+      G.player.paralyzed = false; // 金縛りはダメージを受けると解ける(毒によるものも含む)
       addMessage("毒で体がむしばまれる…", "warn");
     }
+    // 呪術師の呪文による状態異常のターン経過(行動できるかどうかに関わらず毎ターン進む)。
+    if (G.player.sleepTurns > 0) G.player.sleepTurns--;
+    if (G.player.confusedTurns > 0) G.player.confusedTurns--;
+    if (G.player.weakenTurns > 0) G.player.weakenTurns--;
     // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)。
     // 5ターンごとに、現在の最大HPの3%を回復する(固定値ではなく最大HP依存にすることで、
     // 最大HPが伸びる後半のフロアでも回復量が薄くなりすぎないようにしている)。
@@ -1848,6 +1965,17 @@
           continue;
         }
 
+        // 呪術師:プレイヤーと縦・横・斜めのいずれかに一直線に並び、間に壁が挟まって
+        // いなければ、通常攻撃の代わりに呪文を選ぶ(射程無限。隣接していてもこちらを優先)。
+        if (e.ability === "spellcast") {
+          var lineDir = alignedLineDir(e.x, e.y, G.player.x, G.player.y);
+          if (lineDir) {
+            var spell = weightedPick(SPELL_TYPES);
+            applySpellToPlayer(spell.sub, e, lineDir.dx, lineDir.dy);
+            continue;
+          }
+        }
+
         var actDist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
         var attackRange = (e.ability === "ranged") ? 2 : 1; // 妖術師は2マス先まで攻撃可
         if (actDist <= attackRange) {
@@ -1957,10 +2085,16 @@
     document.getElementById("equip-throwable").textContent = G.player.throwable ? (G.player.throwable.name + " ×" + G.player.throwable.count) : "なし";
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
+    var statuses = [];
+    if (G.player.megaEvolveTurns > 0) statuses.push("メガシンカ中(残り" + G.player.megaEvolveTurns + "ターン)");
+    if (G.player.paralyzed) statuses.push("金縛り中");
+    if (G.player.sleepTurns > 0) statuses.push("睡眠中(残り" + G.player.sleepTurns + "ターン)");
+    if (G.player.confusedTurns > 0) statuses.push("混乱中(残り" + G.player.confusedTurns + "ターン)");
+    if (G.player.weakenTurns > 0) statuses.push("弱体中(残り" + G.player.weakenTurns + "ターン)");
     var statusRow = document.getElementById("equip-status-row");
-    if (G.player.megaEvolveTurns > 0) {
+    if (statuses.length > 0) {
       statusRow.hidden = false;
-      document.getElementById("equip-status").textContent = "メガシンカ中(残り" + G.player.megaEvolveTurns + "ターン)";
+      document.getElementById("equip-status").textContent = statuses.join(" / ");
     } else {
       statusRow.hidden = true;
     }
@@ -2715,8 +2849,9 @@
     drawStatusBadge(cx, cy, r, enemy);
   }
 
-  // 杖による状態異常を、敵の右上に小さな丸バッジ(1文字)で示す。複数重なっている
-  // 場合は、行動そのものを封じるもの(金縛り>睡眠>混乱>加速>弱体)を優先して1つだけ表示する。
+  // 杖/呪文による状態異常を、対象(敵またはプレイヤー)の右上に小さな丸バッジ(1文字)
+  // で示す。複数重なっている場合は、行動そのものを封じるもの
+  // (金縛り>睡眠>混乱>加速>弱体)を優先して1つだけ表示する。
   function drawStatusBadge(cx, cy, r, enemy) {
     var glyph = null, color = null;
     if (enemy.paralyzed) { glyph = "封"; color = "#8a6fae"; }
@@ -3034,6 +3169,7 @@
     }
 
     ctx.restore();
+    drawStatusBadge(cx, cy, TILE * 0.34, G.player);
   }
 
   function renderStage() {
