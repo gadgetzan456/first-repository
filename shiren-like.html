@@ -1,11 +1,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>迷宮五十階</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Maru+Gothic:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
 <style>
   :root {
-    --font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
-    --font-body: 'Zen Maru Gothic', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif;
+    --font-display: 'DotGothic16', 'MS Gothic', monospace;
+    --font-body: 'DotGothic16', 'MS Gothic', monospace;
 
     --bg: #1b1712;
     --bg-deep: #0f0d0a;
@@ -2324,7 +2324,7 @@
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.fillStyle = "#1b1712";
-    ctx.font = "bold " + Math.floor(TILE * 0.5) + "px 'Zen Maru Gothic', sans-serif";
+    ctx.font = "bold " + Math.floor(TILE * 0.5) + "px 'DotGothic16', monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(glyph, cx, cy + 1);
@@ -2912,7 +2912,7 @@
     if (!G.missEffect) return;
     var cx = G.missEffect.x * TILE + TILE / 2, cy = G.missEffect.y * TILE + TILE / 2 - TILE * 0.55;
     ctx.save();
-    ctx.font = "bold " + Math.floor(TILE * 0.34) + "px 'Zen Maru Gothic', sans-serif";
+    ctx.font = "bold " + Math.floor(TILE * 0.34) + "px 'DotGothic16', monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.lineWidth = 3;
