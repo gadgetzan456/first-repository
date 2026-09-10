@@ -2336,10 +2336,18 @@
   /* =========================================================
      開始 / 終了フロー
   ========================================================= */
+  // 開始時点の持ち物。何も持たない状態だと序盤の空腹管理が厳しく餓死しやすいため、
+  // 大きなおにぎりを1つ持たせておく。
+  function giveStartingItems() {
+    var bigOnigiri = ITEM_TYPES.filter(function (it) { return it.key === "onigiri_big"; })[0];
+    if (bigOnigiri) addItemToInventory(bigOnigiri);
+  }
+
   function startNewGame() {
     clearSave();
     if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
     G = newRunState();
+    giveStartingItems();
     document.getElementById("screen-title").hidden = true;
     document.getElementById("screen-end").hidden = true;
     enterFloor(1);
