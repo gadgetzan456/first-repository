@@ -550,7 +550,6 @@
       enemies: [],
       floorItems: [],
       monsterHouseRoomId: -1,
-      monsterHouseActivated: false,
       mapRevealActive: false,
       attackEffect: null,
       player: {
@@ -848,35 +847,57 @@
     }
   }
 
-  // モンスターハウスの起爆:プレイヤーがその部屋に入った瞬間、待機中の敵を一斉に起こす
-  function activateMonsterHouse() {
-    G.monsterHouseActivated = true;
+  // プレイヤーが部屋(roomId)に足を踏み入れた瞬間、その部屋で待機中(monsterHouseDormant)
+  // の敵をまとめて起こす。モンスターハウスの起爆と、徘徊湧きで「睡眠状態」のまま
+  // 出現したモンスター(下記trySpawnWanderingMonster参照)の起動を、どちらもこの
+  // 共通処理で扱う。起こした後はmonsterHouseDormantがfalseになるため、同じ部屋に
+  // 何度入ってもcountが0のままで再発火はしない。
+  function wakeDormantEnemiesInRoom(roomId) {
     var count = 0;
     for (var i = 0; i < G.enemies.length; i++) {
-      if (G.enemies[i].monsterHouseDormant) {
-        G.enemies[i].monsterHouseDormant = false;
-        G.enemies[i].awake = true;
+      var e = G.enemies[i];
+      if (e.monsterHouseDormant && G.roomId[e.y][e.x] === roomId) {
+        e.monsterHouseDormant = false;
+        e.awake = true;
         count++;
       }
     }
-    if (count > 0) addMessage("モンスターハウスだ!敵が一斉に襲いかかってくる!", "warn");
+    if (count === 0) return;
+    if (roomId === G.monsterHouseRoomId) {
+      addMessage("モンスターハウスだ!敵が一斉に襲いかかってくる!", "warn");
+    } else {
+      addMessage(count > 1 ? "眠っていた敵たちが一斉に目を覚ました!" : "眠っていた敵が目を覚ました!", "warn");
+    }
   }
 
   // フロア移動時だけでなく、プレイヤーの行動のたびに低確率で新しい敵が湧く(徘徊モンスター)。
   // ゲーム進行を妨害しないよう、出現率は低く、フロアあたりの敵数には上限を設ける。
+  // プレイヤーが今いる部屋以外の部屋に出現し、50%の確率でモンスターハウスの初期状態と
+  // 同様の「睡眠状態」(その部屋にプレイヤーが入るまで行動できない)になる。残り50%は
+  // 最初から普通に動ける。
   function trySpawnWanderingMonster() {
     if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
     if (!chance(WANDER_SPAWN_CHANCE)) return;
     var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= G.floor; });
     if (!pool.length) return;
-    var def = weightedPick(pool);
-    var spot = randomFloorTile(G, function (x, y) {
-      return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 5) || tileOccupied(x, y) ||
-        (x === G.stairsX && y === G.stairsY);
+    var playerRoomId = G.roomId[G.player.y][G.player.x];
+    var candidateRooms = G.rooms.filter(function (r) { return r.id !== playerRoomId; });
+    if (!candidateRooms.length) return; // プレイヤーの部屋以外に部屋がなければ湧かない
+    var room = pick(candidateRooms);
+    var spot = randomTileInRoom(room, function (x, y) {
+      return tileOccupied(x, y) || (x === G.stairsX && y === G.stairsY);
     });
-    if (spot.x === G.player.x && spot.y === G.player.y) return; // 有効な湧き場所が見つからなかった
+    if (tileOccupied(spot.x, spot.y)) return; // 有効な空きマスが見つからなかった
+    var def = weightedPick(pool);
     var e = scaledEnemy(def, G.floor);
     e.x = spot.x; e.y = spot.y;
+    if (chance(0.5)) {
+      e.monsterHouseDormant = true;
+      e.awake = false;
+    } else {
+      e.monsterHouseDormant = false;
+      e.awake = true;
+    }
     G.enemies.push(e);
     addMessage("微かな気配を感じた…", "");
   }
@@ -898,7 +919,6 @@
     G.stairsX = g.stairsX;
     G.stairsY = g.stairsY;
     G.monsterHouseRoomId = g.monsterHouseRoomId;
-    G.monsterHouseActivated = false;
     G.mapRevealActive = false; // 明かりの巻物の効果はフロアを移動するとリセットされる
     populateFloor(depth);
     computeVisibility();
@@ -927,9 +947,10 @@
     }
     G.visible[py][px] = true; G.discovered[py][px] = true;
 
-    // プレイヤーがモンスターハウスの部屋に足を踏み入れた瞬間に起動する
-    if (rid >= 0 && rid === G.monsterHouseRoomId && !G.monsterHouseActivated) {
-      activateMonsterHouse();
+    // プレイヤーが部屋に足を踏み入れた瞬間、その部屋で待機中の敵を起こす
+    // (モンスターハウス、および睡眠状態で出現した徘徊モンスターの双方に対応)
+    if (rid >= 0) {
+      wakeDormantEnemiesInRoom(rid);
     }
   }
 
