@@ -1905,6 +1905,177 @@
   }
 
   // 敵・アイテムの丸アイコン描画(冒険者本体は drawPlayerFigure が別途担当)
+
+  /* ---- 床アイテムのビジュアル(武器/盾/巻物/草はカテゴリごとの専用アイコン、
+     それ以外は従来通りdrawEntityGlyphの丸+文字で表示) ---- */
+
+  // 剣(武器)アイテムのアイコン。刃の色は素材(木/銅/鉄/鋼/銀/竜牙)ごとの色をそのまま使う。
+  function drawSwordIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    // 刃
+    ctx.fillStyle = color;
+    roundRectPath(-TILE * 0.06, -TILE * 0.42, TILE * 0.12, TILE * 0.5, TILE * 0.02);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 切っ先のハイライト
+    ctx.fillStyle = shadeColor(color, 0.35);
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.02, -TILE * 0.40);
+    ctx.lineTo(0, -TILE * 0.46);
+    ctx.lineTo(TILE * 0.02, -TILE * 0.40);
+    ctx.closePath();
+    ctx.fill();
+    // 鍔(つば)
+    ctx.fillStyle = "#D9A441";
+    roundRectPath(-TILE * 0.16, TILE * 0.05, TILE * 0.32, TILE * 0.07, TILE * 0.02);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor("#D9A441", -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 柄(グリップ)と柄頭
+    ctx.fillStyle = "#3a2e22";
+    roundRectPath(-TILE * 0.05, TILE * 0.11, TILE * 0.10, TILE * 0.24, TILE * 0.02);
+    ctx.fill();
+    ctx.fillStyle = "#D9A441";
+    ctx.beginPath();
+    ctx.arc(0, TILE * 0.37, TILE * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 盾アイテムのアイコン。本体の色は素材ごとの色をそのまま使う。
+  function drawShieldIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.5, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.5, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.46, cy + r * 0.15);
+    ctx.quadraticCurveTo(cx + r * 0.4, cy + r * 0.6, cx, cy + r * 0.75);
+    ctx.quadraticCurveTo(cx - r * 0.4, cy + r * 0.6, cx - r * 0.46, cy + r * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // 縦の補強ライン
+    ctx.strokeStyle = shadeColor(color, -0.25);
+    ctx.lineWidth = Math.max(1, TILE * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.5);
+    ctx.lineTo(cx, cy + r * 0.6);
+    ctx.stroke();
+    // 中央の飾り鋲
+    ctx.fillStyle = shadeColor(color, 0.35);
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.1, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 巻物アイテムのアイコン。忍者が使うような、両端に軸のある巻物として描く。
+  // 紙の色は巻物の種類ごとの色をそのまま使う。
+  function drawScrollIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.6, r * 0.85);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 10);
+    var w = r * 1.5, h = r * 0.62;
+    // 紙の胴体
+    ctx.fillStyle = color;
+    roundRectPath(-w / 2, -h / 2, w, h, h * 0.3);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 両端の軸(木の丸棒)
+    var capColor = "#4a3524";
+    ctx.fillStyle = capColor;
+    ctx.beginPath(); ctx.ellipse(-w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = shadeColor(capColor, -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(-w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+    // 紐(中央でしばってある黒い帯)
+    ctx.fillStyle = "rgba(20,16,12,0.55)";
+    ctx.fillRect(-h * 0.12, -h / 2, h * 0.24, h);
+    // 封印代わりの朱印(忍者の巻物らしさを出す赤い丸札)
+    ctx.fillStyle = "#c93f3f";
+    ctx.beginPath(); ctx.arc(0, 0, h * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#7a1f1f";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 草(薬草など)アイテムのアイコン。どうぶつの森で家具をしまうと葉っぱになる、
+  // あのシンプルな葉っぱアイコンのイメージ。色は薬草の種類ごとの色をそのまま使う。
+  function drawLeafIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.7, r * 0.6);
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.PI / 5);
+    // 葉っぱ本体(しずく型)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.62, -r * 0.2, 0, r * 0.65);
+    ctx.quadraticCurveTo(-r * 0.62, -r * 0.2, 0, -r * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 葉脈
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.6); ctx.lineTo(0, r * 0.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.1); ctx.lineTo(-r * 0.3, r * 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, r * 0.15); ctx.lineTo(r * 0.28, r * 0.35); ctx.stroke();
+    // 軸(小さな茎)
+    ctx.strokeStyle = shadeColor(color, -0.4);
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.6);
+    ctx.lineTo(0, r * 0.85);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 床アイテム1つの見た目を、カテゴリに応じて描き分ける。武器/盾/巻物/草は専用の
+  // アイコン、それ以外(食料・投げ物など)は従来通りdrawEntityGlyphの丸+文字。
+  function drawFloorItemIcon(x, y, def, alpha) {
+    switch (def.cat) {
+      case "weapon": drawSwordIcon(x, y, def.color, alpha); break;
+      case "shield": drawShieldIcon(x, y, def.color, alpha); break;
+      case "scroll": drawScrollIcon(x, y, def.color, alpha); break;
+      case "herb": drawLeafIcon(x, y, def.color, alpha); break;
+      default: drawEntityGlyph(x, y, def.sym, def.color, alpha, false); break;
+    }
+  }
+
   // ボス限定の光る輪(グロウリング)を描く。drawEntityGlyph・drawMonsterの双方で使う。
   function drawBossRing(cx, cy, r) {
     ctx.beginPath();
@@ -2436,7 +2607,7 @@
     for (var i = 0; i < G.floorItems.length; i++) {
       var it = G.floorItems[i];
       if (!G.discovered[it.y][it.x]) continue;
-      drawEntityGlyph(it.x, it.y, it.def.sym, it.def.color, G.visible[it.y][it.x] ? 1 : 0.45, false);
+      drawFloorItemIcon(it.x, it.y, it.def, G.visible[it.y][it.x] ? 1 : 0.45);
     }
     for (var j = 0; j < G.enemies.length; j++) {
       var e = G.enemies[j];
