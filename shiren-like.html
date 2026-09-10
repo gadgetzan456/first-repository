@@ -613,6 +613,7 @@
       monsterHouseRoomId: -1,
       mapRevealActive: false,
       attackEffect: null,
+      missEffect: null,
       lastDamageCause: null, // 直近でプレイヤーがダメージを受けた原因(結果画面の死因表示に使用)
       player: {
         x: 0, y: 0,
@@ -1463,6 +1464,7 @@
     // 命中判定(基本78%)。外れた場合はダメージなしでターンを消費するのみ。
     if (!chance(HIT_CHANCE)) {
       addMessage(enemy.name + "への攻撃が外れた!", "");
+      triggerMissEffect(enemy.x, enemy.y);
       return;
     }
     var dmg = computeDamage(effAtk(), enemy.def);
@@ -1472,9 +1474,12 @@
   }
 
   function enemyAttackPlayer(enemy) {
+    // 攻撃モーション:プレイヤー方向へ少し踏み込んで戻る(命中・外れどちらでも攻撃した見た目になる)。
+    triggerEnemyLunge(enemy);
     // 命中判定(基本78%)。外れた場合はダメージ・吸血・毒付与のいずれも発生しない。
     if (!chance(HIT_CHANCE)) {
       addMessage(enemy.name + "の攻撃!外れた!", "");
+      triggerMissEffect(G.player.x, G.player.y);
       return;
     }
     var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
@@ -2505,7 +2510,10 @@
 
   // 敵1体分の見た目をshapeに応じて描き分ける
   function drawMonster(x, y, enemy) {
-    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    // 攻撃モーション中は、踏み込み分(lungeOffset)だけ描画位置をずらす。
+    var lx = enemy.lungeOffset ? enemy.lungeOffset.dx : 0;
+    var ly = enemy.lungeOffset ? enemy.lungeOffset.dy : 0;
+    var cx = (x + lx) * TILE + TILE / 2, cy = (y + ly) * TILE + TILE / 2;
     var r = (enemy.boss ? TILE * 0.44 : (enemy.big ? TILE * 0.4 : TILE * 0.34));
     ctx.save();
     drawShadow(cx, cy + r * 0.85, r * 0.85);
@@ -2842,6 +2850,7 @@
     }
     drawPlayerFigure(G.player.x, G.player.y);
     drawAttackEffect();
+    drawMissEffect();
   }
 
   // Zキー攻撃の視覚フィードバック:攻撃先のマスに拳(素手)/剣(装備時)のマークを
@@ -2859,6 +2868,53 @@
       G.attackEffect = null;
       renderStage();
     }, ATTACK_EFFECT_MS);
+  }
+
+  // 敵の攻撃モーション:プレイヤー方向へ0.3マス分だけ踏み込み、少し経つと元の位置へ戻る。
+  // 「攻撃された」ことが見た目で分かるようにするための演出で、命中・外れに関わらず発生する。
+  var ENEMY_LUNGE_MS = 300;
+
+  function triggerEnemyLunge(enemy) {
+    var dx = G.player.x - enemy.x, dy = G.player.y - enemy.y;
+    var mag = Math.sqrt(dx * dx + dy * dy) || 1;
+    enemy.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 };
+    if (enemy.lungeTimer) clearTimeout(enemy.lungeTimer);
+    enemy.lungeTimer = setTimeout(function () {
+      enemy.lungeTimer = null;
+      enemy.lungeOffset = null;
+      renderStage();
+    }, ENEMY_LUNGE_MS);
+  }
+
+  // 攻撃が外れた際の「MISS」表示。プレイヤー→敵、敵→プレイヤーどちらの攻撃でも使う共通の演出。
+  var MISS_EFFECT_MS = 450;
+  var missEffectTimer = null;
+
+  function triggerMissEffect(x, y) {
+    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
+    G.missEffect = { x: x, y: y };
+    renderStage();
+    missEffectTimer = setTimeout(function () {
+      missEffectTimer = null;
+      if (!G) return;
+      G.missEffect = null;
+      renderStage();
+    }, MISS_EFFECT_MS);
+  }
+
+  function drawMissEffect() {
+    if (!G.missEffect) return;
+    var cx = G.missEffect.x * TILE + TILE / 2, cy = G.missEffect.y * TILE + TILE / 2 - TILE * 0.55;
+    ctx.save();
+    ctx.font = "bold " + Math.floor(TILE * 0.34) + "px 'Zen Maru Gothic', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(20,16,12,0.85)";
+    ctx.strokeText("MISS", cx, cy);
+    ctx.fillStyle = "#f4efe6";
+    ctx.fillText("MISS", cx, cy);
+    ctx.restore();
   }
 
   function drawAttackEffect() {
@@ -2946,6 +3002,7 @@
   function startNewGame() {
     clearSave();
     if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
+    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
     G = newRunState();
     giveStartingItems();
     document.getElementById("screen-title").hidden = true;
@@ -2957,9 +3014,17 @@
 
   function continueGame(saved) {
     if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
+    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
     G = saved;
     G.gameOver = false;
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
+    G.missEffect = null;
+    if (G.enemies) {
+      for (var i = 0; i < G.enemies.length; i++) {
+        G.enemies[i].lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
+        G.enemies[i].lungeTimer = null;
+      }
+    }
     document.getElementById("screen-title").hidden = true;
     document.getElementById("screen-end").hidden = true;
     computeVisibility();
