@@ -2082,6 +2082,133 @@
     ctx.restore();
   }
 
+  // 食料(おにぎり)アイテムのアイコン。米は白いおにぎり型、下部に海苔の帯を巻く。
+  // 具の色(中央の丸)にアイテムごとの色を使い、おにぎり/大きなおにぎりを描き分ける。
+  function drawOnigiriIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.8, r * 0.85);
+    // 米(丸みを帯びた三角形)
+    var rice = "#f5efdc";
+    ctx.fillStyle = rice;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.85);
+    ctx.quadraticCurveTo(cx + r * 0.15, cy - r * 0.7, cx + r * 0.72, cy + r * 0.62);
+    ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.78, cx, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.78, cx - r * 0.72, cy + r * 0.62);
+    ctx.quadraticCurveTo(cx - r * 0.15, cy - r * 0.7, cx, cy - r * 0.85);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(rice, -0.25);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 海苔(下部を帯状に巻く、黒に近い緑)
+    ctx.fillStyle = "#2a2f22";
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.66, cy + r * 0.24);
+    ctx.lineTo(cx + r * 0.66, cy + r * 0.24);
+    ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.78, cx, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.78, cx - r * 0.66, cy + r * 0.24);
+    ctx.closePath();
+    ctx.fill();
+    // 具(中央の丸。アイテムごとの色で描き分ける)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.08, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 矢(投げ物)アイテムのアイコン。軸の色はアイテムの色をそのまま使い、
+  // 先端は金属の鏃、末端に羽根を付ける。
+  function drawArrowIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.8);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    // 軸
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, TILE * 0.045);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.4);
+    ctx.lineTo(0, -TILE * 0.3);
+    ctx.stroke();
+    // 鏃(金属のひし形)
+    ctx.fillStyle = "#c7ccd2";
+    ctx.beginPath();
+    ctx.moveTo(0, -TILE * 0.46);
+    ctx.lineTo(TILE * 0.08, -TILE * 0.26);
+    ctx.lineTo(0, -TILE * 0.32);
+    ctx.lineTo(-TILE * 0.08, -TILE * 0.26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor("#c7ccd2", -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 羽根(末端の左右2枚。軸の色に紛れないよう白い羽根色にする)
+    ctx.fillStyle = "#eef0e8";
+    ctx.strokeStyle = shadeColor("#eef0e8", -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.24); ctx.lineTo(TILE * 0.12, TILE * 0.42); ctx.lineTo(0, TILE * 0.38);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.24); ctx.lineTo(-TILE * 0.12, TILE * 0.42); ctx.lineTo(0, TILE * 0.38);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 石(投げ物)アイテムのアイコン。「灰色のごつごつ」した岩のシルエットで描く。
+  function drawStoneIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.7, r * 0.75);
+    // ごつごつした輪郭:角度も半径も不揃いな多角形にすることで、丸くも
+    // 星形にもならない、いびつな岩の塊のシルエットを作る。
+    var angDeg = [-100, -55, -8, 38, 82, 132, 188, 245];
+    var radFac = [0.6, 0.86, 0.68, 0.88, 0.58, 0.8, 0.55, 0.72];
+    var pts = [];
+    for (var i = 0; i < angDeg.length; i++) {
+      var a = angDeg[i] * Math.PI / 180;
+      pts.push([cx + Math.cos(a) * r * radFac[i], cy + Math.sin(a) * r * radFac[i]]);
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.4);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 面の陰影(中心から数本の稜線を引いて面ごとの明暗を分け、立体的な塊に見せる)
+    ctx.strokeStyle = shadeColor(color, -0.28);
+    ctx.lineWidth = 1;
+    for (var k = 2; k < pts.length; k += 2) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(pts[k][0], pts[k][1]);
+      ctx.stroke();
+    }
+    ctx.fillStyle = shadeColor(color, 0.3);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(pts[0][0], pts[0][1]);
+    ctx.lineTo(pts[1][0], pts[1][1]);
+    ctx.lineTo(pts[2][0], pts[2][1]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   // 床アイテム1つの見た目を、カテゴリに応じて描き分ける。武器/盾/巻物/草は専用の
   // アイコン、それ以外(食料・投げ物など)は従来通りdrawEntityGlyphの丸+文字。
   function drawFloorItemIcon(x, y, def, alpha) {
@@ -2090,6 +2217,11 @@
       case "shield": drawShieldIcon(x, y, def.color, alpha); break;
       case "scroll": drawScrollIcon(x, y, def.color, alpha); break;
       case "herb": drawLeafIcon(x, y, def.color, alpha); break;
+      case "food": drawOnigiriIcon(x, y, def.color, alpha); break;
+      case "throwable":
+        if (def.sub === "stone") drawStoneIcon(x, y, def.color, alpha);
+        else drawArrowIcon(x, y, def.color, alpha);
+        break;
       default: drawEntityGlyph(x, y, def.sym, def.color, alpha, false); break;
     }
   }
