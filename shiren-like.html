@@ -636,6 +636,33 @@
     }
   }
 
+  // 通路が行き止まりで終わっている箇所を壁に戻す(部屋自体が行き止まりになるのは
+  // 問題ないため、隣接マスが部屋の場合はそのまま残す)。1マス埋めると、その手前の
+  // マスが新たに行き止まりになることがあるため、変化がなくなるまで繰り返す。
+  // normalizeCorridorWidthが2マス幅の通路を1マス幅に整える際、意図せず行き止まりの
+  // 小さな枝を残すことがあるため、その後処理として呼び出す。
+  function trimDeadEndCorridors(grid, roomId) {
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var y = 0; y < H; y++) {
+        for (var x = 0; x < W; x++) {
+          if (grid[y][x] === T_WALL || roomId[y][x] !== -1) continue; // 通路のマスのみが対象
+          var open = [];
+          var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          for (var d = 0; d < dirs.length; d++) {
+            var nx = x + dirs[d][0], ny = y + dirs[d][1];
+            if (inBounds(nx, ny) && grid[ny][nx] !== T_WALL) open.push([nx, ny]);
+          }
+          if (open.length > 1) continue; // 分岐・貫通しているマスはそのまま
+          if (open.length === 1 && roomId[open[0][1]][open[0][0]] >= 0) continue; // 部屋への入口は残す
+          grid[y][x] = T_WALL;
+          changed = true;
+        }
+      }
+    }
+  }
+
   function generateFloor(depth) {
     var grid = [];
     var roomId = [];
@@ -691,6 +718,7 @@
     }
 
     normalizeCorridorWidth(grid, roomId, rooms);
+    trimDeadEndCorridors(grid, roomId);
 
     // 部屋の外周1マスも視界演出のため覚えておく
     for (var i4 = 0; i4 < rooms.length; i4++) {
