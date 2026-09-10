@@ -542,6 +542,15 @@
     return ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
   }
 
+  // 装備中の武器/盾と同じか、それより価値(攻撃力/防御力の上昇量)が低い武器/盾は、
+  // 手に入れても意味がないため、床への配置・敵のドロップどちらでも対象から除外する。
+  // 武器/盾以外のカテゴリや未装備の場合は常にfalse(=除外しない)。
+  function isUselessGear(def) {
+    if (def.cat === "weapon" && G.player.weapon) return def.value <= G.player.weapon.value;
+    if (def.cat === "shield" && G.player.shield) return def.value <= G.player.shield.value;
+    return false;
+  }
+
   /* =========================================================
      ゲーム状態
   ========================================================= */
@@ -816,6 +825,9 @@
     var icount = Math.min(7, rnd(2, 3) + Math.floor(depth / 10));
     for (var j = 0; j < icount; j++) {
       var idef = weightedPick(itemPool);
+      // 装備中以下の価値しかない武器/盾は配置しない(他のアイテムへの振り直しはしない。
+      // その回の配置枠が1つ減るだけ)。
+      if (isUselessGear(idef)) continue;
       // 通路(roomId===-1)には出現させない。部屋の中にだけ置く
       var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y) || G.roomId[y][x] < 0; });
       G.floorItems.push(makeFloorItemEntry(ispot.x, ispot.y, idef));
@@ -856,6 +868,9 @@
     for (var n = 0; n < itemCount; n++) {
       var ispot2 = tiles.pop();
       var idef2 = weightedPick(itemPool2);
+      // 装備中以下の価値しかない武器/盾は配置しない(振り直しなし。そのマスは何も
+      // 置かれない床のまま)。
+      if (isUselessGear(idef2)) continue;
       G.floorItems.push(makeFloorItemEntry(ispot2.x, ispot2.y, idef2));
     }
   }
@@ -1332,11 +1347,9 @@
     }
     if (!pool.length) return;
     var def = weightedPick(pool);
-    // 装備中の武器/盾以下の価値(攻撃力/防御力の上昇量)しかない武器/盾は、
-    // 手に入れても意味がないため、抽選で選ばれても「何も出なかった」ことにする
-    // (他のアイテムへの振り直しはしない。あくまでその回のドロップが消えるだけ)。
-    if (def.cat === "weapon" && G.player.weapon && def.value <= G.player.weapon.value) return;
-    if (def.cat === "shield" && G.player.shield && def.value <= G.player.shield.value) return;
+    // 装備中以下の価値しかない武器/盾は、抽選で選ばれても「何も出なかった」ことに
+    // する(他のアイテムへの振り直しはしない。あくまでその回のドロップが消えるだけ)。
+    if (isUselessGear(def)) return;
     var spot = findDropSpot(enemy.x, enemy.y);
     if (!spot) return;
     G.floorItems.push(makeFloorItemEntry(spot.x, spot.y, def));
