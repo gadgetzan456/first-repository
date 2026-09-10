@@ -820,10 +820,28 @@
     return { x: room.cx, y: room.cy };
   }
 
+  // (x,y)にいる敵を返す(いなければnull)。excludeを渡すとその敵自身を除外して探す
+  // (敵の移動先が他の敵と重なっていないかの判定などで使う)。
+  function findEnemyAt(x, y, exclude) {
+    for (var i = 0; i < G.enemies.length; i++) {
+      var e = G.enemies[i];
+      if (e !== exclude && e.x === x && e.y === y) return e;
+    }
+    return null;
+  }
+
+  // (x,y)にある床アイテムのエントリを返す(なければnull)。1マスに置けるアイテムは常に1つ。
+  function findFloorItemAt(x, y) {
+    for (var i = 0; i < G.floorItems.length; i++) {
+      if (G.floorItems[i].x === x && G.floorItems[i].y === y) return G.floorItems[i];
+    }
+    return null;
+  }
+
   function tileOccupied(x, y) {
     if (G.player.x === x && G.player.y === y) return true;
-    for (var i = 0; i < G.enemies.length; i++) if (G.enemies[i].x === x && G.enemies[i].y === y) return true;
-    for (var j = 0; j < G.floorItems.length; j++) if (G.floorItems[j].x === x && G.floorItems[j].y === y) return true;
+    if (findEnemyAt(x, y)) return true;
+    if (findFloorItemAt(x, y)) return true;
     return false;
   }
 
@@ -839,10 +857,11 @@
 
   function scaledEnemy(def, depth) {
     var over = Math.max(0, depth - def.minDepth);
+    var hp = Math.round(def.hp * (1 + over * 0.045));
     return {
       key: def.key, name: def.name, sym: def.sym, color: tierShiftColor(def.color, over),
-      hp: Math.round(def.hp * (1 + over * 0.045)),
-      maxHp: Math.round(def.hp * (1 + over * 0.045)),
+      hp: hp,
+      maxHp: hp,
       atk: Math.round(def.atk * (1 + over * 0.03)),
       def: Math.round(def.def * (1 + over * 0.03)),
       exp: def.exp + Math.round(over * def.exp * 0.05),
@@ -906,12 +925,13 @@
       G.floorItems.push(makeFloorItemEntry(ispot.x, ispot.y, idef));
     }
 
-    if (G.monsterHouseRoomId >= 0) populateMonsterHouse(depth);
+    if (G.monsterHouseRoomId >= 0) populateMonsterHouse(depth, pool, itemPool);
   }
 
   // モンスターハウス部屋の床マスの7割にモンスターを、残りに多めのアイテムを配置する。
   // 配置されたモンスターはプレイヤーがこの部屋に入るまで一切行動しない(monsterHouseDormant)。
-  function populateMonsterHouse(depth) {
+  // pool/itemPoolはpopulateFloorが同じdepthに対して既に計算済みのものをそのまま受け取る。
+  function populateMonsterHouse(depth, pool, itemPool) {
     var room = G.rooms[G.monsterHouseRoomId];
     var tiles = [];
     for (var y = room.y; y < room.y + room.h; y++) {
@@ -924,7 +944,6 @@
       var tmp = tiles[i]; tiles[i] = tiles[j2]; tiles[j2] = tmp;
     }
 
-    var pool = enemyPoolForDepth(depth);
     var monsterCount = Math.min(tiles.length, Math.round(room.w * room.h * 0.7));
     for (var m = 0; m < monsterCount; m++) {
       var spot = tiles.pop();
@@ -936,11 +955,10 @@
       G.enemies.push(e);
     }
 
-    var itemPool2 = itemPoolForDepth(depth);
     var itemCount = Math.min(tiles.length, rnd(4, 7));
     for (var n = 0; n < itemCount; n++) {
       var ispot2 = tiles.pop();
-      var idef2 = weightedPick(itemPool2);
+      var idef2 = weightedPick(itemPool);
       // 装備中以下の価値しかない武器/盾は配置しない(振り直しなし。そのマスは何も
       // 置かれない床のまま)。
       if (isUselessGear(idef2)) continue;
@@ -992,13 +1010,9 @@
     var def = weightedPick(pool);
     var e = scaledEnemy(def, G.floor);
     e.x = spot.x; e.y = spot.y;
-    if (chance(0.5)) {
-      e.monsterHouseDormant = true;
-      e.awake = false;
-    } else {
-      e.monsterHouseDormant = false;
-      e.awake = true;
-    }
+    var dormant = chance(0.5);
+    e.monsterHouseDormant = dormant;
+    e.awake = !dormant;
     G.enemies.push(e);
     addMessage("微かな気配を感じた…", "");
   }
@@ -1149,27 +1163,24 @@
   }
 
   function tryPickup(x, y) {
-    for (var i = 0; i < G.floorItems.length; i++) {
-      var it = G.floorItems[i];
-      if (it.x === x && it.y === y) {
-        var def = it.def;
-        // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
-        if ((def.cat === "weapon" || def.cat === "shield") && !G.player[def.cat]) {
-          G.player[def.cat] = makeEquipRef(def.name, def.value, def.key);
-          addMessage(def.name + "を拾い、自動的に装備した!", "note");
-          G.floorItems.splice(i, 1);
-        } else if (def.cat === "throwable") {
-          var qty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
-          pickupThrowable(def, qty);
-          G.floorItems.splice(i, 1);
-        } else if (addItemToInventory(def)) {
-          addMessage(def.name + "を拾った。", "note");
-          G.floorItems.splice(i, 1);
-        } else {
-          addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
-        }
-        return;
-      }
+    var it = findFloorItemAt(x, y);
+    if (!it) return;
+    var def = it.def;
+    var i = G.floorItems.indexOf(it);
+    // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
+    if ((def.cat === "weapon" || def.cat === "shield") && !G.player[def.cat]) {
+      G.player[def.cat] = makeEquipRef(def.name, def.value, def.key);
+      addMessage(def.name + "を拾い、自動的に装備した!", "note");
+      G.floorItems.splice(i, 1);
+    } else if (def.cat === "throwable") {
+      var qty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
+      pickupThrowable(def, qty);
+      G.floorItems.splice(i, 1);
+    } else if (addItemToInventory(def)) {
+      addMessage(def.name + "を拾った。", "note");
+      G.floorItems.splice(i, 1);
+    } else {
+      addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
     }
   }
 
@@ -1292,11 +1303,9 @@
   function dropInventorySlot(index) {
     var slot = G.player.inventory[index];
     if (!slot) return;
-    for (var i = 0; i < G.floorItems.length; i++) {
-      if (G.floorItems[i].x === G.player.x && G.floorItems[i].y === G.player.y) {
-        addMessage("ここには物を置けない。", "warn");
-        return;
-      }
+    if (findFloorItemAt(G.player.x, G.player.y)) {
+      addMessage("ここには物を置けない。", "warn");
+      return;
     }
     var dropDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
     // 1回の「捨てる」操作ではスタックのうち1個/1本だけを足元に置く(矢・石を大量に
@@ -1343,11 +1352,7 @@
     for (var i = 0; i < ADJACENT_OFFSETS.length; i++) {
       var nx = x + ADJACENT_OFFSETS[i][0], ny = y + ADJACENT_OFFSETS[i][1];
       if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
-      var occupiedByItem = false;
-      for (var j = 0; j < G.floorItems.length; j++) {
-        if (G.floorItems[j].x === nx && G.floorItems[j].y === ny) { occupiedByItem = true; break; }
-      }
-      if (occupiedByItem) continue;
+      if (findFloorItemAt(nx, ny)) continue;
       return { x: nx, y: ny };
     }
     return null;
@@ -1444,6 +1449,7 @@
       }
       addMessage(enemy.name + "を倒した!", "good");
       gainExp(enemy.exp);
+      if (enemy.lungeTimer) { clearTimeout(enemy.lungeTimer); enemy.lungeTimer = null; } // 消滅後に無駄な再描画をしない
       var idx = G.enemies.indexOf(enemy);
       if (idx >= 0) G.enemies.splice(idx, 1);
       rollEnemyDrop(enemy);
@@ -1515,9 +1521,7 @@
     // 斜め移動は、壁の角(直交する2マスのどちらか一方でも壁)を挟んでいるとすり抜けられない。
     if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) { renderStage(); return; }
 
-    for (var i = 0; i < G.enemies.length; i++) {
-      if (G.enemies[i].x === nx && G.enemies[i].y === ny) { renderStage(); return; }
-    }
+    if (findEnemyAt(nx, ny)) { renderStage(); return; }
 
     G.player.x = nx; G.player.y = ny;
     tryPickup(nx, ny);
@@ -1542,10 +1546,7 @@
       addMessage("壁の角に阻まれて攻撃が届かない!", "warn");
       return;
     }
-    var target = null;
-    for (var i = 0; i < G.enemies.length; i++) {
-      if (G.enemies[i].x === tx && G.enemies[i].y === ty) { target = G.enemies[i]; break; }
-    }
+    var target = findEnemyAt(tx, ty);
     // 攻撃先のマスに拳/剣のエフェクトを表示する(装備によって見た目が変わる)。
     // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
     triggerAttackEffect(tx, ty);
@@ -1556,9 +1557,7 @@
   // 投げた矢・石が命中せず床に落ちる際の着地処理。既にその場に別のアイテムが
   // 置かれていれば、投げたものはそのまま消える(重ねて置くことはできない)。
   function dropThrownItem(x, y, def) {
-    for (var i = 0; i < G.floorItems.length; i++) {
-      if (G.floorItems[i].x === x && G.floorItems[i].y === y) return;
-    }
+    if (findFloorItemAt(x, y)) return;
     G.floorItems.push(makeFloorItemEntry(x, y, def, 1));
   }
 
@@ -1588,10 +1587,7 @@
       // 壁(またはマップ外)に突き当たったら、その手前(直前のlandX/landY)で止まる
       if (!inBounds(tx, ty) || G.grid[ty][tx] === T_WALL) break;
       landX = tx; landY = ty;
-      var found = null;
-      for (var k = 0; k < G.enemies.length; k++) {
-        if (G.enemies[k].x === tx && G.enemies[k].y === ty) { found = G.enemies[k]; break; }
-      }
+      var found = findEnemyAt(tx, ty);
       if (found) { target = found; break; }
     }
 
@@ -1668,9 +1664,7 @@
       if (stepx !== 0 && stepy !== 0 && e.ability !== "phase" && !e.cornerCut &&
           isDiagonalCornerBlocked(e.x, e.y, stepx, stepy)) continue;
       if (mx === G.player.x && my === G.player.y) continue;
-      var occ = false;
-      for (var k = 0; k < G.enemies.length; k++) if (G.enemies[k] !== e && G.enemies[k].x === mx && G.enemies[k].y === my) { occ = true; break; }
-      if (occ) continue;
+      if (findEnemyAt(mx, my, e)) continue;
       e.x = mx; e.y = my;
       break;
     }
@@ -2853,21 +2847,35 @@
     drawMissEffect();
   }
 
+  // 一定時間だけ表示される視覚エフェクト(攻撃の拳/剣マーク・敵の踏み込みモーション・
+  // MISS表示)の共通処理。applyEffectで値をセットし、ms経過後にclearEffectで元に戻して
+  // 再描画する。同じ対象への呼び出しが重なった場合は、前回のタイマーを打ち切って延長する。
+  // 呼び出し直後の再描画はしない:いずれの呼び出し元も同じ同期処理の中でこの後
+  // doTurn()/renderAll()を実行するため、ここで描いてもブラウザには反映されず無駄になる。
+  function triggerTimedEffect(getTimer, setTimer, applyEffect, clearEffect, ms) {
+    var existing = getTimer();
+    if (existing) clearTimeout(existing);
+    applyEffect();
+    setTimer(setTimeout(function () {
+      setTimer(null);
+      clearEffect();
+      renderStage();
+    }, ms));
+  }
+
   // Zキー攻撃の視覚フィードバック:攻撃先のマスに拳(素手)/剣(装備時)のマークを
   // 0.3秒ほど表示する。敵の有無に関わらず、攻撃(素振り含む)のたびに呼び出す。
   var ATTACK_EFFECT_MS = 300;
   var attackEffectTimer = null;
 
   function triggerAttackEffect(x, y) {
-    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
-    G.attackEffect = { x: x, y: y, kind: G.player.weapon ? "sword" : "fist" };
-    renderStage();
-    attackEffectTimer = setTimeout(function () {
-      attackEffectTimer = null;
-      if (!G) return;
-      G.attackEffect = null;
-      renderStage();
-    }, ATTACK_EFFECT_MS);
+    triggerTimedEffect(
+      function () { return attackEffectTimer; },
+      function (t) { attackEffectTimer = t; },
+      function () { G.attackEffect = { x: x, y: y, kind: G.player.weapon ? "sword" : "fist" }; },
+      function () { if (G) G.attackEffect = null; },
+      ATTACK_EFFECT_MS
+    );
   }
 
   // 敵の攻撃モーション:プレイヤー方向へ0.3マス分だけ踏み込み、少し経つと元の位置へ戻る。
@@ -2877,13 +2885,13 @@
   function triggerEnemyLunge(enemy) {
     var dx = G.player.x - enemy.x, dy = G.player.y - enemy.y;
     var mag = Math.sqrt(dx * dx + dy * dy) || 1;
-    enemy.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 };
-    if (enemy.lungeTimer) clearTimeout(enemy.lungeTimer);
-    enemy.lungeTimer = setTimeout(function () {
-      enemy.lungeTimer = null;
-      enemy.lungeOffset = null;
-      renderStage();
-    }, ENEMY_LUNGE_MS);
+    triggerTimedEffect(
+      function () { return enemy.lungeTimer; },
+      function (t) { enemy.lungeTimer = t; },
+      function () { enemy.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 }; },
+      function () { enemy.lungeOffset = null; },
+      ENEMY_LUNGE_MS
+    );
   }
 
   // 攻撃が外れた際の「MISS」表示。プレイヤー→敵、敵→プレイヤーどちらの攻撃でも使う共通の演出。
@@ -2891,15 +2899,13 @@
   var missEffectTimer = null;
 
   function triggerMissEffect(x, y) {
-    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
-    G.missEffect = { x: x, y: y };
-    renderStage();
-    missEffectTimer = setTimeout(function () {
-      missEffectTimer = null;
-      if (!G) return;
-      G.missEffect = null;
-      renderStage();
-    }, MISS_EFFECT_MS);
+    triggerTimedEffect(
+      function () { return missEffectTimer; },
+      function (t) { missEffectTimer = t; },
+      function () { G.missEffect = { x: x, y: y }; },
+      function () { if (G) G.missEffect = null; },
+      MISS_EFFECT_MS
+    );
   }
 
   function drawMissEffect() {
@@ -2999,22 +3005,30 @@
     if (bigOnigiri) addItemToInventory(bigOnigiri);
   }
 
-  function startNewGame() {
-    clearSave();
+  // 新規開始/続きから再開のどちらでも必要な、保留中の視覚エフェクトタイマーの後始末。
+  function clearTransientEffectTimers() {
     if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
     if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
-    G = newRunState();
-    giveStartingItems();
+  }
+
+  function hideOverlays() {
     document.getElementById("screen-title").hidden = true;
     document.getElementById("screen-end").hidden = true;
+  }
+
+  function startNewGame() {
+    clearSave();
+    clearTransientEffectTimers();
+    G = newRunState();
+    giveStartingItems();
+    hideOverlays();
     enterFloor(1);
     renderAll();
     saveGame();
   }
 
   function continueGame(saved) {
-    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
-    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
+    clearTransientEffectTimers();
     G = saved;
     G.gameOver = false;
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
@@ -3025,8 +3039,7 @@
         G.enemies[i].lungeTimer = null;
       }
     }
-    document.getElementById("screen-title").hidden = true;
-    document.getElementById("screen-end").hidden = true;
+    hideOverlays();
     computeVisibility();
     addMessage("続きから再開した。", "note");
     renderAll();
