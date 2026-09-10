@@ -1,0 +1,3460 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>迷宮五十階</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+  :root {
+    --font-display: 'DotGothic16', 'MS Gothic', monospace;
+    --font-body: 'DotGothic16', 'MS Gothic', monospace;
+
+    --bg: #1b1712;
+    --bg-deep: #0f0d0a;
+    --panel: #262019;
+    --panel-border: #4a3d2c;
+    --ink: #ECE3CE;
+    --ink-soft: #B3A688;
+    --accent: #D9A441;
+    --accent-ink: #241d12;
+    --danger: #C9503F;
+    --good: #6FA85A;
+    --wall: #3a3226;
+    --wall-line: #1f1a13;
+    --floor: #55493a;
+    --floor-lit: #766449;
+    --stairs: #E9D08A;
+    --hp-bar: #C9503F;
+    --hp-bg: #3a2016;
+    --hunger-bar: #B98A3E;
+    --hunger-bg: #3a2c16;
+    --exp-bar: #5C7FB0;
+    --exp-bg: #1c2a3a;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    background: var(--bg-deep);
+    color: var(--ink);
+    font-family: var(--font-body);
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 16px 10px 32px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 860px;
+    position: relative;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    text-align: center;
+    letter-spacing: 0.12em;
+    font-size: clamp(22px, 4vw, 30px);
+    margin: 4px 0 14px;
+    color: var(--accent);
+    text-shadow: 0 2px 6px var(--shadow);
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px var(--shadow);
+  }
+
+  /* ---------- Overlays (title / game over) ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 8, 5, 0.86);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 20px;
+  }
+  .overlay[hidden] { display: none; }
+
+  .overlay-card {
+    max-width: 460px;
+    width: 100%;
+    padding: 28px 26px 24px;
+    text-align: center;
+  }
+
+  .overlay-card h2 {
+    font-family: var(--font-display);
+    color: var(--accent);
+    font-size: 24px;
+    margin: 0 0 10px;
+  }
+
+  .overlay-card p {
+    color: var(--ink-soft);
+    line-height: 1.7;
+    font-size: 14px;
+    margin: 0 0 18px;
+  }
+
+  #end-cause:not(:empty) {
+    color: var(--danger);
+    font-weight: bold;
+    margin-top: -10px;
+  }
+
+  .overlay-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    text-align: left;
+    font-size: 14px;
+    margin: 0 0 20px;
+    color: var(--ink);
+  }
+  .overlay-stats span.label { color: var(--ink-soft); }
+
+  button {
+    font-family: var(--font-body);
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  .btn-main {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 16px;
+    letter-spacing: 0.05em;
+  }
+  .btn-main:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    color: var(--ink-soft);
+  }
+
+  /* ---------- HUD ---------- */
+  .hud {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px 14px;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .hud .floor-badge {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 17px;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+  .hud .lv-badge { color: var(--ink-soft); white-space: nowrap; }
+  .bar-row { display: flex; align-items: center; gap: 6px; }
+  .bar-row .bar-label { width: 30px; font-size: 11px; color: var(--ink-soft); flex-shrink: 0; }
+  .bar {
+    flex: 1;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--hp-bg);
+    position: relative;
+    min-width: 60px;
+  }
+  .bar-fill { height: 100%; transition: width 0.2s ease; }
+  .bar-text {
+    grid-column: 3;
+    font-size: 12px;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+
+  /* ---------- Stage ---------- */
+  .stage-wrap {
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  canvas#stage {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 6px;
+    background: var(--bg-deep);
+  }
+
+  .log {
+    height: 108px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--ink-soft);
+  }
+  .log p { margin: 0; }
+  .log p.msg-warn { color: var(--danger); }
+  .log p.msg-good { color: var(--good); }
+  .log p.msg-note { color: var(--accent); }
+
+  /* ---------- Lower area: controls + panels ---------- */
+  .lower {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 620px) {
+    .lower { grid-template-columns: 1fr; }
+  }
+
+  .controls {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: repeat(3, 40px);
+    gap: 4px;
+  }
+  .dpad button {
+    background: var(--floor);
+    color: var(--ink);
+    font-size: 15px;
+    border-radius: 8px;
+  }
+  .dpad button:active { background: var(--accent); color: var(--accent-ink); }
+  .dpad button.center { background: var(--wall); color: var(--ink-soft); font-size: 11px; }
+  .action-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+  .btn-attack, .btn-shoot {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+  .btn-attack {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-shoot {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-attack:active, .btn-shoot:active { filter: brightness(0.88); transform: translateY(1px); }
+  .btn-shoot:disabled { opacity: 0.5; filter: none; transform: none; cursor: not-allowed; }
+  .help-text {
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .panels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .panel-block { padding: 10px 12px; }
+  .panel-block h3 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 6px;
+  }
+  .equip-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    padding: 3px 0;
+    color: var(--ink);
+  }
+  .equip-row[hidden] { display: none; }
+  .equip-row .label { color: var(--ink-soft); }
+
+  .inv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 210px;
+    overflow-y: auto;
+  }
+  .inv-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 7px;
+    padding: 6px 8px;
+    font-size: 12.5px;
+  }
+  .inv-item .sym {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .inv-item .name { flex: 1; min-width: 0; }
+  .inv-item .name small { display: block; color: var(--ink-soft); font-size: 10.5px; }
+  .inv-item .acts { display: flex; gap: 4px; flex-shrink: 0; }
+  .inv-item .acts button {
+    font-size: 10.5px;
+    padding: 4px 6px;
+    background: var(--wall);
+    color: var(--ink);
+  }
+  .inv-item .acts button:active { background: var(--accent); color: var(--accent-ink); }
+  .inv-empty { color: var(--ink-soft); font-size: 12px; padding: 4px 2px; }
+</style>
+
+<div class="app">
+  <h1>迷宮五十階</h1>
+
+  <!-- Title screen -->
+  <div class="overlay" id="screen-title">
+    <div class="panel overlay-card">
+      <h2>迷宮五十階</h2>
+      <p>
+        地下1階から50階まで続く迷宮に挑む、ターン制のダンジョン探索ゲームです。<br>
+        力尽きればそこで終わり、最初の階からやり直しとなります。<br>
+        矢印キー、または下の方向パッドで移動・向き変更をします。向いている方向にZキー(または「攻撃」ボタン)を押すと攻撃です。
+      </p>
+      <button class="btn-main" id="btn-new-game">最初から始める</button>
+      <button class="btn-main btn-ghost" id="btn-continue" hidden>続きから始める</button>
+    </div>
+  </div>
+
+  <!-- Game over / clear screen -->
+  <div class="overlay" id="screen-end" hidden>
+    <div class="panel overlay-card">
+      <h2 id="end-title">力尽きた…</h2>
+      <p id="end-desc"></p>
+      <p id="end-cause"></p>
+      <div class="overlay-stats" id="end-stats"></div>
+      <button class="btn-main" id="btn-restart">最初からやり直す</button>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div class="panel hud">
+    <div class="floor-badge" id="hud-floor">B1F</div>
+    <div>
+      <div class="bar-row">
+        <span class="bar-label">HP</span>
+        <div class="bar"><div class="bar-fill" id="bar-hp" style="background:var(--hp-bar);width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">満腹</span>
+        <div class="bar"><div class="bar-fill" id="bar-hunger" style="background:var(--hunger-bar);width:100%"></div></div>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">EXP</span>
+        <div class="bar"><div class="bar-fill" id="bar-exp" style="background:var(--exp-bar);width:0%"></div></div>
+      </div>
+    </div>
+    <div class="lv-badge" id="hud-lv">Lv.1</div>
+  </div>
+
+  <!-- Dungeon canvas -->
+  <div class="panel stage-wrap">
+    <canvas id="stage" width="884" height="468"></canvas>
+  </div>
+
+  <!-- Message log -->
+  <div class="panel log" id="log"></div>
+
+  <div class="lower">
+    <div class="panel controls">
+      <div class="dpad" id="dpad">
+        <button data-dx="-1" data-dy="-1">↖</button>
+        <button data-dx="0" data-dy="-1">↑</button>
+        <button data-dx="1" data-dy="-1">↗</button>
+        <button data-dx="-1" data-dy="0">←</button>
+        <button class="center" data-dx="0" data-dy="0">待機</button>
+        <button data-dx="1" data-dy="0">→</button>
+        <button data-dx="-1" data-dy="1">↙</button>
+        <button data-dx="0" data-dy="1">↓</button>
+        <button data-dx="1" data-dy="1">↘</button>
+      </div>
+      <div class="action-row">
+        <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
+        <button class="btn-shoot" id="btn-shoot">射撃 (S)</button>
+      </div>
+      <div class="help-text">矢印キーで移動・向き変更<br>Zキーまたは「攻撃」ボタンで攻撃<br>Sキーまたは「射撃」ボタンで装備中の投げ物(矢・石)を投擲<br>階段の上でZキーを押すと降ります</div>
+    </div>
+
+    <div class="panels">
+      <div class="panel panel-block">
+        <h3>装備</h3>
+        <div class="equip-row"><span class="label">武器</span><span id="equip-weapon">なし</span></div>
+        <div class="equip-row"><span class="label">盾</span><span id="equip-shield">なし</span></div>
+        <div class="equip-row"><span class="label">投げ物</span><span id="equip-throwable">なし</span></div>
+        <div class="equip-row"><span class="label">攻撃力</span><span id="equip-atk">-</span></div>
+        <div class="equip-row"><span class="label">防御力</span><span id="equip-def">-</span></div>
+        <div class="equip-row" id="equip-status-row" hidden><span class="label">状態</span><span id="equip-status"></span></div>
+      </div>
+      <div class="panel panel-block">
+        <h3>持ち物</h3>
+        <div class="inv-list" id="inv-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     定数・データテーブル
+  ========================================================= */
+  var W = 34, H = 18;
+  var TILE = 26;
+  var MAX_FLOOR = 50;
+  var INV_CAP = 8;
+  var SAVE_KEY = "meikyu50_save_v1";
+  var WANDER_SPAWN_CHANCE = 0.03; // 行動1回ごとに新しい敵が湧く確率(低確率)
+  var WANDER_MAX_ENEMIES = 16; // 湧きすぎ防止のための1フロアあたりの敵数上限
+
+  var T_WALL = 0, T_FLOOR = 1, T_STAIRS = 2;
+
+  // dropRate: 撃破時にアイテムを落とす確率(0〜1)。ボスは常に(1.0)ドロップする。
+  // shape/accessory: モンスターのビジュアル形状の指定(drawMonsterで使用)
+  // color: 床(明るいタン)・壁(濃い焦げ茶)どちらの上でも埋もれないよう、
+  // 彩度・明度をやや濃いめに寄せてある。
+  // atk はさらに0.8倍に調整済み(合わせてプレイヤーの最大HPも1.5倍にして、
+  // 緊張感を保ちつつ少し遊びやすいバランスにしている)。
+  // ability: モンスターごとの特殊能力(1体1つ)。詳細は各処理箇所のコメントを参照。
+  //   split=分裂(スライム) flee=瀕死で逃走(ネズミ) drain=吸血(コウモリ系)
+  //   poison=毒(毒キノコ、既存のpoisonフラグと連動) alert=仲間を起こす(ゴブリン)
+  //   undying=致命傷を1度だけ耐える(スケルトン) enrage=瀕死で攻撃力上昇(オーク)
+  //   guard=攻撃を受け流す(鎧武者) ranged=2マス先まで攻撃可(妖術師)
+  //   phase=壁をすり抜ける(死霊) heavycrit=会心率上昇(大鬼)
+  //   pierce=防御力を貫通(竜鱗の戦士) teleport=瞬間移動で接近(深淵の魔物)
+  // cornerCut: スライムやコウモリのような小柄なモンスターは、壁の角を挟んだ
+  // 斜め移動もすり抜けられる(体が小さく隙間を通れるイメージ)。
+  var ENEMY_TYPES = [
+    { key: "slime", name: "スライム", sym: "ス", color: "#4f9c5c", hp: 8, atk: 6, def: 1, exp: 3, minDepth: 1, weight: 6, sleepy: 0.2, dropRate: 0.15, shape: "blob", ability: "split", cornerCut: true },
+    { key: "rat", name: "巨大ネズミ", sym: "ネ", color: "#6e5a46", hp: 6, atk: 5, def: 0, exp: 2, minDepth: 1, weight: 6, sleepy: 0.1, dropRate: 0.12, shape: "beast", ability: "flee" },
+    { key: "bat", name: "コウモリ", sym: "コ", color: "#7a4fa3", hp: 7, atk: 6, def: 0, exp: 3, minDepth: 1, weight: 5, sleepy: 0.15, erratic: 0.35, dropRate: 0.15, shape: "flyer", ability: "drain", cornerCut: true },
+    { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant", ability: "poison" },
+    { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none", ability: "alert" },
+    { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull", ability: "undying" },
+    { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true, ability: "drain", cornerCut: true },
+    { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk", ability: "enrage" },
+    { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm", ability: "guard" },
+    { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed", ability: "ranged" },
+    { key: "wraith", name: "死霊", sym: "霊", color: "#4f6478", hp: 39, atk: 32, def: 6, exp: 30, minDepth: 24, weight: 2, sleepy: 0.15, dropRate: 0.3, shape: "ghost", ability: "phase" },
+    { key: "ogre", name: "大鬼", sym: "鬼", color: "#8a3f2a", hp: 47, atk: 35, def: 8, exp: 32, minDepth: 26, weight: 2, sleepy: 0.1, dropRate: 0.3, shape: "humanoid", accessory: "tusk", big: true, ability: "heavycrit" },
+    { key: "dragonwarrior", name: "竜鱗の戦士", sym: "竜", color: "#2a6c6c", hp: 62, atk: 45, def: 12, exp: 50, minDepth: 34, weight: 2, sleepy: 0.1, dropRate: 0.35, shape: "humanoid", accessory: "horn", ability: "pierce" },
+    { key: "fiend", name: "深淵の魔物", sym: "魔", color: "#5a3a7a", hp: 78, atk: 54, def: 14, exp: 65, minDepth: 42, weight: 1, sleepy: 0.15, dropRate: 0.35, shape: "humanoid", accessory: "horn", big: true, ability: "teleport" }
+  ];
+
+  var BOSS_TABLE = {
+    10: { name: "牙の王ボアグラ", sym: "王", color: "#b23d2c", hp: 65, atk: 30, def: 6, exp: 90 },
+    20: { name: "鉄甲のグロムダ", sym: "鉄", color: "#6f6f7c", hp: 115, atk: 46, def: 12, exp: 170 },
+    30: { name: "業火のバルザック", sym: "炎", color: "#c25f22", hp: 175, atk: 64, def: 16, exp: 290 },
+    40: { name: "氷牙のフェンリク", sym: "氷", color: "#3f8ca8", hp: 245, atk: 80, def: 20, exp: 430 },
+    50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 106, def: 26, exp: 1000 }
+  };
+  var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
+
+  // モンスターごとの死亡時セリフ(結果画面に表示する「何によってどうなったか」の一言)。
+  // キーはENEMY_TYPES/ボスの"boss"+階層のkeyと対応させている。
+  var DEATH_FLAVOR = {
+    slime: "スライムに全身を包み込まれ、そのまま溶かされてしまった。",
+    rat: "群がる巨大ネズミに次々と噛みつかれ、力尽きた。",
+    bat: "コウモリによって血を吸いつくされた。",
+    mushroom: "毒キノコの猛毒に侵され、意識が遠のいていった。",
+    goblin: "ゴブリンの群れに袋叩きにされた。",
+    skeleton: "スケルトンの骨の剣に貫かれた。",
+    giantbat: "大コウモリに血を吸いつくされ、干からびてしまった。",
+    orc: "怒り狂ったオークの一撃で吹き飛ばされた。",
+    armor: "鎧武者の重い一撃を受け、その場に崩れ落ちた。",
+    sorcerer: "妖術師の放った呪詛に貫かれた。",
+    wraith: "死霊の凍える手に生気を吸い取られた。",
+    ogre: "大鬼の会心の一撃を受け、一瞬で意識を刈り取られた。",
+    dragonwarrior: "竜鱗の戦士の一撃が防御をすり抜け、致命傷を負った。",
+    fiend: "深淵の魔物に瞬時に距離を詰められ、なす術なく倒された。",
+    boss10: "牙の王ボアグラの巨大な牙に切り裂かれた。",
+    boss20: "鉄甲のグロムダの鉄拳に打ち砕かれた。",
+    boss30: "業火のバルザックの猛火に焼き尽くされた。",
+    boss40: "氷牙のフェンリクの牙に貫かれ、そのまま凍りついた。",
+    boss50: "深淵の王ザガレスの一撃に、全てが闇に飲み込まれた。"
+  };
+  var DEATH_FLAVOR_HUNGER = "満たされない空腹に体力を奪われ、飢えで力尽きた。";
+  var DEATH_FLAVOR_POISON = "毒がついに全身に回り、そのまま息絶えた。";
+
+  // 死因(G.lastDamageCause)から、結果画面に表示する一言セリフを組み立てる。
+  // 該当するセリフが無いモンスター(将来追加分など)は汎用の一言にフォールバックする。
+  function describeDeathCause(cause) {
+    if (!cause) return "";
+    if (cause.type === "hunger") return DEATH_FLAVOR_HUNGER;
+    if (cause.type === "poison") return DEATH_FLAVOR_POISON;
+    if (cause.type === "enemy") return DEATH_FLAVOR[cause.key] || (cause.name + "に倒された。");
+    return "";
+  }
+  var HIT_CHANCE = 0.78; // 命中率の基本値。プレイヤー→敵・敵→プレイヤーの通常攻撃どちらにも適用
+
+  var ITEM_TYPES = [
+    { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, minDepth: 1, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
+    { key: "antidote", name: "毒消し草", cat: "herb", sub: "antidote", value: 0, minDepth: 1, weight: 3, sym: "毒", color: "#5a9a7a", desc: "毒を治す" },
+    { key: "fullpotion", name: "全回復の薬", cat: "herb", sub: "fullheal", value: 0, minDepth: 8, weight: 1, sym: "全", color: "#d9a441", desc: "HPを完全に回復する" },
+    { key: "onigiri", name: "おにぎり", cat: "food", sub: "small", value: 40, minDepth: 1, weight: 6, sym: "食", color: "#c9a15a", desc: "満腹度を40回復する" },
+    { key: "onigiri_big", name: "大きなおにぎり", cat: "food", sub: "big", value: 75, minDepth: 6, weight: 3, sym: "食", color: "#e0b96a", desc: "満腹度を75回復する" },
+    { key: "sw_wood", name: "木の剣", cat: "weapon", value: 2, minDepth: 1, weight: 5, sym: "剣", color: "#a9895a", desc: "攻撃力+2" },
+    { key: "sw_copper", name: "銅の剣", cat: "weapon", value: 4, minDepth: 4, weight: 4, sym: "剣", color: "#c9793f", desc: "攻撃力+4" },
+    { key: "sw_iron", name: "鉄の剣", cat: "weapon", value: 7, minDepth: 10, weight: 3, sym: "剣", color: "#b0b0b8", desc: "攻撃力+7" },
+    { key: "sw_steel", name: "鋼の剣", cat: "weapon", value: 11, minDepth: 18, weight: 2, sym: "剣", color: "#d0d8e0", desc: "攻撃力+11" },
+    { key: "sw_silver", name: "銀の剣", cat: "weapon", value: 16, minDepth: 28, weight: 2, sym: "剣", color: "#e8eef2", desc: "攻撃力+16" },
+    { key: "sw_dragon", name: "竜牙の剣", cat: "weapon", value: 22, minDepth: 40, weight: 1, sym: "剣", color: "#e04040", desc: "攻撃力+22" },
+    { key: "sh_wood", name: "木の盾", cat: "shield", value: 2, minDepth: 1, weight: 5, sym: "盾", color: "#a9895a", desc: "防御力+2" },
+    { key: "sh_copper", name: "銅の盾", cat: "shield", value: 4, minDepth: 5, weight: 4, sym: "盾", color: "#c9793f", desc: "防御力+4" },
+    { key: "sh_iron", name: "鉄の盾", cat: "shield", value: 7, minDepth: 12, weight: 3, sym: "盾", color: "#b0b0b8", desc: "防御力+7" },
+    { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, minDepth: 20, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
+    { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, minDepth: 30, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
+    { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, minDepth: 42, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
+    // 投擲アイテム(矢・石)。range=射程距離(マス)、dmgMult=素手の通常攻撃ダメージに
+    // 対する倍率、bundle=床に落ちている状態を拾ったときにまとめて手に入る本数/個数。
+    // 持ち物では1枠にまとめて数量(count)で管理し、上限は99(装備枠・持ち物枠共通)。
+    { key: "ammo_arrow", name: "矢", cat: "throwable", sub: "arrow", value: 0, minDepth: 1, weight: 3, bundle: 6, range: 10, dmgMult: 1, sym: "矢", color: "#c9a15a", desc: "射程10マス。命中時、素手の通常攻撃と同じダメージ" },
+    { key: "ammo_stone", name: "石", cat: "throwable", sub: "stone", value: 0, minDepth: 1, weight: 3, bundle: 4, range: 3, dmgMult: 2, sym: "石", color: "#8a8a8a", desc: "射程3マス。命中時、素手の通常攻撃の2倍のダメージ" },
+    // 巻物6種の重み合計は旧3種の合計(2+1+2=5)と同じ5になるよう調整してあり、
+    // アイテム全体に占める「巻物」というカテゴリの出現割合そのものは変えていない
+    // (既存3種は0.7倍に圧縮し、その分を新規3種に配分している)。
+    { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, minDepth: 3, weight: 1.4, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
+    { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, minDepth: 3, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
+    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の部屋へ飛ぶ" },
+    { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, minDepth: 4, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
+    { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, minDepth: 8, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
+    { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, minDepth: 6, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" },
+    // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
+    // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
+    // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
+    // 投げ物と同様、同種を複数拾うと回数がまとめて加算される)。
+    // 重み・使用回数・出現階層は効果の強さから判断して設定している(強力なものほど
+    // 出現が遅く、レア(重み小)で、使用回数も少ない)。
+    { key: "wand_haste", name: "加速の杖", cat: "wand", sub: "haste", value: 0, minDepth: 2, weight: 1.0, bundle: 5, sym: "杖", color: "#e0503f", desc: "命中した敵は10ターンの間、1ターンに2回行動するようになる(敵を強化してしまうので注意)" },
+    { key: "wand_sleep", name: "睡眠の杖", cat: "wand", sub: "sleep", value: 0, minDepth: 5, weight: 0.8, bundle: 3, sym: "杖", color: "#5c7fb0", desc: "命中した敵は5ターンの間、動くことも攻撃することもできなくなる" },
+    { key: "wand_confuse", name: "混乱の杖", cat: "wand", sub: "confuse", value: 0, minDepth: 7, weight: 0.9, bundle: 4, sym: "杖", color: "#c98fd0", desc: "命中した敵は8ターンの間混乱し、ランダムな方向へよろめくだけになる" },
+    { key: "wand_knockback", name: "衝撃の杖", cat: "wand", sub: "knockback", value: 0, minDepth: 9, weight: 0.8, bundle: 3, sym: "杖", color: "#e8c96a", desc: "命中した敵をまっすぐ後方へ数マス吹き飛ばす" },
+    { key: "wand_weaken", name: "弱体の杖", cat: "wand", sub: "weaken", value: 0, minDepth: 11, weight: 0.9, bundle: 4, sym: "杖", color: "#6fa85a", desc: "命中した敵は15ターンの間、攻撃力が半分になる" },
+    { key: "wand_paralyze", name: "金縛りの杖", cat: "wand", sub: "paralyze", value: 0, minDepth: 14, weight: 0.5, bundle: 2, sym: "杖", color: "#8a6fae", desc: "命中した敵は、ダメージを受けるか攻撃/投擲が外れるまで動けなくなる" }
+  ];
+
+  /* =========================================================
+     乱数ユーティリティ
+  ========================================================= */
+  function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function chance(p) { return Math.random() < p; }
+  function pick(arr) { return arr[rnd(0, arr.length - 1)]; }
+  function weightedPick(list) {
+    var total = 0;
+    for (var i = 0; i < list.length; i++) total += (list[i].weight || 1);
+    var r = Math.random() * total;
+    for (var j = 0; j < list.length; j++) {
+      r -= (list[j].weight || 1);
+      if (r <= 0) return list[j];
+    }
+    return list[list.length - 1];
+  }
+
+  // keyからITEM_TYPESの定義を1つ引く(投げ物の射程・倍率などを装備枠から再取得する用)。
+  function findItemDefByKey(key) {
+    for (var i = 0; i < ITEM_TYPES.length; i++) if (ITEM_TYPES[i].key === key) return ITEM_TYPES[i];
+    return null;
+  }
+
+  // その階に出現しうる敵/アイテムの定義一覧(minDepth<=depthのもの)を返す。
+  // フロア生成・モンスターハウス・徘徊湧き・敵ドロップなど、複数箇所から呼ばれる。
+  function enemyPoolForDepth(depth) {
+    return ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+  }
+  function itemPoolForDepth(depth) {
+    return ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+  }
+
+  // 装備中の武器/盾と同じか、それより価値(攻撃力/防御力の上昇量)が低い武器/盾は、
+  // 手に入れても意味がないため、床への配置・敵のドロップどちらでも対象から除外する。
+  // 武器/盾以外のカテゴリや未装備の場合は常にfalse(=除外しない)。
+  function isUselessGear(def) {
+    if (def.cat === "weapon" && G.player.weapon) return def.value <= G.player.weapon.value;
+    if (def.cat === "shield" && G.player.shield) return def.value <= G.player.shield.value;
+    return false;
+  }
+
+  /* =========================================================
+     ゲーム状態
+  ========================================================= */
+  var G = null; // 現在の実行状態(1周分)。タイトル画面ではnull。
+
+  function newRunState() {
+    return {
+      floor: 1,
+      turn: 0,
+      grid: null,
+      roomId: null,
+      rooms: null,
+      visible: null,
+      discovered: null,
+      enemies: [],
+      floorItems: [],
+      monsterHouseRoomId: -1,
+      mapRevealActive: false,
+      attackEffect: null,
+      missEffect: null,
+      lastDamageCause: null, // 直近でプレイヤーがダメージを受けた原因(結果画面の死因表示に使用)
+      player: {
+        x: 0, y: 0,
+        hp: 23, maxHp: 23,
+        level: 1, exp: 0, expNext: 12,
+        atk: 4, def: 2,
+        hunger: 100, maxHunger: 100,
+        poison: 0,
+        megaEvolveTurns: 0,
+        weapon: null,
+        shield: null,
+        throwable: null,
+        inventory: [],
+        facing: { dx: 0, dy: 1 }
+      },
+      log: []
+    };
+  }
+
+  /* =========================================================
+     ダンジョン生成
+  ========================================================= */
+  function inBounds(x, y) { return x >= 0 && y >= 0 && x < W && y < H; }
+
+  // 床マスから4方向に塗りつぶして到達可能なマスを調べる(通路幅の正規化で使用)
+  function floodFillFrom(grid, sx, sy) {
+    var seen = [];
+    for (var y = 0; y < H; y++) seen.push(new Array(W).fill(false));
+    var stack = [[sx, sy]];
+    seen[sy][sx] = true;
+    while (stack.length) {
+      var p = stack.pop(), x = p[0], y2 = p[1];
+      var neighbors = [[x + 1, y2], [x - 1, y2], [x, y2 + 1], [x, y2 - 1]];
+      for (var i = 0; i < neighbors.length; i++) {
+        var nx = neighbors[i][0], ny = neighbors[i][1];
+        if (!inBounds(nx, ny) || seen[ny][nx] || grid[ny][nx] === T_WALL) continue;
+        seen[ny][nx] = true;
+        stack.push([nx, ny]);
+      }
+    }
+    return seen;
+  }
+
+  // 通路は基本的に幅1マスにする。2x2がすべて床(=通路が2マス幅になっている)箇所を検出し、
+  // 全部屋への到達可能性を壊さない範囲で片方を壁に戻す。部屋の内部はそのまま残す。
+  function normalizeCorridorWidth(grid, roomId, rooms) {
+    for (var y = 0; y < H - 1; y++) {
+      for (var x = 0; x < W - 1; x++) {
+        if (grid[y][x] !== T_FLOOR || grid[y + 1][x] !== T_FLOOR ||
+            grid[y][x + 1] !== T_FLOOR || grid[y + 1][x + 1] !== T_FLOOR) continue;
+        var corners = [[x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]];
+        var firstRoom = roomId[y][x];
+        var sameRoom = firstRoom >= 0 && corners.every(function (p) { return roomId[p[1]][p[0]] === firstRoom; });
+        if (sameRoom) continue; // 部屋の内部はそのまま(部屋の形状は既存ルール通り)
+        var candidates = corners.filter(function (p) { return roomId[p[1]][p[0]] === -1; });
+        for (var ci = 0; ci < candidates.length; ci++) {
+          var cx = candidates[ci][0], cy = candidates[ci][1];
+          grid[cy][cx] = T_WALL;
+          var reach = floodFillFrom(grid, rooms[0].cx, rooms[0].cy);
+          var ok = rooms.every(function (r) { return reach[r.cy][r.cx]; });
+          if (ok) break;
+          grid[cy][cx] = T_FLOOR; // 到達不能になるなら戻す
+        }
+      }
+    }
+  }
+
+  // 通路が行き止まりで終わっている箇所を壁に戻す(部屋自体が行き止まりになるのは
+  // 問題ないため、隣接マスが部屋の場合はそのまま残す)。1マス埋めると、その手前の
+  // マスが新たに行き止まりになることがあるため、変化がなくなるまで繰り返す。
+  // normalizeCorridorWidthが2マス幅の通路を1マス幅に整える際、意図せず行き止まりの
+  // 小さな枝を残すことがあるため、その後処理として呼び出す。
+  function trimDeadEndCorridors(grid, roomId) {
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (var y = 0; y < H; y++) {
+        for (var x = 0; x < W; x++) {
+          if (grid[y][x] === T_WALL || roomId[y][x] !== -1) continue; // 通路のマスのみが対象
+          var open = [];
+          var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+          for (var d = 0; d < dirs.length; d++) {
+            var nx = x + dirs[d][0], ny = y + dirs[d][1];
+            if (inBounds(nx, ny) && grid[ny][nx] !== T_WALL) open.push([nx, ny]);
+          }
+          if (open.length > 1) continue; // 分岐・貫通しているマスはそのまま
+          if (open.length === 1 && roomId[open[0][1]][open[0][0]] >= 0) continue; // 部屋への入口は残す
+          grid[y][x] = T_WALL;
+          changed = true;
+        }
+      }
+    }
+  }
+
+  function generateFloor(depth) {
+    var grid = [];
+    var roomId = [];
+    for (var y = 0; y < H; y++) {
+      grid.push(new Array(W).fill(T_WALL));
+      roomId.push(new Array(W).fill(-1));
+    }
+
+    var rooms = [];
+    var targetRooms = rnd(6, 9);
+    var attempts = 0;
+    while (rooms.length < targetRooms && attempts < 300) {
+      attempts++;
+      var rw = rnd(4, 7), rh = rnd(3, 5);
+      var rx = rnd(1, W - rw - 2);
+      var ry = rnd(1, H - rh - 2);
+      var overlaps = false;
+      for (var i = 0; i < rooms.length; i++) {
+        var r = rooms[i];
+        if (rx - 1 < r.x + r.w + 1 && rx + rw + 1 > r.x - 1 &&
+            ry - 1 < r.y + r.h + 1 && ry + rh + 1 > r.y - 1) {
+          overlaps = true; break;
+        }
+      }
+      if (overlaps) continue;
+      var room = { x: rx, y: ry, w: rw, h: rh, cx: rx + (rw >> 1), cy: ry + (rh >> 1), id: rooms.length };
+      rooms.push(room);
+      for (var yy = ry; yy < ry + rh; yy++) {
+        for (var xx = rx; xx < rx + rw; xx++) {
+          grid[yy][xx] = T_FLOOR;
+          roomId[yy][xx] = room.id;
+        }
+      }
+    }
+
+    function carveH(x1, x2, y) {
+      var a = Math.min(x1, x2), b = Math.max(x1, x2);
+      for (var x = a; x <= b; x++) { if (grid[y][x] === T_WALL) grid[y][x] = T_FLOOR; }
+    }
+    function carveV(y1, y2, x) {
+      var a = Math.min(y1, y2), b = Math.max(y1, y2);
+      for (var y = a; y <= b; y++) { if (grid[y][x] === T_WALL) grid[y][x] = T_FLOOR; }
+    }
+    function connect(a, b) {
+      if (chance(0.5)) { carveH(a.cx, b.cx, a.cy); carveV(a.cy, b.cy, b.cx); }
+      else { carveV(a.cy, b.cy, a.cx); carveH(a.cx, b.cx, b.cy); }
+    }
+
+    for (var i2 = 1; i2 < rooms.length; i2++) connect(rooms[i2 - 1], rooms[i2]);
+    var extraLinks = rnd(1, 3);
+    for (var i3 = 0; i3 < extraLinks && rooms.length > 2; i3++) {
+      connect(pick(rooms), pick(rooms));
+    }
+
+    normalizeCorridorWidth(grid, roomId, rooms);
+    trimDeadEndCorridors(grid, roomId);
+
+    // 部屋の外周1マスも視界演出のため覚えておく
+    for (var i4 = 0; i4 < rooms.length; i4++) {
+      var rr = rooms[i4];
+      rr.bx0 = Math.max(0, rr.x - 1);
+      rr.by0 = Math.max(0, rr.y - 1);
+      rr.bx1 = Math.min(W - 1, rr.x + rr.w);
+      rr.by1 = Math.min(H - 1, rr.y + rr.h);
+    }
+
+    var startRoom = rooms[0];
+    var stairsRoom = rooms[rooms.length - 1];
+    var best = stairsRoom, bestDist = -1;
+    for (var i5 = 0; i5 < rooms.length; i5++) {
+      var d = Math.abs(rooms[i5].cx - startRoom.cx) + Math.abs(rooms[i5].cy - startRoom.cy);
+      if (d > bestDist) { bestDist = d; best = rooms[i5]; }
+    }
+    stairsRoom = best;
+    grid[stairsRoom.cy][stairsRoom.cx] = T_STAIRS;
+
+    // モンスターハウス:地下4階以降、各部屋に3%の確率で発生する(開始部屋も対象に含む。
+    // テレポートの巻物で別の部屋へ逃げられるため、降り立った部屋がモンスターハウスでも
+    // 詰みにはならない)。1フロアに1部屋までなので、最初に当たった時点で以降の抽選は行わない。
+    var monsterHouseRoomId = -1;
+    if (depth >= 4) {
+      for (var mh = 0; mh < rooms.length; mh++) {
+        if (chance(0.03)) { monsterHouseRoomId = rooms[mh].id; break; }
+      }
+    }
+
+    return {
+      grid: grid, roomId: roomId, rooms: rooms,
+      startX: startRoom.cx, startY: startRoom.cy,
+      stairsX: stairsRoom.cx, stairsY: stairsRoom.cy,
+      monsterHouseRoomId: monsterHouseRoomId
+    };
+  }
+
+  function randomFloorTile(g, avoid) {
+    for (var tries = 0; tries < 500; tries++) {
+      var x = rnd(1, W - 2), y = rnd(1, H - 2);
+      if (g.grid[y][x] === T_FLOOR && !(avoid && avoid(x, y))) return { x: x, y: y };
+    }
+    return { x: g.startX, y: g.startY };
+  }
+
+  // 指定した部屋の中からランダムに床マスを1つ選ぶ(テレポートの巻物で使用)。
+  function randomTileInRoom(room, avoid) {
+    for (var tries = 0; tries < 200; tries++) {
+      var x = rnd(room.x, room.x + room.w - 1);
+      var y = rnd(room.y, room.y + room.h - 1);
+      if (G.grid[y][x] === T_FLOOR && !(avoid && avoid(x, y))) return { x: x, y: y };
+    }
+    return { x: room.cx, y: room.cy };
+  }
+
+  // (x,y)にいる敵を返す(いなければnull)。excludeを渡すとその敵自身を除外して探す
+  // (敵の移動先が他の敵と重なっていないかの判定などで使う)。
+  function findEnemyAt(x, y, exclude) {
+    for (var i = 0; i < G.enemies.length; i++) {
+      var e = G.enemies[i];
+      if (e !== exclude && e.x === x && e.y === y) return e;
+    }
+    return null;
+  }
+
+  // (x,y)にある床アイテムのエントリを返す(なければnull)。1マスに置けるアイテムは常に1つ。
+  function findFloorItemAt(x, y) {
+    for (var i = 0; i < G.floorItems.length; i++) {
+      if (G.floorItems[i].x === x && G.floorItems[i].y === y) return G.floorItems[i];
+    }
+    return null;
+  }
+
+  function tileOccupied(x, y) {
+    if (G.player.x === x && G.player.y === y) return true;
+    if (findEnemyAt(x, y)) return true;
+    if (findFloorItemAt(x, y)) return true;
+    return false;
+  }
+
+  // 床にアイテムを1つ配置するエントリを作る。投げ物(矢・石)・杖は数量(count)を持つ
+  // (杖の場合はcount=使用回数)。countを省略した場合は定義側のbundle(なければ1)を
+  // 初期数量として使う(フロア生成時にまとめて落ちている状態)。1個だけ落とす場合
+  // (捨てる/命中せず落下した場合)はcountに1を明示的に渡す。
+  function makeFloorItemEntry(x, y, def, count) {
+    var entry = { x: x, y: y, def: def };
+    if (def.cat === "throwable" || def.cat === "wand") entry.count = (typeof count === "number") ? count : (def.bundle || 1);
+    return entry;
+  }
+
+  function scaledEnemy(def, depth) {
+    var over = Math.max(0, depth - def.minDepth);
+    var hp = Math.round(def.hp * (1 + over * 0.045));
+    return {
+      key: def.key, name: def.name, sym: def.sym, color: tierShiftColor(def.color, over),
+      hp: hp,
+      maxHp: hp,
+      atk: Math.round(def.atk * (1 + over * 0.03)),
+      def: Math.round(def.def * (1 + over * 0.03)),
+      exp: def.exp + Math.round(over * def.exp * 0.05),
+      poison: !!def.poison,
+      erratic: def.erratic || 0,
+      dropRate: typeof def.dropRate === "number" ? def.dropRate : 0.15,
+      shape: def.shape || "humanoid",
+      accessory: def.accessory || "none",
+      big: !!def.big,
+      ability: def.ability || null,
+      cornerCut: !!def.cornerCut,
+      enraged: false,
+      undyingUsed: false,
+      monsterHouseDormant: false,
+      awake: !chance(def.sleepy || 0.15),
+      x: 0, y: 0
+    };
+  }
+
+  function populateFloor(depth) {
+    var pool = enemyPoolForDepth(depth);
+    var count = Math.min(12, rnd(3, 4) + Math.floor(depth / 4));
+    for (var i = 0; i < count; i++) {
+      var def = weightedPick(pool);
+      var spot = randomFloorTile(G, function (x, y) {
+        return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 4) || tileOccupied(x, y) ||
+          (x === G.stairsX && y === G.stairsY);
+      });
+      var e = scaledEnemy(def, depth);
+      e.x = spot.x; e.y = spot.y;
+      G.enemies.push(e);
+    }
+
+    if (BOSS_TABLE[depth]) {
+      var b = BOSS_TABLE[depth];
+      var spot2 = randomFloorTile(G, function (x, y) {
+        return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 6) || tileOccupied(x, y);
+      });
+      G.enemies.push({
+        key: "boss" + depth, name: b.name, sym: b.sym, color: b.color,
+        hp: b.hp, maxHp: b.hp, atk: b.atk, def: b.def, exp: b.exp,
+        poison: false, erratic: 0, dropRate: BOSS_DROP_RATE, awake: true, boss: true,
+        shape: "humanoid", accessory: "crown", big: true,
+        // ボスは特殊能力を持たないが、他の敵(scaledEnemy生成)と同じ形の
+        // オブジェクトにしておく(各所のenemy.ability/enemy.cornerCut等の
+        // 参照が、フィールド自体は常に存在する前提で書けるようにするため)。
+        ability: null, cornerCut: false, enraged: false, undyingUsed: false, monsterHouseDormant: false,
+        x: spot2.x, y: spot2.y
+      });
+    }
+
+    var itemPool = itemPoolForDepth(depth);
+    var icount = Math.min(7, rnd(2, 3) + Math.floor(depth / 10));
+    for (var j = 0; j < icount; j++) {
+      var idef = weightedPick(itemPool);
+      // 装備中以下の価値しかない武器/盾は配置しない(他のアイテムへの振り直しはしない。
+      // その回の配置枠が1つ減るだけ)。
+      if (isUselessGear(idef)) continue;
+      // 通路(roomId===-1)には出現させない。部屋の中にだけ置く
+      var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y) || G.roomId[y][x] < 0; });
+      G.floorItems.push(makeFloorItemEntry(ispot.x, ispot.y, idef));
+    }
+
+    if (G.monsterHouseRoomId >= 0) populateMonsterHouse(depth, pool, itemPool);
+  }
+
+  // モンスターハウス部屋の床マスの7割にモンスターを、残りに多めのアイテムを配置する。
+  // 配置されたモンスターはプレイヤーがこの部屋に入るまで一切行動しない(monsterHouseDormant)。
+  // pool/itemPoolはpopulateFloorが同じdepthに対して既に計算済みのものをそのまま受け取る。
+  function populateMonsterHouse(depth, pool, itemPool) {
+    var room = G.rooms[G.monsterHouseRoomId];
+    var tiles = [];
+    for (var y = room.y; y < room.y + room.h; y++) {
+      for (var x = room.x; x < room.x + room.w; x++) {
+        if (G.grid[y][x] === T_FLOOR && !tileOccupied(x, y)) tiles.push({ x: x, y: y });
+      }
+    }
+    for (var i = tiles.length - 1; i > 0; i--) {
+      var j2 = rnd(0, i);
+      var tmp = tiles[i]; tiles[i] = tiles[j2]; tiles[j2] = tmp;
+    }
+
+    var monsterCount = Math.min(tiles.length, Math.round(room.w * room.h * 0.7));
+    for (var m = 0; m < monsterCount; m++) {
+      var spot = tiles.pop();
+      var def = weightedPick(pool);
+      var e = scaledEnemy(def, depth);
+      e.x = spot.x; e.y = spot.y;
+      e.awake = false;
+      e.monsterHouseDormant = true;
+      G.enemies.push(e);
+    }
+
+    var itemCount = Math.min(tiles.length, rnd(4, 7));
+    for (var n = 0; n < itemCount; n++) {
+      var ispot2 = tiles.pop();
+      var idef2 = weightedPick(itemPool);
+      // 装備中以下の価値しかない武器/盾は配置しない(振り直しなし。そのマスは何も
+      // 置かれない床のまま)。
+      if (isUselessGear(idef2)) continue;
+      G.floorItems.push(makeFloorItemEntry(ispot2.x, ispot2.y, idef2));
+    }
+  }
+
+  // プレイヤーが部屋(roomId)に足を踏み入れた瞬間、その部屋で待機中(monsterHouseDormant)
+  // の敵をまとめて起こす。モンスターハウスの起爆と、徘徊湧きで「睡眠状態」のまま
+  // 出現したモンスター(下記trySpawnWanderingMonster参照)の起動を、どちらもこの
+  // 共通処理で扱う。起こした後はmonsterHouseDormantがfalseになるため、同じ部屋に
+  // 何度入ってもcountが0のままで再発火はしない。
+  function wakeDormantEnemiesInRoom(roomId) {
+    var count = 0;
+    for (var i = 0; i < G.enemies.length; i++) {
+      var e = G.enemies[i];
+      if (e.monsterHouseDormant && G.roomId[e.y][e.x] === roomId) {
+        e.monsterHouseDormant = false;
+        e.awake = true;
+        count++;
+      }
+    }
+    if (count === 0) return;
+    if (roomId === G.monsterHouseRoomId) {
+      addMessage("モンスターハウスだ!敵が一斉に襲いかかってくる!", "warn");
+    } else {
+      addMessage(count > 1 ? "眠っていた敵たちが一斉に目を覚ました!" : "眠っていた敵が目を覚ました!", "warn");
+    }
+  }
+
+  // フロア移動時だけでなく、プレイヤーの行動のたびに低確率で新しい敵が湧く(徘徊モンスター)。
+  // ゲーム進行を妨害しないよう、出現率は低く、フロアあたりの敵数には上限を設ける。
+  // プレイヤーが今いる部屋以外の部屋に出現し、50%の確率でモンスターハウスの初期状態と
+  // 同様の「睡眠状態」(その部屋にプレイヤーが入るまで行動できない)になる。残り50%は
+  // 最初から普通に動ける。
+  function trySpawnWanderingMonster() {
+    if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
+    if (!chance(WANDER_SPAWN_CHANCE)) return;
+    var pool = enemyPoolForDepth(G.floor);
+    if (!pool.length) return;
+    var playerRoomId = G.roomId[G.player.y][G.player.x];
+    var candidateRooms = G.rooms.filter(function (r) { return r.id !== playerRoomId; });
+    if (!candidateRooms.length) return; // プレイヤーの部屋以外に部屋がなければ湧かない
+    var room = pick(candidateRooms);
+    var spot = randomTileInRoom(room, function (x, y) {
+      return tileOccupied(x, y) || (x === G.stairsX && y === G.stairsY);
+    });
+    if (tileOccupied(spot.x, spot.y)) return; // 有効な空きマスが見つからなかった
+    var def = weightedPick(pool);
+    var e = scaledEnemy(def, G.floor);
+    e.x = spot.x; e.y = spot.y;
+    var dormant = chance(0.5);
+    e.monsterHouseDormant = dormant;
+    e.awake = !dormant;
+    G.enemies.push(e);
+    addMessage("微かな気配を感じた…", "");
+  }
+
+  function enterFloor(depth, keepPlayerStats) {
+    var g = generateFloor(depth);
+    G.floor = depth;
+    G.grid = g.grid;
+    G.roomId = g.roomId;
+    G.rooms = g.rooms;
+    G.visible = [];
+    G.discovered = [];
+    for (var y = 0; y < H; y++) { G.visible.push(new Array(W).fill(false)); G.discovered.push(new Array(W).fill(false)); }
+    G.enemies = [];
+    G.floorItems = [];
+    G.player.x = g.startX;
+    G.player.y = g.startY;
+    G.stairsX = g.stairsX;
+    G.stairsY = g.stairsY;
+    G.monsterHouseRoomId = g.monsterHouseRoomId;
+    G.mapRevealActive = false; // 明かりの巻物の効果はフロアを移動するとリセットされる
+    populateFloor(depth);
+    computeVisibility();
+    addMessage((depth === 1 ? "迷宮" : "地下" + depth + "階") + "に降り立った。", "note");
+  }
+
+  /* =========================================================
+     視界
+  ========================================================= */
+  function computeVisibility() {
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) G.visible[y][x] = false;
+    var px = G.player.x, py = G.player.y;
+    var rid = G.roomId[py][px];
+    if (rid >= 0) {
+      var r = G.rooms[rid];
+      for (var y2 = r.by0; y2 <= r.by1; y2++) {
+        for (var x2 = r.bx0; x2 <= r.bx1; x2++) { G.visible[y2][x2] = true; G.discovered[y2][x2] = true; }
+      }
+    } else {
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          var nx = px + dx, ny = py + dy;
+          if (inBounds(nx, ny)) { G.visible[ny][nx] = true; G.discovered[ny][nx] = true; }
+        }
+      }
+    }
+    G.visible[py][px] = true; G.discovered[py][px] = true;
+
+    // プレイヤーが部屋に足を踏み入れた瞬間、その部屋で待機中の敵を起こす
+    // (モンスターハウス、および睡眠状態で出現した徘徊モンスターの双方に対応)
+    if (rid >= 0) {
+      wakeDormantEnemiesInRoom(rid);
+    }
+  }
+
+  /* =========================================================
+     メッセージログ
+  ========================================================= */
+  function addMessage(text, kind) {
+    G.log.push({ text: text, kind: kind || "" });
+    if (G.log.length > 200) G.log.shift();
+    renderLog();
+  }
+
+  function renderLog() {
+    var el = document.getElementById("log");
+    var html = "";
+    var start = Math.max(0, G.log.length - 60);
+    for (var i = start; i < G.log.length; i++) {
+      var m = G.log[i];
+      var cls = m.kind === "warn" ? "msg-warn" : m.kind === "good" ? "msg-good" : m.kind === "note" ? "msg-note" : "";
+      html += '<p class="' + cls + '">' + escapeHtml(m.text) + "</p>";
+    }
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* =========================================================
+     プレイヤーの能力・装備
+  ========================================================= */
+  // メガシンカ中は攻撃力を2倍にする(武器あり/なしどちらの攻撃力にも適用)。
+  function megaScale(v) { return G.player.megaEvolveTurns > 0 ? v * 2 : v; }
+  function effAtk() {
+    return megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0));
+  }
+  function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
+  // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
+  function unarmedAtk() { return megaScale(G.player.atk); }
+
+  function gainExp(amount) {
+    G.player.exp += amount;
+    while (G.player.exp >= G.player.expNext) {
+      G.player.exp -= G.player.expNext;
+      G.player.level++;
+      G.player.expNext = Math.round(G.player.expNext * 1.35) + 4;
+      var hpUp = rnd(5, 8), atkUp = rnd(1, 2), defUp = 1; // 基礎HPを1.5倍にしたのでレベルアップ時のHP増加量も同じ比率で調整
+      G.player.maxHp += hpUp; G.player.hp = G.player.maxHp;
+      G.player.atk += atkUp; G.player.def += defUp;
+      addMessage("レベルが" + G.player.level + "に上がった!(HP+" + hpUp + " 攻撃+" + atkUp + " 防御+" + defUp + ")", "good");
+    }
+  }
+
+  /* =========================================================
+     持ち物
+  ========================================================= */
+  // qtyを省略すると1個/1本として扱う。矢・石のような投げ物は複数個/複数本を
+  // まとめて拾えるため、qtyにその数量を渡す。スタックは99個/99本を上限とする。
+  function addItemToInventory(def, qty) {
+    qty = typeof qty === "number" ? qty : 1;
+    // 武器/盾は個別の装備候補として扱うため、同じ種類でもスタック(数量まとめ)しない。
+    var stackable = def.cat !== "weapon" && def.cat !== "shield";
+    if (stackable) {
+      for (var i = 0; i < G.player.inventory.length; i++) {
+        var slot = G.player.inventory[i];
+        if (slot.key === def.key) { slot.count = Math.min(99, slot.count + qty); return true; }
+      }
+    }
+    if (G.player.inventory.length >= INV_CAP) return false;
+    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: stackable ? Math.min(99, qty) : 1 });
+    return true;
+  }
+
+  // 投げ物(矢・石)の入手処理。既に同じ種類を装備中ならそのまま補充(上限99)、
+  // 何も装備していなければ拾った瞬間に自動装備(武器/盾と同様)、既に別の種類を
+  // 装備中なら持ち物へ通常のスタックとして入る。
+  function pickupThrowable(def, qty) {
+    if (G.player.throwable && G.player.throwable.key === def.key) {
+      G.player.throwable.count = Math.min(99, G.player.throwable.count + qty);
+      addMessage(def.name + "を補充した。(" + G.player.throwable.count + "本/個)", "note");
+    } else if (!G.player.throwable) {
+      G.player.throwable = { key: def.key, name: def.name, sym: def.sym, color: def.color, count: Math.min(99, qty) };
+      addMessage(def.name + "を拾い、自動的に装備した!", "note");
+    } else if (addItemToInventory(def, qty)) {
+      addMessage(def.name + "を拾った。", "note");
+    } else {
+      addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+    }
+  }
+
+  // 武器/盾の装備スロット用オブジェクトを作る({name,value,key}の3フィールドのみ保持)。
+  // tryPickupの自動装備・equipInventorySlotの手動装備の双方で使う。
+  function makeEquipRef(name, value, key) {
+    return { name: name, value: value, key: key };
+  }
+
+  function tryPickup(x, y) {
+    var it = findFloorItemAt(x, y);
+    if (!it) return;
+    var def = it.def;
+    var i = G.floorItems.indexOf(it);
+    // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
+    if ((def.cat === "weapon" || def.cat === "shield") && !G.player[def.cat]) {
+      G.player[def.cat] = makeEquipRef(def.name, def.value, def.key);
+      addMessage(def.name + "を拾い、自動的に装備した!", "note");
+      G.floorItems.splice(i, 1);
+    } else if (def.cat === "throwable") {
+      var qty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
+      pickupThrowable(def, qty);
+      G.floorItems.splice(i, 1);
+    } else if (def.cat === "wand") {
+      // 杖は装備枠を持たず、通常のスタックとして持ち物に入る(countが残り使用回数)。
+      var wqty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
+      if (addItemToInventory(def, wqty)) {
+        addMessage(def.name + "を拾った。(残り" + wqty + "回分)", "note");
+        G.floorItems.splice(i, 1);
+      } else {
+        addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+      }
+    } else if (addItemToInventory(def)) {
+      addMessage(def.name + "を拾った。", "note");
+      G.floorItems.splice(i, 1);
+    } else {
+      addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+    }
+  }
+
+  function useInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot) return;
+    if (slot.cat === "weapon" || slot.cat === "shield") { equipInventorySlot(index); return; }
+    if (slot.cat === "throwable") { equipThrowableSlot(index); return; }
+    if (slot.cat === "wand") { castWand(index); return; }
+    var consumed = true;
+    if (slot.cat === "herb") {
+      if (slot.sub === "heal") {
+        var heal = Math.min(slot.value, G.player.maxHp - G.player.hp);
+        G.player.hp = Math.min(G.player.maxHp, G.player.hp + slot.value);
+        addMessage(slot.name + "を使い、HPが" + heal + "回復した。", "good");
+      } else if (slot.sub === "fullheal") {
+        G.player.hp = G.player.maxHp;
+        addMessage(slot.name + "を使い、HPが全回復した!", "good");
+      } else if (slot.sub === "antidote") {
+        if (G.player.poison > 0) { G.player.poison = 0; addMessage(slot.name + "を使い、毒が治った。", "good"); }
+        else { addMessage(slot.name + "を使ったが、毒ではなかった。", ""); }
+      }
+    } else if (slot.cat === "food") {
+      G.player.hunger = Math.min(G.player.maxHunger, G.player.hunger + slot.value);
+      addMessage(slot.name + "を食べた。満腹度が回復した。", "good");
+    } else if (slot.cat === "scroll") {
+      if (slot.sub === "enchant_weapon") {
+        if (G.player.weapon) { G.player.weapon.value += 1; addMessage(slot.name + "の力で" + G.player.weapon.name + "が強化された!(攻撃+1)", "good"); }
+        else { addMessage(slot.name + "を読んだが、強化する武器がなく力は消えた。", "warn"); }
+      } else if (slot.sub === "enchant_shield") {
+        if (G.player.shield) { G.player.shield.value += 1; addMessage(slot.name + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
+        else { addMessage(slot.name + "を読んだが、強化する盾がなく力は消えた。", "warn"); }
+      } else if (slot.sub === "teleport") {
+        // 今いる部屋とは別の部屋へ飛ぶ(通路や同じ部屋への再抽選は避ける)。
+        var curRoomId = G.roomId[G.player.y][G.player.x];
+        var otherRooms = G.rooms.filter(function (r) { return r.id !== curRoomId; });
+        var destRoom = pick(otherRooms.length ? otherRooms : G.rooms);
+        var spot = randomTileInRoom(destRoom, function (x, y) { return tileOccupied(x, y); });
+        G.player.x = spot.x; G.player.y = spot.y;
+        addMessage(slot.name + "の光に包まれ、別の部屋へ瞬間移動した!", "note");
+        computeVisibility();
+      } else if (slot.sub === "reveal") {
+        // 明かりの巻物:この階の通路の形を全て見えるようにし、
+        // 敵の位置もこの階にいる間ずっと分かるようにする(フロア移動でリセット)
+        for (var ry = 0; ry < H; ry++) for (var rx = 0; rx < W; rx++) G.discovered[ry][rx] = true;
+        G.mapRevealActive = true;
+        addMessage(slot.name + "を使い、この階の様子が頭に浮かんだ!", "note");
+      } else if (slot.sub === "megaevolve") {
+        G.player.megaEvolveTurns = slot.value;
+        addMessage(slot.name + "の力で体が漲る!" + slot.value + "ターンの間、攻撃力が2倍になった!", "good");
+      } else if (slot.sub === "vacuum") {
+        var homeRoom = G.roomId[G.player.y][G.player.x];
+        if (homeRoom < 0) {
+          addMessage(slot.name + "を使ったが、ここは部屋ではないため効果がなかった。", "warn");
+        } else {
+          var vDmg = G.player.level * 10;
+          var targets = G.enemies.filter(function (en) { return G.roomId[en.y][en.x] === homeRoom; });
+          if (targets.length === 0) {
+            addMessage(slot.name + "を使ったが、部屋に敵はいなかった。", "");
+          } else {
+            addMessage(slot.name + "の真空波が部屋を切り裂いた!", "note");
+            for (var vi = 0; vi < targets.length; vi++) {
+              var vt = targets[vi];
+              addMessage(vt.name + "に" + vDmg + "のダメージ!", "");
+              applyEnemyDamage(vt, vDmg);
+            }
+          }
+        }
+      }
+    } else { consumed = false; }
+    if (consumed) {
+      slot.count--;
+      if (slot.count <= 0) G.player.inventory.splice(index, 1);
+    }
+    renderAll();
+    saveGame();
+  }
+
+  // 装備を外した際、元のアイテムを持ち物へ戻す。持ち物がいっぱいで戻せなければ
+  // 足元に置く。qtyは投げ物のみ意味を持つ(makeFloorItemEntry参照。武器/盾は無視される)。
+  function returnOrDropItem(def, qty) {
+    var restored = addItemToInventory(def, qty);
+    if (!restored) {
+      G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, def, qty));
+      addMessage(def.name + "は足元に置かれた。", "");
+    }
+  }
+
+  function equipInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield")) return;
+    G.player.inventory.splice(index, 1);
+    var slotName = slot.cat;
+    var prev = G.player[slotName];
+    G.player[slotName] = makeEquipRef(slot.name, slot.value, slot.key);
+    addMessage(slot.name + "を装備した。", "note");
+    if (prev) {
+      returnOrDropItem({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
+    }
+    renderAll();
+    saveGame();
+  }
+
+  // 投げ物(矢・石)を持ち物から装備枠へ切り替える。既に何か装備していれば、
+  // その残数ごと持ち物へ戻す(戻せなければ武器・盾の入れ替えと同様に足元へ置く)。
+  function equipThrowableSlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot || slot.cat !== "throwable") return;
+    G.player.inventory.splice(index, 1);
+    var prev = G.player.throwable;
+    G.player.throwable = { key: slot.key, name: slot.name, sym: slot.sym, color: slot.color, count: slot.count };
+    addMessage(slot.name + "を装備した。", "note");
+    if (prev) {
+      var prevDef = findItemDefByKey(prev.key) || { key: prev.key, name: prev.name, cat: "throwable", sub: "", value: 0, sym: prev.sym, color: prev.color, desc: "" };
+      returnOrDropItem(prevDef, prev.count);
+    }
+    renderAll();
+    saveGame();
+  }
+
+  function dropInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot) return;
+    if (findFloorItemAt(G.player.x, G.player.y)) {
+      addMessage("ここには物を置けない。", "warn");
+      return;
+    }
+    var dropDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
+    // 1回の「捨てる」操作ではスタックのうち1個/1本だけを足元に置く(矢・石を大量に
+    // 持っていても、床に積み上がるのは常に1つ)。
+    G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, dropDef, 1));
+    addMessage(slot.name + "を置いた。", "");
+    slot.count--;
+    if (slot.count <= 0) G.player.inventory.splice(index, 1);
+    renderAll();
+    saveGame();
+  }
+
+  /* =========================================================
+     戦闘
+  ========================================================= */
+  // critChance/defFactor は省略可(それぞれ既定の会心率8%、防御反映率0.6倍を使う)。
+  // heavycrit(会心率上昇)・pierce(防御貫通)の特殊能力で上書きするために使う。
+  function computeDamage(atk, def, critChance, defFactor) {
+    var factor = typeof defFactor === "number" ? defFactor : 0.6;
+    var base = Math.max(1, atk - def * factor);
+    var variance = 0.8 + Math.random() * 0.4;
+    var dmg = Math.round(base * variance);
+    if (chance(typeof critChance === "number" ? critChance : 0.08)) dmg *= 2;
+    return Math.max(1, dmg);
+  }
+
+  // 斜め方向(攻撃・移動共通)の可否判定。(x,y)から(dx,dy)方向へ斜めに進もうとしたとき、
+  // 直交する2マス(x+dx,y)と(x,y+dy)のどちらか一方でも壁なら「壁の角」に阻まれて進めない。
+  // プレイヤーの斜め攻撃・斜め移動、敵の斜め攻撃の全てでこの判定を使う
+  // (壁をすり抜けられる死霊(phase)や、小柄で壁の角も抜けられる一部モンスターは
+  // 呼び出し側でこの判定自体をスキップする)。
+  function isDiagonalCornerBlocked(x, y, dx, dy) {
+    if (dx === 0 || dy === 0) return false;
+    var wallA = !inBounds(x + dx, y) || G.grid[y][x + dx] === T_WALL;
+    var wallB = !inBounds(x, y + dy) || G.grid[y + dy][x] === T_WALL;
+    return wallA || wallB;
+  }
+
+  // 敵を倒した位置の近くに空いている床マスを探す(アイテムドロップ用)
+  // 自マス+周囲8マス(3x3)のオフセット一覧。findDropSpot/findFreeAdjacentTileで共用。
+  var ADJACENT_OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+
+  function findDropSpot(x, y) {
+    for (var i = 0; i < ADJACENT_OFFSETS.length; i++) {
+      var nx = x + ADJACENT_OFFSETS[i][0], ny = y + ADJACENT_OFFSETS[i][1];
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
+      if (findFloorItemAt(nx, ny)) continue;
+      return { x: nx, y: ny };
+    }
+    return null;
+  }
+
+  // (x,y)に隣接する、壁でもプレイヤー/敵/アイテムでも塞がれていない床マスを1つ探す。
+  // スライムの分裂や深淵の魔物の瞬間移動先探しに使う。
+  function findFreeAdjacentTile(x, y) {
+    for (var i = 0; i < ADJACENT_OFFSETS.length; i++) {
+      var nx = x + ADJACENT_OFFSETS[i][0], ny = y + ADJACENT_OFFSETS[i][1];
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
+      if (tileOccupied(nx, ny)) continue;
+      return { x: nx, y: ny };
+    }
+    return null;
+  }
+
+  // (x1,y1)から(x2,y2)までの間(距離2以内)に壁が挟まっていないかを調べる。
+  // 妖術師の遠隔攻撃(ranged)の射線判定に使う。
+  function hasClearLine(x1, y1, x2, y2) {
+    var dx = x2 - x1, dy = y2 - y1;
+    var steps = Math.max(Math.abs(dx), Math.abs(dy));
+    if (steps <= 1) return true;
+    var sx = dx === 0 ? 0 : dx / Math.abs(dx);
+    var sy = dy === 0 ? 0 : dy / Math.abs(dy);
+    for (var i = 1; i < steps; i++) {
+      var cx = x1 + sx * i, cy = y1 + sy * i;
+      if (!inBounds(cx, cy) || G.grid[cy][cx] === T_WALL) return false;
+    }
+    return true;
+  }
+
+  // スライムの分裂:ダメージを受けても生き残り、隣に空きマスがあれば低確率でHPを
+  // 半分ずつに分けた分身を生み出す。弱りすぎた個体やフロアの敵数上限では分裂しない。
+  function trySplitEnemy(enemy) {
+    if (enemy.hp < 4) return;
+    if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
+    if (!chance(0.3)) return;
+    var spot = findFreeAdjacentTile(enemy.x, enemy.y);
+    if (!spot) return;
+    var halfHp = Math.floor(enemy.hp / 2);
+    enemy.hp -= halfHp;
+    var clone = Object.assign({}, enemy); // enemyは全フィールドが数値/文字列/真偽値のみなので浅いコピーで十分
+    clone.hp = halfHp;
+    clone.x = spot.x; clone.y = spot.y;
+    G.enemies.push(clone);
+    addMessage(enemy.name + "が分裂した!", "warn");
+  }
+
+  // ゴブリンの「仲間を呼ぶ」:自分が目覚めたとき、近くの眠っている(モンスターハウス
+  // 待機中を除く)敵をまとめて起こす。
+  function alertNearbyEnemies(source) {
+    for (var i = 0; i < G.enemies.length; i++) {
+      var other = G.enemies[i];
+      if (other === source || other.awake || other.monsterHouseDormant) continue;
+      var d = Math.max(Math.abs(other.x - source.x), Math.abs(other.y - source.y));
+      if (d <= 5) other.awake = true;
+    }
+  }
+
+  // 敵撃破時のアイテムドロップ判定。ボスは必ず(装備品・巻物を優先して)ドロップする。
+  function rollEnemyDrop(enemy) {
+    var rate = enemy.boss ? BOSS_DROP_RATE : (typeof enemy.dropRate === "number" ? enemy.dropRate : 0.15);
+    if (!chance(rate)) return;
+    var depth = G.floor;
+    var pool = itemPoolForDepth(depth);
+    if (enemy.boss) {
+      var richPool = pool.filter(function (it) { return it.cat === "weapon" || it.cat === "shield" || it.cat === "scroll" || it.cat === "wand"; });
+      if (richPool.length) pool = richPool;
+    }
+    if (!pool.length) return;
+    var def = weightedPick(pool);
+    // 装備中以下の価値しかない武器/盾は、抽選で選ばれても「何も出なかった」ことに
+    // する(他のアイテムへの振り直しはしない。あくまでその回のドロップが消えるだけ)。
+    if (isUselessGear(def)) return;
+    var spot = findDropSpot(enemy.x, enemy.y);
+    if (!spot) return;
+    G.floorItems.push(makeFloorItemEntry(spot.x, spot.y, def));
+    addMessage(enemy.name + "は" + def.name + "を落とした!", "note");
+  }
+
+  // 敵にダメージを与え、致命傷なら撃破処理(不死判定・経験値・ドロップ・クリア判定)を
+  // まとめて行う共通処理。通常攻撃と真空切りの巻物のどちらからも呼ばれる。
+  // 戻り値:実際に倒した(=Gから取り除いた)場合はtrue
+  function applyEnemyDamage(enemy, dmg) {
+    enemy.hp -= dmg;
+    enemy.paralyzed = false; // 金縛りの杖:ダメージを受けると解ける
+    if (enemy.hp <= 0) {
+      // スケルトンの「不死」:1戦につき1度だけ、致命傷をHP1で耐える
+      if (enemy.ability === "undying" && !enemy.undyingUsed) {
+        enemy.undyingUsed = true;
+        enemy.hp = 1;
+        addMessage(enemy.name + "は死を免れた!", "warn");
+        return false;
+      }
+      addMessage(enemy.name + "を倒した!", "good");
+      gainExp(enemy.exp);
+      if (enemy.lungeTimer) { clearTimeout(enemy.lungeTimer); enemy.lungeTimer = null; } // 消滅後に無駄な再描画をしない
+      var idx = G.enemies.indexOf(enemy);
+      if (idx >= 0) G.enemies.splice(idx, 1);
+      rollEnemyDrop(enemy);
+      if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
+      return true;
+    }
+    return false;
+  }
+
+  function playerAttackEnemy(enemy) {
+    // 鎧武者の「受け流し」:一定確率で攻撃そのものを完全に無効化する
+    if (enemy.ability === "guard" && chance(0.2)) {
+      enemy.awake = true;
+      addMessage(enemy.name + "が攻撃を受け流した!", "");
+      return;
+    }
+    enemy.awake = true;
+    // 命中判定(基本78%)。外れた場合はダメージなしでターンを消費するのみ。
+    if (!chance(HIT_CHANCE)) {
+      addMessage(enemy.name + "への攻撃が外れた!", "");
+      triggerMissEffect(enemy.x, enemy.y);
+      enemy.paralyzed = false; // 金縛りの杖:攻撃が外れると解ける
+      return;
+    }
+    var dmg = computeDamage(effAtk(), enemy.def);
+    addMessage(enemy.name + "に" + dmg + "のダメージ!", "");
+    var killed = applyEnemyDamage(enemy, dmg);
+    if (!killed && enemy.ability === "split") trySplitEnemy(enemy);
+  }
+
+  function enemyAttackPlayer(enemy) {
+    // 攻撃モーション:プレイヤー方向へ少し踏み込んで戻る(命中・外れどちらでも攻撃した見た目になる)。
+    triggerEnemyLunge(enemy);
+    // 命中判定(基本78%)。外れた場合はダメージ・吸血・毒付与のいずれも発生しない。
+    if (!chance(HIT_CHANCE)) {
+      addMessage(enemy.name + "の攻撃!外れた!", "");
+      triggerMissEffect(G.player.x, G.player.y);
+      return;
+    }
+    var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
+    var defFactor = enemy.ability === "pierce" ? 0.25 : undefined; // 竜鱗の戦士:防御貫通
+    var atk = (enemy.weakenTurns > 0) ? Math.round(enemy.atk * 0.5) : enemy.atk; // 弱体の杖:攻撃力半減
+    var dmg = computeDamage(atk, effDef(), critChance, defFactor);
+    G.player.hp -= dmg;
+    G.lastDamageCause = { type: "enemy", key: enemy.key, name: enemy.name, boss: !!enemy.boss };
+    addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
+    if (enemy.ability === "drain") { // コウモリ系の吸血
+      var healed = Math.min(enemy.maxHp - enemy.hp, Math.round(dmg * 0.5));
+      if (healed > 0) {
+        enemy.hp += healed;
+        addMessage(enemy.name + "が生命力を吸い取った!", "warn");
+      }
+    }
+    if (enemy.poison && chance(0.5) && G.player.poison <= 0) {
+      G.player.poison = 6;
+      addMessage("毒を受けてしまった…", "warn");
+    }
+  }
+
+  /* =========================================================
+     行動・ターン処理
+  ========================================================= */
+  // 攻撃時、プレイヤーの攻撃演出(拳/剣・MISS表示)が見えてから敵が反応するまでの間隔。
+  // この間はturnBusyがtrueになり、新たな入力を受け付けない(連打で行動順が乱れるのを防ぐ)。
+  var ENEMY_TURN_DELAY_MS = 300;
+  var turnBusy = false;
+  var enemyTurnTimer = null;
+
+  // 移動キーは「移動(と向きを変える)」専用。攻撃はZキー/攻撃ボタンで行う(performPlayerAction)。
+  // 壁や敵にぶつかったときはその方向を向くだけで、ターンは消費しない。
+  function movePlayer(dx, dy) {
+    if (!G || G.gameOver || turnBusy) return;
+    if (dx === 0 && dy === 0) { doTurn(); return; }
+    G.player.facing = { dx: dx, dy: dy };
+    var nx = G.player.x + dx, ny = G.player.y + dy;
+    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) { renderStage(); return; }
+    // 斜め移動は、壁の角(直交する2マスのどちらか一方でも壁)を挟んでいるとすり抜けられない。
+    if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) { renderStage(); return; }
+
+    if (findEnemyAt(nx, ny)) { renderStage(); return; }
+
+    G.player.x = nx; G.player.y = ny;
+    tryPickup(nx, ny);
+    // 階段は乗っただけでは降りない(誤って踏んだだけで進んでしまう事故を防ぐため)。
+    // 降りるにはこのマスに乗った状態でZキー/攻撃ボタンを押す(performPlayerAction側)。
+    doTurn();
+  }
+
+  // Zキー/攻撃ボタン:階段の上に乗っていれば次の階へ降りる。
+  // そうでなければ、向いている方向の1マス先に敵がいれば攻撃する。
+  function performPlayerAction() {
+    if (!G || G.gameOver || turnBusy) return;
+    if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
+      descend();
+      return;
+    }
+    var facing = G.player.facing || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+    var tx = G.player.x + dx, ty = G.player.y + dy;
+    if (!inBounds(tx, ty)) return;
+    if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) {
+      addMessage("壁の角に阻まれて攻撃が届かない!", "warn");
+      return;
+    }
+    var target = findEnemyAt(tx, ty);
+    // 攻撃先のマスに拳/剣のエフェクトを表示する(装備によって見た目が変わる)。
+    // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
+    triggerAttackEffect(tx, ty);
+    if (target) { playerAttackEnemy(target); }
+    // 攻撃の演出が見えるよう、敵の行動は少し遅らせる(移動時はこの遅延を入れない)。
+    doTurn(ENEMY_TURN_DELAY_MS);
+  }
+
+  // 投げた矢・石が命中せず床に落ちる際の着地処理。既にその場に別のアイテムが
+  // 置かれていれば、投げたものはそのまま消える(重ねて置くことはできない)。
+  function dropThrownItem(x, y, def) {
+    if (findFloorItemAt(x, y)) return;
+    G.floorItems.push(makeFloorItemEntry(x, y, def, 1));
+  }
+
+  // Sキー/射撃ボタン:装備中の投げ物(矢・石)を、向いている方向へ射程距離分投げる。
+  // 命中率は通常攻撃と同じ(HIT_CHANCE)。ダメージは素手の通常攻撃を基準にし、
+  // アイテムごとの倍率(矢=1倍、石=2倍)を掛ける(武器を装備していても影響しない)。
+  // 命中すれば投げたものは消費されるだけだが、外れた場合・壁にぶつかった場合・
+  // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。
+  function performThrowAction() {
+    if (!G || G.gameOver || turnBusy) return;
+    var quiver = G.player.throwable;
+    if (!quiver || quiver.count <= 0) {
+      addMessage("投げられる物を持っていない。", "warn");
+      return;
+    }
+    var itemDef = findItemDefByKey(quiver.key);
+    var range = (itemDef && itemDef.range) || 1;
+    var dmgMult = (itemDef && itemDef.dmgMult) || 1;
+    var facing = G.player.facing || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+
+    var px = G.player.x, py = G.player.y;
+    var landX = px, landY = py;
+    var target = null;
+    for (var i = 1; i <= range; i++) {
+      var tx = px + dx * i, ty = py + dy * i;
+      // 壁(またはマップ外)に突き当たったら、その手前(直前のlandX/landY)で止まる
+      if (!inBounds(tx, ty) || G.grid[ty][tx] === T_WALL) break;
+      landX = tx; landY = ty;
+      var found = findEnemyAt(tx, ty);
+      if (found) { target = found; break; }
+    }
+
+    quiver.count--;
+    if (quiver.count <= 0) G.player.throwable = null; // 撃ち尽くしたら装備解除
+
+    if (target) {
+      target.awake = true;
+      if (chance(HIT_CHANCE)) {
+        var dmg = computeDamage(unarmedAtk() * dmgMult, target.def);
+        addMessage(quiver.name + "が" + target.name + "に命中!" + dmg + "のダメージ!", "");
+        var killed = applyEnemyDamage(target, dmg);
+        if (!killed && target.ability === "split") trySplitEnemy(target);
+      } else {
+        addMessage(quiver.name + "は" + target.name + "に外れて足元に落ちた。", "warn");
+        if (itemDef) dropThrownItem(target.x, target.y, itemDef);
+        target.paralyzed = false; // 金縛りの杖:投擲が外れると解ける
+      }
+    } else if (itemDef) {
+      dropThrownItem(landX, landY, itemDef);
+    }
+
+    // 攻撃(投擲)の結果が見えるよう、敵の行動は少し遅らせる。
+    doTurn(ENEMY_TURN_DELAY_MS);
+  }
+
+  // 杖を振る:プレイヤーの向いている方向へ、壁に当たるまで(射程無限)まっすぐ進め、
+  // 最初に見つかった敵に杖ごとの効果を与える(ダメージは与えない)。使用回数を1消費し、
+  // 0になったらその杖は持ち物から消える。攻撃と同様、演出が見えるよう敵の行動を少し遅らせる。
+  function castWand(index) {
+    if (!G || G.gameOver || turnBusy) return;
+    var slot = G.player.inventory[index];
+    if (!slot || slot.cat !== "wand") return;
+    var facing = G.player.facing || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+    var tx = G.player.x, ty = G.player.y;
+    var target = null;
+    while (true) {
+      tx += dx; ty += dy;
+      if (!inBounds(tx, ty) || G.grid[ty][tx] === T_WALL) break;
+      var found = findEnemyAt(tx, ty);
+      if (found) { target = found; break; }
+    }
+    if (target) {
+      target.awake = true;
+      applyWandEffect(slot, target, dx, dy);
+    } else {
+      addMessage(slot.name + "を振ったが、何もいなかった。", "");
+    }
+    slot.count--;
+    if (slot.count <= 0) G.player.inventory.splice(index, 1);
+    // 演出が見えるよう、敵の行動は少し遅らせる。
+    doTurn(ENEMY_TURN_DELAY_MS);
+  }
+
+  var WAND_KNOCKBACK_DIST = 4; // 衝撃の杖:吹き飛ばす距離(壁・敵・プレイヤーに当たるとそこで止まる)
+
+  // 杖ごとの効果を対象に適用する。杖はダメージを与えず、状態異常や位置操作のみを行う。
+  function applyWandEffect(wand, target, dx, dy) {
+    if (wand.sub === "haste") {
+      target.hasteTurns = 10;
+      addMessage(wand.name + "を振ると、" + target.name + "の動きが加速した!", "warn");
+    } else if (wand.sub === "sleep") {
+      target.sleepTurns = 5;
+      addMessage(wand.name + "を振ると、" + target.name + "は眠ってしまった!", "good");
+    } else if (wand.sub === "confuse") {
+      target.confusedTurns = 8;
+      addMessage(wand.name + "を振ると、" + target.name + "は混乱した!", "good");
+    } else if (wand.sub === "knockback") {
+      var moved = knockbackEnemy(target, dx, dy, WAND_KNOCKBACK_DIST);
+      if (moved > 0) addMessage(wand.name + "を振ると、" + target.name + "が" + moved + "マス吹き飛んだ!", "good");
+      else addMessage(wand.name + "を振ったが、" + target.name + "は壁際で吹き飛ばなかった。", "");
+    } else if (wand.sub === "weaken") {
+      target.weakenTurns = 15;
+      addMessage(wand.name + "を振ると、" + target.name + "は弱体化した!", "good");
+    } else if (wand.sub === "paralyze") {
+      target.paralyzed = true;
+      addMessage(wand.name + "を振ると、" + target.name + "は金縛りになった!", "good");
+    }
+  }
+
+  // 敵を(dx,dy)方向へ最大maxDistマス吹き飛ばす(衝撃の杖)。壁・プレイヤー・他の敵に
+  // ぶつかった時点で止まる。実際に動けた距離を返す。
+  function knockbackEnemy(enemy, dx, dy, maxDist) {
+    var moved = 0;
+    for (var i = 0; i < maxDist; i++) {
+      var nx = enemy.x + dx, ny = enemy.y + dy;
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) break;
+      if (nx === G.player.x && ny === G.player.y) break;
+      if (findEnemyAt(nx, ny, enemy)) break;
+      enemy.x = nx; enemy.y = ny;
+      moved++;
+    }
+    return moved;
+  }
+
+  // delayEnemyMsを渡すと、ここまで(プレイヤー側の処理)を先に描画してから、その分だけ
+  // 間を置いて敵の行動(enemyTurn以降)を行う。攻撃演出とセットで使い、プレイヤーの攻撃と
+  // 敵の反応が同時に描かれて見えてしまうのを防ぐ(移動時は省略し、従来通り即座に処理する)。
+  function doTurn(delayEnemyMs) {
+    G.turn++;
+    if (G.player.hunger > 0) {
+      if (G.turn % 3 === 0) G.player.hunger = Math.max(0, G.player.hunger - 1);
+    }
+    if (G.player.hunger <= 0) {
+      G.player.hp -= 2;
+      G.lastDamageCause = { type: "hunger" };
+      addMessage("お腹が空いて力が入らない…", "warn");
+    }
+    if (G.player.poison > 0) {
+      G.player.poison--;
+      G.player.hp -= 2;
+      G.lastDamageCause = { type: "poison" };
+      addMessage("毒で体がむしばまれる…", "warn");
+    }
+    // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)。
+    // 5ターンごとに、現在の最大HPの3%を回復する(固定値ではなく最大HP依存にすることで、
+    // 最大HPが伸びる後半のフロアでも回復量が薄くなりすぎないようにしている)。
+    if (G.turn % 5 === 0 && G.player.hp < G.player.maxHp && G.player.hunger > 0) {
+      var regenAmount = Math.max(1, Math.round(G.player.maxHp * 0.03));
+      G.player.hp = Math.min(G.player.maxHp, G.player.hp + regenAmount);
+    }
+    if (G.player.megaEvolveTurns > 0) {
+      G.player.megaEvolveTurns--;
+      if (G.player.megaEvolveTurns === 0) addMessage("メガシンカの効果が切れた。", "note");
+    }
+    trySpawnWanderingMonster();
+    if (checkPlayerDeath()) return;
+
+    if (delayEnemyMs) {
+      // ここまでの結果(プレイヤーの攻撃演出・HP/満腹度の変化など)を一度描画してから、
+      // 少し間を置いて敵に行動させる。この間はturnBusyがtrueになり新たな入力を受け付けない。
+      computeVisibility();
+      renderAll();
+      saveGame();
+      turnBusy = true;
+      enemyTurnTimer = setTimeout(function () {
+        enemyTurnTimer = null;
+        turnBusy = false;
+        if (!G || G.gameOver) return;
+        enemyTurn();
+        if (checkPlayerDeath()) return;
+        computeVisibility();
+        renderAll();
+        saveGame();
+      }, delayEnemyMs);
+      return;
+    }
+
+    enemyTurn();
+    if (checkPlayerDeath()) return;
+
+    computeVisibility();
+    renderAll();
+    saveGame();
+  }
+
+  // 敵を(dx,dy)方向へ1マス動かそうと試みる。真っ直ぐ進めなければ軸ごとの移動も試す。
+  // phase(壁をすり抜ける)を持つ敵は壁を無視して進める。
+  // 斜め移動は壁の角に阻まれると進めない(プレイヤーと同じ判定)。ただしphaseの敵と、
+  // スライム・コウモリのような小柄な敵(cornerCut)はこの制限を受けない。
+  function moveEnemyStep(e, dx, dy) {
+    var tryMoves = [[dx, dy], [dx, 0], [0, dy]];
+    for (var m = 0; m < tryMoves.length; m++) {
+      var stepx = tryMoves[m][0], stepy = tryMoves[m][1];
+      if (stepx === 0 && stepy === 0) continue;
+      var mx = e.x + stepx, my = e.y + stepy;
+      if (!inBounds(mx, my) || (G.grid[my][mx] === T_WALL && e.ability !== "phase")) continue;
+      if (stepx !== 0 && stepy !== 0 && e.ability !== "phase" && !e.cornerCut &&
+          isDiagonalCornerBlocked(e.x, e.y, stepx, stepy)) continue;
+      if (mx === G.player.x && my === G.player.y) continue;
+      if (findEnemyAt(mx, my, e)) continue;
+      e.x = mx; e.y = my;
+      break;
+    }
+  }
+
+  function enemyTurn() {
+    var list = G.enemies.slice();
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (G.enemies.indexOf(e) === -1) continue;
+      if (e.monsterHouseDormant) continue; // モンスターハウス:起動前は行動不可
+
+      // 睡眠の杖:このターンで1つ消費し、残っていれば行動できない。
+      if (e.sleepTurns > 0) { e.sleepTurns--; continue; }
+      // 金縛りの杖:ダメージを受けるか、攻撃/投擲が外れるまで一切行動できない。
+      if (e.paralyzed) continue;
+
+      var dist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
+      if (!e.awake) {
+        if (dist <= 5 && chance(0.5 + (5 - dist) * 0.1)) {
+          e.awake = true;
+          if (e.ability === "alert") alertNearbyEnemies(e); // ゴブリン:仲間を起こす
+        } else continue;
+      }
+
+      // 加速/混乱の杖:今回の行動に使う分だけ先に読み、このenemyの処理の最後で経過させる
+      // (行動中に値が変わってしまわないようにするため)。
+      var hasted = e.hasteTurns > 0; // 加速の杖:このターンだけ2回行動する
+      var confused = e.confusedTurns > 0; // 混乱の杖:攻撃/追跡ができずランダムに動くだけになる
+
+      var actionCount = hasted ? 2 : 1;
+      for (var a = 0; a < actionCount; a++) {
+        if (G.enemies.indexOf(e) === -1) break; // 行動中に消滅した場合(通常は起こらない)
+
+        // 混乱中はプレイヤーを認識していても正常に行動できず、ランダムな方向へよろめくだけ。
+        if (confused) {
+          moveEnemyStep(e, rnd(-1, 1), rnd(-1, 1));
+          continue;
+        }
+
+        // オークの「怒り」:HPが半分以下になった最初のタイミングで攻撃力が上がる
+        if (e.ability === "enrage" && !e.enraged && e.hp <= e.maxHp * 0.5) {
+          e.enraged = true;
+          e.atk = Math.round(e.atk * 1.5);
+          addMessage(e.name + "が怒り狂った!攻撃力が上がった!", "warn");
+        }
+
+        var pdx = e.x < G.player.x ? 1 : (e.x > G.player.x ? -1 : 0);
+        var pdy = e.y < G.player.y ? 1 : (e.y > G.player.y ? -1 : 0);
+
+        // 巨大ネズミの「逃走」:HPが3割以下になると攻撃せずプレイヤーから離れようとする
+        if (e.ability === "flee" && e.hp <= e.maxHp * 0.3) {
+          moveEnemyStep(e, -pdx, -pdy);
+          continue;
+        }
+
+        var actDist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
+        var attackRange = (e.ability === "ranged") ? 2 : 1; // 妖術師は2マス先まで攻撃可
+        if (actDist <= attackRange) {
+          var canAttack;
+          if (actDist <= 1) {
+            // 斜め方向で壁の角に阻まれている場合は攻撃できない(プレイヤー側と同じ判定)。
+            // ただし死霊(phase)は壁ごと無視できるのでこの制限を受けない。
+            canAttack = !(pdx !== 0 && pdy !== 0 && e.ability !== "phase" && isDiagonalCornerBlocked(e.x, e.y, pdx, pdy));
+          } else {
+            canAttack = hasClearLine(e.x, e.y, G.player.x, G.player.y);
+          }
+          if (canAttack) { enemyAttackPlayer(e); continue; }
+        }
+
+        // 深淵の魔物の「瞬間移動」:離れていると低確率でプレイヤーの隣まで一気に詰め寄る
+        if (e.ability === "teleport" && actDist > 1 && chance(0.15)) {
+          var tp = findFreeAdjacentTile(G.player.x, G.player.y);
+          if (tp) {
+            e.x = tp.x; e.y = tp.y;
+            addMessage(e.name + "が瞬間移動した!", "warn");
+            continue;
+          }
+        }
+
+        var dx = 0, dy = 0;
+        if (e.erratic && chance(e.erratic)) {
+          dx = rnd(-1, 1); dy = rnd(-1, 1);
+        } else {
+          dx = pdx; dy = pdy;
+        }
+        if (dx === 0 && dy === 0) continue;
+        moveEnemyStep(e, dx, dy);
+      }
+
+      if (e.hasteTurns > 0) e.hasteTurns--;
+      if (e.confusedTurns > 0) e.confusedTurns--;
+      if (e.weakenTurns > 0) e.weakenTurns--;
+    }
+  }
+
+  function checkPlayerDeath() {
+    if (G.player.hp <= 0 && !G.gameOver) {
+      G.player.hp = 0;
+      G.gameOver = true;
+      renderAll();
+      triggerGameOver();
+      return true;
+    }
+    return false;
+  }
+
+  function descend() {
+    if (G.floor >= MAX_FLOOR) { triggerClear(); return; }
+    enterFloor(G.floor + 1);
+    renderAll();
+    saveGame();
+  }
+
+  /* =========================================================
+     描画
+  ========================================================= */
+  var ctx = null;
+
+  function renderAll() {
+    renderHud();
+    renderStage();
+    renderEquip();
+    renderInventory();
+    renderActionButton();
+  }
+
+  // 階段の上にいる間は攻撃ボタンの見た目を「降りる」用に切り替える。
+  // 射撃ボタンには装備中の投げ物の残数を表示し、何も装備していなければ無効化する。
+  function renderActionButton() {
+    var btn = document.getElementById("btn-action");
+    if (btn) {
+      if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
+        btn.textContent = "階段を降りる (Z)";
+      } else {
+        btn.textContent = "攻撃 (Z)";
+      }
+    }
+    var shootBtn = document.getElementById("btn-shoot");
+    if (shootBtn) {
+      if (G.player.throwable) {
+        shootBtn.textContent = "射撃 (S) ×" + G.player.throwable.count;
+        shootBtn.disabled = false;
+      } else {
+        shootBtn.textContent = "射撃 (S)";
+        shootBtn.disabled = true;
+      }
+    }
+  }
+
+  function renderHud() {
+    document.getElementById("hud-floor").textContent = "B" + G.floor + "F";
+    document.getElementById("hud-lv").textContent = "Lv." + G.player.level;
+    var hpPct = Math.max(0, G.player.hp / G.player.maxHp * 100);
+    document.getElementById("bar-hp").style.width = hpPct + "%";
+    document.getElementById("bar-hunger").style.width = Math.max(0, G.player.hunger) + "%";
+    document.getElementById("bar-exp").style.width = Math.max(0, G.player.exp / G.player.expNext * 100) + "%";
+  }
+
+  function renderEquip() {
+    document.getElementById("equip-weapon").textContent = G.player.weapon ? G.player.weapon.name : "なし";
+    document.getElementById("equip-shield").textContent = G.player.shield ? G.player.shield.name : "なし";
+    document.getElementById("equip-throwable").textContent = G.player.throwable ? (G.player.throwable.name + " ×" + G.player.throwable.count) : "なし";
+    document.getElementById("equip-atk").textContent = effAtk();
+    document.getElementById("equip-def").textContent = effDef();
+    var statusRow = document.getElementById("equip-status-row");
+    if (G.player.megaEvolveTurns > 0) {
+      statusRow.hidden = false;
+      document.getElementById("equip-status").textContent = "メガシンカ中(残り" + G.player.megaEvolveTurns + "ターン)";
+    } else {
+      statusRow.hidden = true;
+    }
+  }
+
+  function renderInventory() {
+    var el = document.getElementById("inv-list");
+    if (G.player.inventory.length === 0) {
+      el.innerHTML = '<div class="inv-empty">何も持っていない</div>';
+      return;
+    }
+    var html = "";
+    for (var i = 0; i < G.player.inventory.length; i++) {
+      var it = G.player.inventory[i];
+      var actionLabel = (it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable") ? "装備" : "使う";
+      html += '<div class="inv-item">' +
+        '<div class="sym" style="background:' + it.color + '22;color:' + it.color + '">' + it.sym + '</div>' +
+        '<div class="name">' + escapeHtml(it.name) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(it.desc || "") + '</small></div>' +
+        '<div class="acts"><button data-act="use" data-idx="' + i + '">' + actionLabel + '</button>' +
+        '<button data-act="drop" data-idx="' + i + '">捨てる</button></div>' +
+        '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  /* ---- タイルの質感描画ヘルパー ---- */
+
+  // hexカラーを percent(-1〜1) だけ明るく/暗くする
+  function shadeColor(hex, percent) {
+    var f = parseInt(hex.slice(1), 16);
+    var t = percent < 0 ? 0 : 255;
+    var p = Math.abs(percent);
+    var r = f >> 16, g = (f >> 8) & 0xff, b = f & 0xff;
+    var nr = Math.round((t - r) * p) + r;
+    var ng = Math.round((t - g) * p) + g;
+    var nb = Math.round((t - b) * p) + b;
+    return "#" + (0x1000000 + nr * 0x10000 + ng * 0x100 + nb).toString(16).slice(1);
+  }
+
+  // 16進カラー文字列 <-> HSL(色相/彩度/明度)の相互変換。tierShiftColorで使用。
+  function hexToHsl(hex) {
+    var f = parseInt(hex.slice(1), 16);
+    var r = ((f >> 16) & 0xff) / 255, g = ((f >> 8) & 0xff) / 255, b = (f & 0xff) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      var d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return { h: h, s: s, l: l };
+  }
+
+  function hslToHex(h, s, l) {
+    h = ((h % 360) + 360) % 360;
+    s = Math.max(0, Math.min(1, s));
+    l = Math.max(0, Math.min(1, l));
+    var c = (1 - Math.abs(2 * l - 1)) * s;
+    var x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    var m = l - c / 2;
+    var r, g, b;
+    if (h < 60) { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else { r = c; g = 0; b = x; }
+    var nr = Math.round((r + m) * 255), ng = Math.round((g + m) * 255), nb = Math.round((b + m) * 255);
+    return "#" + (0x1000000 + nr * 0x10000 + ng * 0x100 + nb).toString(16).slice(1);
+  }
+
+  // モンスターの「見た目上の階層帯」による色合いの変化。スライムとスライムベス、
+  // マムルとギタンマムルのように、同じ種族でも深い階層で出会う個体ほど色調が
+  // 変わって見えるようにする。scaledEnemyのステータス強化(over = depth - minDepth)
+  // と同じ基準を使い、overが10増えるごとに1段階(tier)色相を回転させ、
+  // 彩度を上げ・明度を落として「より禍々しい」見た目にする。そのモンスターが
+  // 最初に出現する階層帯(tier 0)では元のデザイン通りの色のままになる。
+  var COLOR_TIER_HUE_STEP = 55; // 1tierごとの色相回転量(度)
+  function tierShiftColor(hex, over) {
+    var tier = Math.floor(Math.max(0, over) / 10);
+    if (tier <= 0) return hex;
+    var hsl = hexToHsl(hex);
+    return hslToHex(hsl.h + COLOR_TIER_HUE_STEP * tier, hsl.s + 0.08 * tier, hsl.l - 0.05 * tier);
+  }
+
+  function roundRectPath(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  // 壁・床はそれぞれ1色に統一(タイルごとのランダムな濃淡は付けない)し、
+  // はっきり見分けられるよう明度差を大きくしてある。
+  var WALL_LIT = "#332a1f", WALL_DIM = "#1c1712";
+  var FLOOR_LIT = "#a3895f", FLOOR_DIM = "#463a29";
+  var STAIRS_LIT = "#E9D08A", STAIRS_DIM = "#7a6f4a";
+  // 壁タイルの上端/下端の陰影色は、壁ごとにshadeColorを呼ぶと(タイル数×毎フレーム)
+  // 分だけ無駄な再計算になるため、明/暗の2状態だけ事前に計算しておく。
+  var WALL_LIT_TOP = shadeColor(WALL_LIT, 0.18), WALL_LIT_BOTTOM = shadeColor(WALL_LIT, -0.24);
+  var WALL_DIM_TOP = shadeColor(WALL_DIM, 0.06), WALL_DIM_BOTTOM = shadeColor(WALL_DIM, -0.1);
+
+  function drawWallTile(x, y, lit) {
+    var px = x * TILE, py = y * TILE;
+    var base = lit ? WALL_LIT : WALL_DIM;
+    ctx.fillStyle = base;
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = lit ? WALL_LIT_TOP : WALL_DIM_TOP;
+    ctx.fillRect(px, py, TILE, Math.max(1, TILE * 0.08));
+    ctx.fillStyle = lit ? WALL_LIT_BOTTOM : WALL_DIM_BOTTOM;
+    ctx.fillRect(px, py + TILE - Math.max(1, TILE * 0.08), TILE, Math.max(1, TILE * 0.08));
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.fillRect(px + TILE - 1, py, 1, TILE);
+    ctx.fillRect(px, py + TILE - 1, TILE, 1);
+  }
+
+  function drawFloorTile(x, y, lit) {
+    var px = x * TILE, py = y * TILE;
+    var base = lit ? FLOOR_LIT : FLOOR_DIM;
+    ctx.fillStyle = base;
+    ctx.fillRect(px, py, TILE, TILE);
+    ctx.fillStyle = "rgba(0,0,0,0.12)";
+    ctx.fillRect(px + TILE - 1, py, 1, TILE);
+    ctx.fillRect(px, py + TILE - 1, TILE, 1);
+  }
+
+  // RPGゲームによくある「下り階段の穴」を描く: 石枠+暗い縦穴+奥に向かって
+  // 小さくなっていく段差(遠近感)で表現する。
+  function drawStairsTile(x, y, lit) {
+    drawFloorTile(x, y, lit);
+    var px = x * TILE, py = y * TILE;
+    var cx = px + TILE / 2, cy = py + TILE / 2;
+
+    if (lit) {
+      var grad = ctx.createRadialGradient(cx, cy, 1, cx, cy, TILE * 0.85);
+      grad.addColorStop(0, "rgba(233,208,138,0.5)");
+      grad.addColorStop(1, "rgba(233,208,138,0)");
+      ctx.fillStyle = grad;
+      ctx.fillRect(px - TILE * 0.5, py - TILE * 0.5, TILE * 2, TILE * 2);
+    }
+
+    // 石の外枠
+    roundRectPath(px + TILE * 0.10, py + TILE * 0.08, TILE * 0.80, TILE * 0.84, TILE * 0.1);
+    ctx.fillStyle = lit ? shadeColor(STAIRS_LIT, -0.55) : shadeColor(STAIRS_DIM, -0.4);
+    ctx.fill();
+
+    // 中の暗い縦穴
+    var holeX = px + TILE * 0.18, holeY = py + TILE * 0.16, holeW = TILE * 0.64, holeH = TILE * 0.68;
+    roundRectPath(holeX, holeY, holeW, holeH, TILE * 0.06);
+    ctx.fillStyle = lit ? "#241a10" : "#140f09";
+    ctx.fill();
+
+    // 奥に向かって小さくなる段差(遠近感のある下り階段)
+    ctx.save();
+    roundRectPath(holeX, holeY, holeW, holeH, TILE * 0.06);
+    ctx.clip();
+    var steps = 5;
+    for (var i = 0; i < steps; i++) {
+      var t0 = i / steps, t1 = (i + 1) / steps;
+      var inset = (steps - 1 - i) * (holeW * 0.09); // 奥(iが小さい)ほど幅が狭い
+      var y0 = holeY + t0 * holeH, y1 = holeY + t1 * holeH;
+      var stepColor = shadeColor(lit ? STAIRS_LIT : STAIRS_DIM, lit ? (-0.5 + i * 0.11) : (-0.35 + i * 0.06));
+      ctx.fillStyle = stepColor;
+      ctx.fillRect(holeX + inset, y0, holeW - inset * 2, (y1 - y0) - Math.max(1, TILE * 0.02));
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = lit ? shadeColor(STAIRS_LIT, -0.6) : shadeColor(STAIRS_DIM, -0.45);
+    ctx.lineWidth = 1;
+    roundRectPath(px + TILE * 0.10, py + TILE * 0.08, TILE * 0.80, TILE * 0.84, TILE * 0.1);
+    ctx.stroke();
+  }
+
+  function drawShadow(cx, cy, w) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, w, w * 0.36, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 敵・アイテムの丸アイコン描画(冒険者本体は drawPlayerFigure が別途担当)
+
+  /* ---- 床アイテムのビジュアル(武器/盾/巻物/草はカテゴリごとの専用アイコン、
+     それ以外は従来通りdrawEntityGlyphの丸+文字で表示) ---- */
+
+  // 剣(武器)アイテムのアイコン。刃の色は素材(木/銅/鉄/鋼/銀/竜牙)ごとの色をそのまま使う。
+  function drawSwordIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    // 刃
+    ctx.fillStyle = color;
+    roundRectPath(-TILE * 0.06, -TILE * 0.42, TILE * 0.12, TILE * 0.5, TILE * 0.02);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 切っ先のハイライト
+    ctx.fillStyle = shadeColor(color, 0.35);
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.02, -TILE * 0.40);
+    ctx.lineTo(0, -TILE * 0.46);
+    ctx.lineTo(TILE * 0.02, -TILE * 0.40);
+    ctx.closePath();
+    ctx.fill();
+    // 鍔(つば)
+    ctx.fillStyle = "#D9A441";
+    roundRectPath(-TILE * 0.16, TILE * 0.05, TILE * 0.32, TILE * 0.07, TILE * 0.02);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor("#D9A441", -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 柄(グリップ)と柄頭
+    ctx.fillStyle = "#3a2e22";
+    roundRectPath(-TILE * 0.05, TILE * 0.11, TILE * 0.10, TILE * 0.24, TILE * 0.02);
+    ctx.fill();
+    ctx.fillStyle = "#D9A441";
+    ctx.beginPath();
+    ctx.arc(0, TILE * 0.37, TILE * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 盾アイテムのアイコン。本体の色は素材ごとの色をそのまま使う。
+  function drawShieldIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.5, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.5, cy - r * 0.6);
+    ctx.lineTo(cx + r * 0.46, cy + r * 0.15);
+    ctx.quadraticCurveTo(cx + r * 0.4, cy + r * 0.6, cx, cy + r * 0.75);
+    ctx.quadraticCurveTo(cx - r * 0.4, cy + r * 0.6, cx - r * 0.46, cy + r * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // 縦の補強ライン
+    ctx.strokeStyle = shadeColor(color, -0.25);
+    ctx.lineWidth = Math.max(1, TILE * 0.03);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.5);
+    ctx.lineTo(cx, cy + r * 0.6);
+    ctx.stroke();
+    // 中央の飾り鋲
+    ctx.fillStyle = shadeColor(color, 0.35);
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.1, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 巻物アイテムのアイコン。忍者が使うような、両端に軸のある巻物として描く。
+  // 紙の色は巻物の種類ごとの色をそのまま使う。
+  function drawScrollIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.6, r * 0.85);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 10);
+    var w = r * 1.5, h = r * 0.62;
+    // 紙の胴体
+    ctx.fillStyle = color;
+    roundRectPath(-w / 2, -h / 2, w, h, h * 0.3);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 両端の軸(木の丸棒)
+    var capColor = "#4a3524";
+    ctx.fillStyle = capColor;
+    ctx.beginPath(); ctx.ellipse(-w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = shadeColor(capColor, -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.ellipse(-w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(w / 2, 0, h * 0.22, h * 0.62, 0, 0, Math.PI * 2); ctx.stroke();
+    // 紐(中央でしばってある黒い帯)
+    ctx.fillStyle = "rgba(20,16,12,0.55)";
+    ctx.fillRect(-h * 0.12, -h / 2, h * 0.24, h);
+    // 封印代わりの朱印(忍者の巻物らしさを出す赤い丸札)
+    ctx.fillStyle = "#c93f3f";
+    ctx.beginPath(); ctx.arc(0, 0, h * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#7a1f1f";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 草(薬草など)アイテムのアイコン。どうぶつの森で家具をしまうと葉っぱになる、
+  // あのシンプルな葉っぱアイコンのイメージ。色は薬草の種類ごとの色をそのまま使う。
+  function drawLeafIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.7, r * 0.6);
+    ctx.translate(cx, cy);
+    ctx.rotate(Math.PI / 5);
+    // 葉っぱ本体(しずく型)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, -r * 0.7);
+    ctx.quadraticCurveTo(r * 0.62, -r * 0.2, 0, r * 0.65);
+    ctx.quadraticCurveTo(-r * 0.62, -r * 0.2, 0, -r * 0.7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 葉脈
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.6); ctx.lineTo(0, r * 0.55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, -r * 0.1); ctx.lineTo(-r * 0.3, r * 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, r * 0.15); ctx.lineTo(r * 0.28, r * 0.35); ctx.stroke();
+    // 軸(小さな茎)
+    ctx.strokeStyle = shadeColor(color, -0.4);
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(0, r * 0.6);
+    ctx.lineTo(0, r * 0.85);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 食料(おにぎり)アイテムのアイコン。米は白いおにぎり型、下部に海苔の帯を巻く。
+  // 具の色(中央の丸)にアイテムごとの色を使い、おにぎり/大きなおにぎりを描き分ける。
+  function drawOnigiriIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.8, r * 0.85);
+    // 米(丸みを帯びた三角形)
+    var rice = "#f5efdc";
+    ctx.fillStyle = rice;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.85);
+    ctx.quadraticCurveTo(cx + r * 0.15, cy - r * 0.7, cx + r * 0.72, cy + r * 0.62);
+    ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.78, cx, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.78, cx - r * 0.72, cy + r * 0.62);
+    ctx.quadraticCurveTo(cx - r * 0.15, cy - r * 0.7, cx, cy - r * 0.85);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(rice, -0.25);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 海苔(下部を帯状に巻く、黒に近い緑)
+    ctx.fillStyle = "#2a2f22";
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.66, cy + r * 0.24);
+    ctx.lineTo(cx + r * 0.66, cy + r * 0.24);
+    ctx.quadraticCurveTo(cx + r * 0.5, cy + r * 0.78, cx, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx - r * 0.5, cy + r * 0.78, cx - r * 0.66, cy + r * 0.24);
+    ctx.closePath();
+    ctx.fill();
+    // 具(中央の丸。アイテムごとの色で描き分ける)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.08, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 矢(投げ物)アイテムのアイコン。軸の色はアイテムの色をそのまま使い、
+  // 先端は金属の鏃、末端に羽根を付ける。
+  function drawArrowIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.8);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    // 軸
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, TILE * 0.045);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.4);
+    ctx.lineTo(0, -TILE * 0.3);
+    ctx.stroke();
+    // 鏃(金属のひし形)
+    ctx.fillStyle = "#c7ccd2";
+    ctx.beginPath();
+    ctx.moveTo(0, -TILE * 0.46);
+    ctx.lineTo(TILE * 0.08, -TILE * 0.26);
+    ctx.lineTo(0, -TILE * 0.32);
+    ctx.lineTo(-TILE * 0.08, -TILE * 0.26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor("#c7ccd2", -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 羽根(末端の左右2枚。軸の色に紛れないよう白い羽根色にする)
+    ctx.fillStyle = "#eef0e8";
+    ctx.strokeStyle = shadeColor("#eef0e8", -0.3);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.24); ctx.lineTo(TILE * 0.12, TILE * 0.42); ctx.lineTo(0, TILE * 0.38);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, TILE * 0.24); ctx.lineTo(-TILE * 0.12, TILE * 0.42); ctx.lineTo(0, TILE * 0.38);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // 石(投げ物)アイテムのアイコン。「灰色のごつごつ」した岩のシルエットで描く。
+  function drawStoneIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.7, r * 0.75);
+    // ごつごつした輪郭:角度も半径も不揃いな多角形にすることで、丸くも
+    // 星形にもならない、いびつな岩の塊のシルエットを作る。
+    var angDeg = [-100, -55, -8, 38, 82, 132, 188, 245];
+    var radFac = [0.6, 0.86, 0.68, 0.88, 0.58, 0.8, 0.55, 0.72];
+    var pts = [];
+    for (var i = 0; i < angDeg.length; i++) {
+      var a = angDeg[i] * Math.PI / 180;
+      pts.push([cx + Math.cos(a) * r * radFac[i], cy + Math.sin(a) * r * radFac[i]]);
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var p = 1; p < pts.length; p++) ctx.lineTo(pts[p][0], pts[p][1]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.4);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 面の陰影(中心から数本の稜線を引いて面ごとの明暗を分け、立体的な塊に見せる)
+    ctx.strokeStyle = shadeColor(color, -0.28);
+    ctx.lineWidth = 1;
+    for (var k = 2; k < pts.length; k += 2) {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(pts[k][0], pts[k][1]);
+      ctx.stroke();
+    }
+    ctx.fillStyle = shadeColor(color, 0.3);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(pts[0][0], pts[0][1]);
+    ctx.lineTo(pts[1][0], pts[1][1]);
+    ctx.lineTo(pts[2][0], pts[2][1]);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 杖アイテムのアイコン。斜めに構えた細い軸の先端に、効果ごとの色で光る宝珠を描く。
+  function drawWandIcon(x, y, color, alpha) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var r = TILE / 2 - 3;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    ctx.translate(cx, cy);
+    ctx.rotate(-Math.PI / 4);
+    // 軸(木の柄)
+    ctx.fillStyle = "#5a4530";
+    roundRectPath(-TILE * 0.045, -TILE * 0.1, TILE * 0.09, TILE * 0.48, TILE * 0.02);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor("#5a4530", -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    // 先端の宝珠(効果の色で光る)
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, -TILE * 0.24, TILE * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.04, -TILE * 0.28, TILE * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    // 柄尻の飾り
+    ctx.fillStyle = "#D9A441";
+    ctx.beginPath();
+    ctx.arc(0, TILE * 0.37, TILE * 0.045, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 床アイテム1つの見た目を、カテゴリに応じて描き分ける。武器/盾/巻物/草/杖は専用の
+  // アイコン、それ以外(食料・投げ物など)は従来通りdrawEntityGlyphの丸+文字。
+  function drawFloorItemIcon(x, y, def, alpha) {
+    switch (def.cat) {
+      case "weapon": drawSwordIcon(x, y, def.color, alpha); break;
+      case "shield": drawShieldIcon(x, y, def.color, alpha); break;
+      case "scroll": drawScrollIcon(x, y, def.color, alpha); break;
+      case "herb": drawLeafIcon(x, y, def.color, alpha); break;
+      case "food": drawOnigiriIcon(x, y, def.color, alpha); break;
+      case "wand": drawWandIcon(x, y, def.color, alpha); break;
+      case "throwable":
+        if (def.sub === "stone") drawStoneIcon(x, y, def.color, alpha);
+        else drawArrowIcon(x, y, def.color, alpha);
+        break;
+      default: drawEntityGlyph(x, y, def.sym, def.color, alpha, false); break;
+    }
+  }
+
+  // ボス限定の光る輪(グロウリング)を描く。drawEntityGlyph・drawMonsterの双方で使う。
+  function drawBossRing(cx, cy, r) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  function drawEntityGlyph(x, y, glyph, color, alpha, isBoss) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    var r = isBoss ? TILE / 2 - 1 : TILE / 2 - 3;
+    drawShadow(cx, cy + r * 0.85, r * 0.9);
+    if (isBoss) drawBossRing(cx, cy, r + 3);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#1b1712";
+    ctx.font = "bold " + Math.floor(TILE * 0.5) + "px 'DotGothic16', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(glyph, cx, cy + 1);
+    ctx.restore();
+  }
+
+  /* ---- モンスターのビジュアル(shapeごとに描き分ける) ---- */
+
+  function drawEyes(cx, cy, spread, size, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(cx - spread, cy, size, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + spread, cy, size, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawBlobMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy - r * 0.1);
+    ctx.quadraticCurveTo(cx - r, cy + r * 0.7, cx - r * 0.5, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx, cy + r * 0.92, cx + r * 0.5, cy + r * 0.78);
+    ctx.quadraticCurveTo(cx + r, cy + r * 0.7, cx + r, cy - r * 0.1);
+    ctx.quadraticCurveTo(cx + r * 0.6, cy - r * 0.9, cx, cy - r * 0.95);
+    ctx.quadraticCurveTo(cx - r * 0.6, cy - r * 0.9, cx - r, cy - r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.35);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.32, cy - r * 0.38, r * 0.22, r * 0.14, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    drawEyes(cx, cy + r * 0.08, r * 0.26, r * 0.09, "#1b1712");
+  }
+
+  function drawBeastMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.18, r * 0.6, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.32, r * 0.36, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.28, cy - r * 0.52); ctx.lineTo(cx - r * 0.44, cy - r * 0.82); ctx.lineTo(cx - r * 0.1, cy - r * 0.62); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.28, cy - r * 0.52); ctx.lineTo(cx + r * 0.44, cy - r * 0.82); ctx.lineTo(cx + r * 0.1, cy - r * 0.62); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.52, cy + r * 0.35);
+    ctx.quadraticCurveTo(cx + r * 1.0, cy + r * 0.15, cx + r * 0.9, cy - r * 0.22);
+    ctx.stroke();
+    drawEyes(cx, cy - r * 0.34, r * 0.15, r * 0.06, "#1b1712");
+  }
+
+  function drawFlyerMonster(cx, cy, r, color, big) {
+    var wingReach = big ? 1.15 : 1.0;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx - r * wingReach, cy - r * 0.55);
+    ctx.lineTo(cx - r * 0.5, cy + r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + r * wingReach, cy - r * 0.55);
+    ctx.lineTo(cx + r * 0.5, cy + r * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.34, r * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.18, cy - r * 0.32); ctx.lineTo(cx - r * 0.28, cy - r * 0.6); ctx.lineTo(cx - r * 0.02, cy - r * 0.38); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.18, cy - r * 0.32); ctx.lineTo(cx + r * 0.28, cy - r * 0.6); ctx.lineTo(cx + r * 0.02, cy - r * 0.38); ctx.closePath(); ctx.fill();
+    drawEyes(cx, cy - r * 0.05, r * 0.13, r * 0.06, "#ffdca0");
+  }
+
+  function drawPlantMonster(cx, cy, r, color) {
+    ctx.fillStyle = "#e8ddc0";
+    ctx.fillRect(cx - r * 0.18, cy - r * 0.05, r * 0.36, r * 0.58);
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.05, r * 0.64, Math.PI, 0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = shadeColor(color, -0.3);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = shadeColor(color, 0.3);
+    ctx.beginPath(); ctx.arc(cx - r * 0.22, cy - r * 0.28, r * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.24, cy - r * 0.18, r * 0.08, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + r * 0.02, cy - r * 0.4, r * 0.07, 0, Math.PI * 2); ctx.fill();
+    drawEyes(cx, cy + r * 0.2, r * 0.14, r * 0.06, "#1b1712");
+  }
+
+  function drawGhostMonster(cx, cy, r, color) {
+    ctx.save();
+    ctx.globalAlpha *= 0.85;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.08, r * 0.62, Math.PI, 0);
+    var waves = 3, ww = (r * 1.24) / waves, bx = cx + r * 0.62;
+    ctx.lineTo(bx, cy + r * 0.5);
+    for (var i = 0; i < waves; i++) {
+      ctx.quadraticCurveTo(bx - ww * 0.5, cy + r * 0.76, bx - ww, cy + r * 0.5);
+      bx -= ww;
+    }
+    ctx.closePath();
+    ctx.fill();
+    drawEyes(cx, cy - r * 0.08, r * 0.2, r * 0.07, "#1b1712");
+    ctx.restore();
+  }
+
+  function drawRobedMonster(cx, cy, r, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.15);
+    ctx.lineTo(cx + r * 0.55, cy + r * 0.78);
+    ctx.lineTo(cx - r * 0.55, cy + r * 0.78);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#d8c8a8";
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.3, r * 0.24, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = shadeColor(color, -0.15);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.34, cy - r * 0.44);
+    ctx.lineTo(cx + r * 0.34, cy - r * 0.44);
+    ctx.lineTo(cx, cy - r * 1.0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillRect(cx - r * 0.38, cy - r * 0.46, r * 0.76, r * 0.08);
+    drawEyes(cx, cy - r * 0.28, r * 0.12, r * 0.05, "#1b1712");
+  }
+
+  function drawHumanoidMonster(cx, cy, r, color, accessory) {
+    var skin = shadeColor(color, 0.3);
+    ctx.fillStyle = shadeColor(color, -0.3);
+    ctx.fillRect(cx - r * 0.28, cy + r * 0.15, r * 0.22, r * 0.5);
+    ctx.fillRect(cx + r * 0.06, cy + r * 0.15, r * 0.22, r * 0.5);
+    ctx.fillStyle = color;
+    ctx.fillRect(cx - r * 0.58, cy - r * 0.05, r * 0.18, r * 0.42);
+    ctx.fillRect(cx + r * 0.40, cy - r * 0.05, r * 0.18, r * 0.42);
+    ctx.fillStyle = color;
+    roundRectPath(cx - r * 0.42, cy - r * 0.15, r * 0.84, r * 0.55, r * 0.15);
+    ctx.fill();
+    ctx.fillStyle = accessory === "skull" ? "#e8e0cc" : skin;
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.5, r * 0.34, 0, Math.PI * 2); ctx.fill();
+
+    if (accessory === "tusk") {
+      ctx.fillStyle = "#f0ead8";
+      ctx.beginPath(); ctx.moveTo(cx - r * 0.14, cy - r * 0.4); ctx.lineTo(cx - r * 0.22, cy - r * 0.26); ctx.lineTo(cx - r * 0.06, cy - r * 0.32); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + r * 0.14, cy - r * 0.4); ctx.lineTo(cx + r * 0.22, cy - r * 0.26); ctx.lineTo(cx + r * 0.06, cy - r * 0.32); ctx.closePath(); ctx.fill();
+    } else if (accessory === "horn") {
+      ctx.fillStyle = "#241d18";
+      ctx.beginPath(); ctx.moveTo(cx - r * 0.22, cy - r * 0.7); ctx.lineTo(cx - r * 0.34, cy - r * 1.08); ctx.lineTo(cx - r * 0.08, cy - r * 0.78); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(cx + r * 0.22, cy - r * 0.7); ctx.lineTo(cx + r * 0.34, cy - r * 1.08); ctx.lineTo(cx + r * 0.08, cy - r * 0.78); ctx.closePath(); ctx.fill();
+    } else if (accessory === "helm") {
+      ctx.fillStyle = shadeColor(color, -0.2);
+      ctx.beginPath(); ctx.arc(cx, cy - r * 0.5, r * 0.4, Math.PI, 0); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#1b1712";
+      ctx.fillRect(cx - r * 0.05, cy - r * 0.46, r * 0.1, r * 0.06);
+    } else if (accessory === "skull") {
+      ctx.fillStyle = "#1b1712";
+      ctx.beginPath(); ctx.arc(cx - r * 0.1, cy - r * 0.52, r * 0.06, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + r * 0.1, cy - r * 0.52, r * 0.06, 0, Math.PI * 2); ctx.fill();
+    }
+    if (accessory === "crown") {
+      ctx.fillStyle = "#f0d060";
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.32, cy - r * 0.78);
+      ctx.lineTo(cx - r * 0.18, cy - r * 1.05);
+      ctx.lineTo(cx, cy - r * 0.82);
+      ctx.lineTo(cx + r * 0.18, cy - r * 1.05);
+      ctx.lineTo(cx + r * 0.32, cy - r * 0.78);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = shadeColor("#f0d060", -0.3);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    if (accessory !== "skull" && accessory !== "helm") {
+      drawEyes(cx, cy - r * 0.5, r * 0.13, r * 0.05, "#1b1712");
+    }
+  }
+
+  // 敵1体分の見た目をshapeに応じて描き分ける
+  function drawMonster(x, y, enemy) {
+    // 攻撃モーション中は、踏み込み分(lungeOffset)だけ描画位置をずらす。
+    var lx = enemy.lungeOffset ? enemy.lungeOffset.dx : 0;
+    var ly = enemy.lungeOffset ? enemy.lungeOffset.dy : 0;
+    var cx = (x + lx) * TILE + TILE / 2, cy = (y + ly) * TILE + TILE / 2;
+    var r = (enemy.boss ? TILE * 0.44 : (enemy.big ? TILE * 0.4 : TILE * 0.34));
+    ctx.save();
+    drawShadow(cx, cy + r * 0.85, r * 0.85);
+    if (enemy.boss) drawBossRing(cx, cy, r + 4);
+    switch (enemy.shape) {
+      case "blob": drawBlobMonster(cx, cy, r, enemy.color); break;
+      case "beast": drawBeastMonster(cx, cy, r, enemy.color); break;
+      case "flyer": drawFlyerMonster(cx, cy, r, enemy.color, enemy.big); break;
+      case "plant": drawPlantMonster(cx, cy, r, enemy.color); break;
+      case "ghost": drawGhostMonster(cx, cy, r, enemy.color); break;
+      case "robed": drawRobedMonster(cx, cy, r, enemy.color); break;
+      default: drawHumanoidMonster(cx, cy, r, enemy.color, enemy.accessory); break;
+    }
+    ctx.restore();
+    drawStatusBadge(cx, cy, r, enemy);
+  }
+
+  // 杖による状態異常を、敵の右上に小さな丸バッジ(1文字)で示す。複数重なっている
+  // 場合は、行動そのものを封じるもの(金縛り>睡眠>混乱>加速>弱体)を優先して1つだけ表示する。
+  function drawStatusBadge(cx, cy, r, enemy) {
+    var glyph = null, color = null;
+    if (enemy.paralyzed) { glyph = "封"; color = "#8a6fae"; }
+    else if (enemy.sleepTurns > 0) { glyph = "眠"; color = "#5c7fb0"; }
+    else if (enemy.confusedTurns > 0) { glyph = "乱"; color = "#c98fd0"; }
+    else if (enemy.hasteTurns > 0) { glyph = "速"; color = "#e0503f"; }
+    else if (enemy.weakenTurns > 0) { glyph = "弱"; color = "#6fa85a"; }
+    if (!glyph) return;
+    var bx = cx + r * 0.72, by = cy - r * 0.72, br = TILE * 0.16;
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(20,16,12,0.6)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold " + Math.floor(TILE * 0.22) + "px 'DotGothic16', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(glyph, bx, by + 1);
+    ctx.restore();
+  }
+
+  // 冒険者本体をヒト型で描画する。向いている方向(facing)に合わせて絵姿ごと回転させる。
+  // 基準ポーズは「下(dy=+1)」を向いた状態で描いてあるため、その分だけ角度を補正する。
+  // 剣(装備時)/短剣(未装備時)を、柄の位置(hx,hy)から切っ先の位置(tx,ty)へ描く。
+  // 8方向それぞれの立ち絵から共通で呼び出す。
+  function drawHeldWeapon(hx, hy, tx, ty, hasWeapon) {
+    if (hasWeapon) {
+      ctx.strokeStyle = "#d8dee4";
+      ctx.lineWidth = TILE * 0.05;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(hx, hy);
+      ctx.lineTo(tx, ty);
+      ctx.stroke();
+      // 柄(刃の根本のあたりに、刃と垂直気味の短い金色のガード)
+      var vx = tx - hx, vy = ty - hy;
+      var len = Math.max(0.0001, Math.sqrt(vx * vx + vy * vy));
+      var nx = -vy / len, ny = vx / len;
+      var gx = hx + vx * 0.12, gy = hy + vy * 0.12;
+      ctx.strokeStyle = "#D9A441";
+      ctx.lineWidth = TILE * 0.065;
+      ctx.beginPath();
+      ctx.moveTo(gx - nx * TILE * 0.05, gy - ny * TILE * 0.05);
+      ctx.lineTo(gx + nx * TILE * 0.05, gy + ny * TILE * 0.05);
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = "#8a7250";
+      ctx.lineWidth = TILE * 0.035;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(hx + (tx - hx) * 0.25, hy + (ty - hy) * 0.25);
+      ctx.lineTo(tx * 0.85, ty * 0.85);
+      ctx.stroke();
+    }
+  }
+
+  // 盾(装備時のみ)を中心(sx,sy)に、半径(rx,ry)の楕円として描く。
+  function drawHeldShield(sx, sy, rx, ry, hasShield) {
+    if (!hasShield) return;
+    ctx.fillStyle = "#9aa4ad";
+    ctx.beginPath();
+    ctx.ellipse(sx, sy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#5f6a72";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // 正面(下向き)立ち絵。他の7方向の基準にもなる姿勢。
+  function drawFigureDown(c, hasShield, hasWeapon) {
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.15, -TILE * 0.16);
+    ctx.lineTo(TILE * 0.15, -TILE * 0.16);
+    ctx.lineTo(TILE * 0.23, TILE * 0.30);
+    ctx.lineTo(-TILE * 0.23, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.12, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(TILE * 0.03, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+
+    drawHeldShield(-TILE * 0.29, TILE * 0.02, TILE * 0.09, TILE * 0.13, hasShield);
+
+    ctx.fillStyle = c.tunic;
+    roundRectPath(-TILE * 0.17, -TILE * 0.09, TILE * 0.34, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(-TILE * 0.17, TILE * 0.11, TILE * 0.34, TILE * 0.035);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.23, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
+    ctx.fillRect(TILE * 0.165, -TILE * 0.05, TILE * 0.065, TILE * 0.19);
+
+    drawHeldWeapon(TILE * 0.19, TILE * 0.03, TILE * 0.36, -TILE * 0.22, hasWeapon);
+
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(0, -TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(0, -TILE * 0.31, TILE * 0.15, Math.PI, 0);
+    ctx.fill();
+  }
+
+  // 背面(上向き)立ち絵:顔は見えず、マントが背中いっぱいに広がる。
+  function drawFigureUp(c, hasShield, hasWeapon) {
+    // 背負った盾(輪郭のみ、体の陰でうっすら)
+    if (hasShield) {
+      ctx.strokeStyle = "#5f6a72";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(-TILE * 0.27, TILE * 0.06, TILE * 0.075, TILE * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // マント(背面のほぼ全体を覆う、正面より一回り大きい)
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.20, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.20, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.26, TILE * 0.30);
+    ctx.lineTo(-TILE * 0.26, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 脚(マントより手前に描き、裾から覗かせる)
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.12, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+    ctx.fillRect(TILE * 0.03, TILE * 0.07, TILE * 0.09, TILE * 0.24);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.24, -TILE * 0.05, TILE * 0.06, TILE * 0.17);
+    ctx.fillRect(TILE * 0.18, -TILE * 0.05, TILE * 0.06, TILE * 0.17);
+
+    // 背負った剣(柄が右肩の上に覗く)
+    drawHeldWeapon(TILE * 0.15, -TILE * 0.20, TILE * 0.31, -TILE * 0.30, hasWeapon);
+
+    // 頭は髪で完全に覆われ、顔は見えない
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(0, -TILE * 0.27, TILE * 0.155, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 横向き立ち絵(canonicalは左向き=dx<0)。右向きはmirrorして流用する。
+  function drawFigureSide(c, hasShield, hasWeapon) {
+    // 奥足(進行方向と逆側にわずかに残る)→ 手前足(進行方向へ踏み出す)の順に描画
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(TILE * 0.01, TILE * 0.09, TILE * 0.10, TILE * 0.21);
+    ctx.fillRect(-TILE * 0.15, TILE * 0.06, TILE * 0.10, TILE * 0.25);
+
+    // マント(背中側 = 進行方向の反対側にたなびく)
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(TILE * 0.02, -TILE * 0.15);
+    ctx.lineTo(TILE * 0.20, -TILE * 0.10);
+    ctx.lineTo(TILE * 0.27, TILE * 0.28);
+    ctx.lineTo(TILE * 0.04, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 盾を持つ奥腕(背中側にやや隠れて見える)
+    drawHeldShield(TILE * 0.14, TILE * 0.00, TILE * 0.075, TILE * 0.13, hasShield);
+
+    // 胴体(側面なのでやや細身)
+    ctx.fillStyle = c.tunic;
+    roundRectPath(-TILE * 0.12, -TILE * 0.09, TILE * 0.24, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(-TILE * 0.12, TILE * 0.11, TILE * 0.24, TILE * 0.035);
+
+    // 手前腕(進行方向側、武器を前へ構える)
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.19, -TILE * 0.06, TILE * 0.065, TILE * 0.18);
+
+    drawHeldWeapon(-TILE * 0.17, TILE * 0.06, -TILE * 0.38, -TILE * 0.16, hasWeapon);
+
+    // 頭(進行方向側に鼻先のような膨らみを付けて横顔らしくする)
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.13, -TILE * 0.23);
+    ctx.quadraticCurveTo(-TILE * 0.19, -TILE * 0.20, -TILE * 0.13, -TILE * 0.16);
+    ctx.closePath();
+    ctx.fill();
+
+    // 髪(頭の背中側=進行方向と逆側を覆う)
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.155, -Math.PI * 0.65, Math.PI * 0.55);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 斜め下向き立ち絵(canonicalは左下=dx<0,dy>0)。正面と横向きの中間の3/4視点。
+  function drawFigureDiagDown(c, hasShield, hasWeapon) {
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(TILE * 0.00, -TILE * 0.17);
+    ctx.lineTo(TILE * 0.18, -TILE * 0.14);
+    ctx.lineTo(TILE * 0.25, TILE * 0.29);
+    ctx.lineTo(-TILE * 0.12, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.15, TILE * 0.07, TILE * 0.095, TILE * 0.24);
+    ctx.fillRect(TILE * 0.00, TILE * 0.08, TILE * 0.095, TILE * 0.23);
+
+    drawHeldShield(TILE * 0.17, TILE * 0.02, TILE * 0.08, TILE * 0.125, hasShield);
+
+    ctx.fillStyle = c.tunic;
+    roundRectPath(-TILE * 0.16, -TILE * 0.09, TILE * 0.30, TILE * 0.27, TILE * 0.07);
+    ctx.fill();
+    ctx.fillStyle = "#241d12";
+    ctx.fillRect(-TILE * 0.16, TILE * 0.11, TILE * 0.30, TILE * 0.035);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.22, -TILE * 0.05, TILE * 0.065, TILE * 0.18);
+
+    drawHeldWeapon(-TILE * 0.16, TILE * 0.08, -TILE * 0.34, TILE * 0.30, hasWeapon);
+
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 髪は頭の奥側(進行方向と逆側)だけを覆う3/4ビュー
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.02, -TILE * 0.25, TILE * 0.155, -Math.PI * 0.95, Math.PI * 0.15);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 斜め上向き立ち絵(canonicalは左上=dx<0,dy<0)。背面と横向きの中間の3/4視点。
+  function drawFigureDiagUp(c, hasShield, hasWeapon) {
+    if (hasShield) {
+      ctx.strokeStyle = "#5f6a72";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(TILE * 0.16, TILE * 0.04, TILE * 0.075, TILE * 0.12, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = c.cape;
+    ctx.beginPath();
+    ctx.moveTo(-TILE * 0.06, -TILE * 0.24);
+    ctx.lineTo(TILE * 0.22, -TILE * 0.20);
+    ctx.lineTo(TILE * 0.27, TILE * 0.29);
+    ctx.lineTo(-TILE * 0.16, TILE * 0.30);
+    ctx.closePath();
+    ctx.fill();
+
+    // 脚(マントより手前に描き、裾から覗かせる)
+    ctx.fillStyle = c.leg;
+    ctx.fillRect(-TILE * 0.14, TILE * 0.08, TILE * 0.095, TILE * 0.23);
+    ctx.fillRect(TILE * 0.01, TILE * 0.07, TILE * 0.095, TILE * 0.24);
+
+    ctx.fillStyle = c.skin;
+    ctx.fillRect(-TILE * 0.21, -TILE * 0.04, TILE * 0.06, TILE * 0.16);
+
+    drawHeldWeapon(TILE * 0.11, -TILE * 0.19, TILE * 0.28, -TILE * 0.29, hasWeapon);
+
+    // 頭はほぼ髪で覆われ、進行方向側にわずかに顔の輪郭が覗く程度
+    ctx.fillStyle = c.skin;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.01, -TILE * 0.26, TILE * 0.145, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = c.hair;
+    ctx.beginPath();
+    ctx.arc(-TILE * 0.01, -TILE * 0.26, TILE * 0.155, -Math.PI * 0.4, Math.PI * 0.85);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawPlayerFigure(x, y) {
+    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    var c = { skin: "#e0b48a", hair: "#5a3c28", tunic: "#3f6b52", cape: "#a5502c", leg: "#3a2e22" };
+    var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+    var hasShield = !!(G.player && G.player.shield);
+    var hasWeapon = !!(G.player && G.player.weapon);
+
+    drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    // 8方向それぞれに専用の立ち絵を用意し、単純な回転では出せない
+    // 「ちゃんと立って、その方向を向いている」見た目にする。左右は左向きの
+    // 絵を鏡像反転して使い回す。
+    if (dx === 0 && dy > 0) {
+      drawFigureDown(c, hasShield, hasWeapon);
+    } else if (dx === 0 && dy < 0) {
+      drawFigureUp(c, hasShield, hasWeapon);
+    } else if (dy === 0) {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureSide(c, hasShield, hasWeapon);
+    } else if (dy > 0) {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureDiagDown(c, hasShield, hasWeapon);
+    } else {
+      if (dx > 0) ctx.scale(-1, 1);
+      drawFigureDiagUp(c, hasShield, hasWeapon);
+    }
+
+    ctx.restore();
+  }
+
+  function renderStage() {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W * TILE, H * TILE);
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (!G.discovered[y][x]) continue;
+        var t = G.grid[y][x];
+        var lit = G.visible[y][x];
+        if (t === T_WALL) drawWallTile(x, y, lit);
+        else if (t === T_STAIRS) drawStairsTile(x, y, lit);
+        else drawFloorTile(x, y, lit);
+      }
+    }
+    for (var i = 0; i < G.floorItems.length; i++) {
+      var it = G.floorItems[i];
+      if (!G.discovered[it.y][it.x]) continue;
+      drawFloorItemIcon(it.x, it.y, it.def, G.visible[it.y][it.x] ? 1 : 0.45);
+    }
+    for (var j = 0; j < G.enemies.length; j++) {
+      var e = G.enemies[j];
+      // 明かりの巻物の効果中は、視界に入っていない敵の位置も分かるようにする
+      if (!G.visible[e.y][e.x] && !G.mapRevealActive) continue;
+      drawMonster(e.x, e.y, e);
+    }
+    drawPlayerFigure(G.player.x, G.player.y);
+    drawAttackEffect();
+    drawMissEffect();
+  }
+
+  // 一定時間だけ表示される視覚エフェクト(攻撃の拳/剣マーク・敵の踏み込みモーション・
+  // MISS表示)の共通処理。applyEffectで値をセットし、ms経過後にclearEffectで元に戻して
+  // 再描画する。同じ対象への呼び出しが重なった場合は、前回のタイマーを打ち切って延長する。
+  // 呼び出し直後の再描画はしない:いずれの呼び出し元も同じ同期処理の中でこの後
+  // doTurn()/renderAll()を実行するため、ここで描いてもブラウザには反映されず無駄になる。
+  function triggerTimedEffect(getTimer, setTimer, applyEffect, clearEffect, ms) {
+    var existing = getTimer();
+    if (existing) clearTimeout(existing);
+    applyEffect();
+    setTimer(setTimeout(function () {
+      setTimer(null);
+      clearEffect();
+      renderStage();
+    }, ms));
+  }
+
+  // Zキー攻撃の視覚フィードバック:攻撃先のマスに拳(素手)/剣(装備時)のマークを
+  // 0.3秒ほど表示する。敵の有無に関わらず、攻撃(素振り含む)のたびに呼び出す。
+  var ATTACK_EFFECT_MS = 300;
+  var attackEffectTimer = null;
+
+  function triggerAttackEffect(x, y) {
+    triggerTimedEffect(
+      function () { return attackEffectTimer; },
+      function (t) { attackEffectTimer = t; },
+      function () { G.attackEffect = { x: x, y: y, kind: G.player.weapon ? "sword" : "fist" }; },
+      function () { if (G) G.attackEffect = null; },
+      ATTACK_EFFECT_MS
+    );
+  }
+
+  // 敵の攻撃モーション:プレイヤー方向へ0.3マス分だけ踏み込み、少し経つと元の位置へ戻る。
+  // 「攻撃された」ことが見た目で分かるようにするための演出で、命中・外れに関わらず発生する。
+  var ENEMY_LUNGE_MS = 300;
+
+  function triggerEnemyLunge(enemy) {
+    var dx = G.player.x - enemy.x, dy = G.player.y - enemy.y;
+    var mag = Math.sqrt(dx * dx + dy * dy) || 1;
+    triggerTimedEffect(
+      function () { return enemy.lungeTimer; },
+      function (t) { enemy.lungeTimer = t; },
+      function () { enemy.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 }; },
+      function () { enemy.lungeOffset = null; },
+      ENEMY_LUNGE_MS
+    );
+  }
+
+  // 攻撃が外れた際の「MISS」表示。プレイヤー→敵、敵→プレイヤーどちらの攻撃でも使う共通の演出。
+  var MISS_EFFECT_MS = 450;
+  var missEffectTimer = null;
+
+  function triggerMissEffect(x, y) {
+    triggerTimedEffect(
+      function () { return missEffectTimer; },
+      function (t) { missEffectTimer = t; },
+      function () { G.missEffect = { x: x, y: y }; },
+      function () { if (G) G.missEffect = null; },
+      MISS_EFFECT_MS
+    );
+  }
+
+  function drawMissEffect() {
+    if (!G.missEffect) return;
+    var cx = G.missEffect.x * TILE + TILE / 2, cy = G.missEffect.y * TILE + TILE / 2 - TILE * 0.55;
+    ctx.save();
+    ctx.font = "bold " + Math.floor(TILE * 0.34) + "px 'DotGothic16', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "rgba(20,16,12,0.85)";
+    ctx.strokeText("MISS", cx, cy);
+    ctx.fillStyle = "#f4efe6";
+    ctx.fillText("MISS", cx, cy);
+    ctx.restore();
+  }
+
+  function drawAttackEffect() {
+    if (!G.attackEffect) return;
+    var cx = G.attackEffect.x * TILE + TILE / 2, cy = G.attackEffect.y * TILE + TILE / 2;
+    ctx.save();
+    if (G.attackEffect.kind === "fist") {
+      // 打撃の余波(放射状の線)
+      ctx.strokeStyle = "rgba(255,220,150,0.9)";
+      ctx.lineWidth = Math.max(1, TILE * 0.05);
+      ctx.lineCap = "round";
+      for (var a = 0; a < 6; a++) {
+        var ang = (a / 6) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * TILE * 0.26, cy + Math.sin(ang) * TILE * 0.26);
+        ctx.lineTo(cx + Math.cos(ang) * TILE * 0.48, cy + Math.sin(ang) * TILE * 0.48);
+        ctx.stroke();
+      }
+      // こぶし本体
+      ctx.fillStyle = "#e0b48a";
+      ctx.beginPath();
+      ctx.arc(cx, cy, TILE * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#8a5a3a";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.strokeStyle = "#8a5a3a";
+      ctx.lineWidth = 1;
+      for (var k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(cx + k * TILE * 0.09, cy - TILE * 0.15);
+        ctx.lineTo(cx + k * TILE * 0.09, cy - TILE * 0.02);
+        ctx.stroke();
+      }
+    } else {
+      // 振り下ろした剣の軌跡(残像の二重線+着弾の光)
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(230,236,240,0.5)";
+      ctx.lineWidth = Math.max(1, TILE * 0.08);
+      ctx.beginPath();
+      ctx.moveTo(cx - TILE * 0.42, cy - TILE * 0.5);
+      ctx.lineTo(cx + TILE * 0.3, cy + TILE * 0.22);
+      ctx.stroke();
+      ctx.strokeStyle = "#eef3f6";
+      ctx.lineWidth = Math.max(1, TILE * 0.11);
+      ctx.beginPath();
+      ctx.moveTo(cx - TILE * 0.34, cy - TILE * 0.42);
+      ctx.lineTo(cx + TILE * 0.38, cy + TILE * 0.3);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(cx + TILE * 0.38, cy + TILE * 0.3, TILE * 0.09, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* =========================================================
+     セーブ / ロード
+  ========================================================= */
+  function saveGame() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch (e) { /* ignore */ }
+  }
+  function loadSavedGame() {
+    try {
+      var raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function clearSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+  }
+
+  /* =========================================================
+     開始 / 終了フロー
+  ========================================================= */
+  // 開始時点の持ち物。何も持たない状態だと序盤の空腹管理が厳しく餓死しやすいため、
+  // 大きなおにぎりを1つ持たせておく。
+  function giveStartingItems() {
+    var bigOnigiri = findItemDefByKey("onigiri_big");
+    if (bigOnigiri) addItemToInventory(bigOnigiri);
+  }
+
+  // 新規開始/続きから再開のどちらでも必要な、保留中の視覚エフェクトタイマーの後始末。
+  function clearTransientEffectTimers() {
+    if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
+    if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
+    if (enemyTurnTimer) { clearTimeout(enemyTurnTimer); enemyTurnTimer = null; }
+    turnBusy = false;
+  }
+
+  function hideOverlays() {
+    document.getElementById("screen-title").hidden = true;
+    document.getElementById("screen-end").hidden = true;
+  }
+
+  function startNewGame() {
+    clearSave();
+    clearTransientEffectTimers();
+    G = newRunState();
+    giveStartingItems();
+    hideOverlays();
+    enterFloor(1);
+    renderAll();
+    saveGame();
+  }
+
+  function continueGame(saved) {
+    clearTransientEffectTimers();
+    G = saved;
+    G.gameOver = false;
+    G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
+    G.missEffect = null;
+    if (G.enemies) {
+      for (var i = 0; i < G.enemies.length; i++) {
+        G.enemies[i].lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
+        G.enemies[i].lungeTimer = null;
+      }
+    }
+    hideOverlays();
+    computeVisibility();
+    addMessage("続きから再開した。", "note");
+    renderAll();
+  }
+
+  function triggerGameOver() {
+    clearSave();
+    document.getElementById("end-title").textContent = "力尽きた…";
+    document.getElementById("end-desc").textContent = "迷宮の奥深く、地下" + G.floor + "階で力尽きてしまった。";
+    document.getElementById("end-cause").textContent = describeDeathCause(G.lastDamageCause);
+    fillEndStats();
+    document.getElementById("screen-end").hidden = false;
+  }
+
+  function triggerClear() {
+    clearSave();
+    G.gameOver = true;
+    document.getElementById("end-title").textContent = "迷宮を制覇した!";
+    document.getElementById("end-desc").textContent = "ついに地下50階の王を討ち、迷宮の最深部を制覇した。";
+    document.getElementById("end-cause").textContent = "";
+    fillEndStats();
+    document.getElementById("screen-end").hidden = false;
+  }
+
+  function fillEndStats() {
+    var el = document.getElementById("end-stats");
+    el.innerHTML =
+      '<span class="label">到達階</span><span>地下' + G.floor + '階</span>' +
+      '<span class="label">レベル</span><span>Lv.' + G.player.level + '</span>' +
+      '<span class="label">経過ターン</span><span>' + G.turn + '</span>' +
+      '<span class="label">攻撃力/防御力</span><span>' + effAtk() + ' / ' + effDef() + '</span>';
+  }
+
+  /* =========================================================
+     入力
+  ========================================================= */
+  // z は攻撃アクション専用。q/e/c は固定の斜め移動キーとしてそのまま残す。
+  // 上下左右(矢印キー)と x は「x を押しながら方向キー」で任意の斜め方向に
+  // 移動できるよう、下の held-key 方式で個別に扱う(KEY_MAPには含めない)。
+  var KEY_MAP = {
+    q: [-1, -1], e: [1, -1], c: [1, 1],
+    " ": [0, 0], ".": [0, 0]
+  };
+
+  // 上下左右キーの押下状態と、xキーが押されているかどうかを保持する(押されている間
+  // true、離したら即false)。
+  var heldDir = { up: false, down: false, left: false, right: false };
+  var xHeld = false;
+  // 方向キー単体の移動は、コンボ形成の猶予として少しだけ遅らせて実行する
+  // (人が2〜3キーをほぼ同時に押しても、ブラウザには数十ms前後した順でイベントが
+  // 届くことがあるため。長押し中のキーリピートはこの遅延の対象外にして、
+  // 移動の反応が鈍くならないようにしてある)。
+  var PLAIN_MOVE_DELAY_MS = 60;
+  // 縦横どちらかの方向キーが既に押されている状態で、もう一方の軸の方向キーが
+  // 新たに押された場合は「斜め移動を狙っている」とみなし、xキーの到着をより長く待つ。
+  // 押す順序(横→縦、縦→横のどちらでも)に関わらず同じロジックで扱われるため、
+  // 片方の順序でしか斜め移動が成立しない、という偏りは起きない。
+  var COMBO_AWAIT_DELAY_MS = 150;
+  var pendingMoveTimers = { up: null, down: null, left: null, right: null };
+
+  // 右手は十字キー(矢印キー)専用、左手はアクションキー(Z/X/S)という操作分担にするため、
+  // 移動はWASDを廃止し矢印キーのみで行う。空いたSキーは射撃(投擲)キーに割り当てる。
+  function normalizeDirKey(key) {
+    if (key === "ArrowUp") return "up";
+    if (key === "ArrowDown") return "down";
+    if (key === "ArrowLeft") return "left";
+    if (key === "ArrowRight") return "right";
+    return null;
+  }
+
+  // dirと反対の軸(上下 vs 左右)の方向キーが今まさに押されているかどうか。
+  function otherAxisHeld(dir) {
+    if (dir === "up" || dir === "down") return heldDir.left || heldDir.right;
+    return heldDir.up || heldDir.down;
+  }
+
+  // xキーを押しながら上下左右のうち縦横1つずつが押されていれば、
+  // その組み合わせの斜め方向へ移動する。片方だけ(上下のみ・左右のみ)の入力は無視する。
+  function tryXComboMove() {
+    var dx = (heldDir.left ? -1 : 0) + (heldDir.right ? 1 : 0);
+    var dy = (heldDir.up ? -1 : 0) + (heldDir.down ? 1 : 0);
+    if (dx !== 0 && dy !== 0) movePlayer(dx, dy);
+  }
+
+  function cancelPendingMove(dir) {
+    if (pendingMoveTimers[dir] !== null) { clearTimeout(pendingMoveTimers[dir]); pendingMoveTimers[dir] = null; }
+  }
+
+  // 方向キー単体の移動を、delayMsだけ遅らせて予約する(斜めコンボ形成の猶予)。
+  // 猶予時間内にxが押されなければ通常の単発移動として実行する。(キーをすぐ離した
+  // 「タップ」でも移動できるよう、方向キーが今も押されているかどうかはここでは
+  // 条件にしない。xとの組み合わせに昇格した場合は cancelPendingMove 側で
+  // 明示的にキャンセル済み)。
+  // PLAIN_MOVE_DELAY_MS(通常の一押し)とCOMBO_AWAIT_DELAY_MS(既に別軸の方向キーが
+  // 押された状態での新規プレス。xの到着をより長く待つ)の2箇所から呼ばれる。
+  function scheduleDelayedMove(dir, delayMs) {
+    cancelPendingMove(dir);
+    pendingMoveTimers[dir] = setTimeout(function () {
+      pendingMoveTimers[dir] = null;
+      if (!xHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
+    }, delayMs);
+  }
+
+  var DIR_VECTOR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+  window.addEventListener("keydown", function (ev) {
+    if (!G || G.gameOver) return;
+    var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    if (key === "z") { ev.preventDefault(); performPlayerAction(); return; }
+    if (key === "s") { ev.preventDefault(); performThrowAction(); return; }
+    if (key === "x") {
+      ev.preventDefault();
+      xHeld = true;
+      cancelPendingMove("up"); cancelPendingMove("down");
+      cancelPendingMove("left"); cancelPendingMove("right");
+      tryXComboMove();
+      return;
+    }
+    var dir = normalizeDirKey(key);
+    if (dir) {
+      ev.preventDefault();
+      // 別軸(縦/横)の方向キーが既に押された状態での新規プレスかどうか。押す順序が
+      // 横→縦・縦→横のどちらでも同じ扱いになるので、斜め移動の成立に偏りは出ない。
+      var comboAttempt = !xHeld && !ev.repeat && otherAxisHeld(dir);
+      heldDir[dir] = true;
+      if (xHeld) {
+        cancelPendingMove(dir);
+        tryXComboMove();
+      } else if (comboAttempt) {
+        // 斜め移動を狙っている可能性が高いので、両軸の保留中タイマーをキャンセルし、
+        // xの到着をより長く待つ。
+        cancelPendingMove("up"); cancelPendingMove("down");
+        cancelPendingMove("left"); cancelPendingMove("right");
+        scheduleDelayedMove(dir, COMBO_AWAIT_DELAY_MS);
+      } else if (ev.repeat) {
+        movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); // 押しっぱなし中は従来通り即座に反応
+      } else {
+        scheduleDelayedMove(dir, PLAIN_MOVE_DELAY_MS); // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
+      }
+      return;
+    }
+    var v = KEY_MAP[key];
+    if (v) { ev.preventDefault(); movePlayer(v[0], v[1]); }
+  });
+
+  window.addEventListener("keyup", function (ev) {
+    var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
+    if (key === "x") { xHeld = false; return; }
+    var dir = normalizeDirKey(key);
+    // すぐ離す「タップ」でも移動できるよう、離しても保留中の単発移動はキャンセルしない
+    if (dir) { heldDir[dir] = false; }
+  });
+
+  document.getElementById("dpad").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn || !G || G.gameOver) return;
+    movePlayer(parseInt(btn.getAttribute("data-dx"), 10), parseInt(btn.getAttribute("data-dy"), 10));
+  });
+
+  document.getElementById("btn-action").addEventListener("click", function () {
+    performPlayerAction();
+  });
+
+  document.getElementById("btn-shoot").addEventListener("click", function () {
+    performThrowAction();
+  });
+
+  document.getElementById("inv-list").addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button");
+    if (!btn || !G || G.gameOver) return;
+    var idx = parseInt(btn.getAttribute("data-idx"), 10);
+    var act = btn.getAttribute("data-act");
+    if (act === "use") useInventorySlot(idx);
+    else if (act === "drop") dropInventorySlot(idx);
+  });
+
+  document.getElementById("btn-new-game").addEventListener("click", startNewGame);
+  document.getElementById("btn-restart").addEventListener("click", startNewGame);
+  document.getElementById("btn-continue").addEventListener("click", function () {
+    var saved = loadSavedGame();
+    if (saved) continueGame(saved);
+    else startNewGame();
+  });
+
+  /* =========================================================
+     初期化
+  ========================================================= */
+  function init() {
+    ctx = document.getElementById("stage").getContext("2d");
+    var saved = loadSavedGame();
+    if (saved && !saved.gameOver) {
+      document.getElementById("btn-continue").hidden = false;
+    }
+  }
+
+  init();
+})();
+</script>
