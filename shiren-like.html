@@ -334,7 +334,7 @@
       <p>
         地下1階から50階まで続く迷宮に挑む、ターン制のダンジョン探索ゲームです。<br>
         力尽きればそこで終わり、最初の階からやり直しとなります。<br>
-        矢印キー / WASD、または下の方向パッドで移動・向き変更をします。向いている方向にZキー(または「攻撃」ボタン)を押すと攻撃です。
+        矢印キー、または下の方向パッドで移動・向き変更をします。向いている方向にZキー(または「攻撃」ボタン)を押すと攻撃です。
       </p>
       <button class="btn-main" id="btn-new-game">最初から始める</button>
       <button class="btn-main btn-ghost" id="btn-continue" hidden>続きから始める</button>
@@ -533,6 +533,15 @@
     return null;
   }
 
+  // その階に出現しうる敵/アイテムの定義一覧(minDepth<=depthのもの)を返す。
+  // フロア生成・モンスターハウス・徘徊湧き・敵ドロップなど、複数箇所から呼ばれる。
+  function enemyPoolForDepth(depth) {
+    return ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+  }
+  function itemPoolForDepth(depth) {
+    return ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+  }
+
   /* =========================================================
      ゲーム状態
   ========================================================= */
@@ -699,7 +708,7 @@
     var monsterHouseRoomId = -1;
     if (depth >= 4) {
       for (var mh = 0; mh < rooms.length; mh++) {
-        if (chance(0.03)) { rooms[mh].isMonsterHouse = true; monsterHouseRoomId = rooms[mh].id; break; }
+        if (chance(0.03)) { monsterHouseRoomId = rooms[mh].id; break; }
       }
     }
 
@@ -772,13 +781,13 @@
   }
 
   function populateFloor(depth) {
-    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+    var pool = enemyPoolForDepth(depth);
     var count = Math.min(12, rnd(3, 4) + Math.floor(depth / 4));
     for (var i = 0; i < count; i++) {
       var def = weightedPick(pool);
       var spot = randomFloorTile(G, function (x, y) {
         return (Math.abs(x - G.player.x) + Math.abs(y - G.player.y) < 4) || tileOccupied(x, y) ||
-          (x === G.__stairsX && y === G.__stairsY);
+          (x === G.stairsX && y === G.stairsY);
       });
       var e = scaledEnemy(def, depth);
       e.x = spot.x; e.y = spot.y;
@@ -795,11 +804,15 @@
         hp: b.hp, maxHp: b.hp, atk: b.atk, def: b.def, exp: b.exp,
         poison: false, erratic: 0, dropRate: BOSS_DROP_RATE, awake: true, boss: true,
         shape: "humanoid", accessory: "crown", big: true,
+        // ボスは特殊能力を持たないが、他の敵(scaledEnemy生成)と同じ形の
+        // オブジェクトにしておく(各所のenemy.ability/enemy.cornerCut等の
+        // 参照が、フィールド自体は常に存在する前提で書けるようにするため)。
+        ability: null, cornerCut: false, enraged: false, undyingUsed: false, monsterHouseDormant: false,
         x: spot2.x, y: spot2.y
       });
     }
 
-    var itemPool = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    var itemPool = itemPoolForDepth(depth);
     var icount = Math.min(7, rnd(2, 3) + Math.floor(depth / 10));
     for (var j = 0; j < icount; j++) {
       var idef = weightedPick(itemPool);
@@ -826,7 +839,7 @@
       var tmp = tiles[i]; tiles[i] = tiles[j2]; tiles[j2] = tmp;
     }
 
-    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
+    var pool = enemyPoolForDepth(depth);
     var monsterCount = Math.min(tiles.length, Math.round(room.w * room.h * 0.7));
     for (var m = 0; m < monsterCount; m++) {
       var spot = tiles.pop();
@@ -838,7 +851,7 @@
       G.enemies.push(e);
     }
 
-    var itemPool2 = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    var itemPool2 = itemPoolForDepth(depth);
     var itemCount = Math.min(tiles.length, rnd(4, 7));
     for (var n = 0; n < itemCount; n++) {
       var ispot2 = tiles.pop();
@@ -878,7 +891,7 @@
   function trySpawnWanderingMonster() {
     if (G.enemies.length >= WANDER_MAX_ENEMIES) return;
     if (!chance(WANDER_SPAWN_CHANCE)) return;
-    var pool = ENEMY_TYPES.filter(function (e) { return e.minDepth <= G.floor; });
+    var pool = enemyPoolForDepth(G.floor);
     if (!pool.length) return;
     var playerRoomId = G.roomId[G.player.y][G.player.x];
     var candidateRooms = G.rooms.filter(function (r) { return r.id !== playerRoomId; });
@@ -908,7 +921,6 @@
     G.grid = g.grid;
     G.roomId = g.roomId;
     G.rooms = g.rooms;
-    G.__stairsX = g.stairsX; G.__stairsY = g.stairsY;
     G.visible = [];
     G.discovered = [];
     for (var y = 0; y < H; y++) { G.visible.push(new Array(W).fill(false)); G.discovered.push(new Array(W).fill(false)); }
@@ -983,16 +995,14 @@
   /* =========================================================
      プレイヤーの能力・装備
   ========================================================= */
+  // メガシンカ中は攻撃力を2倍にする(武器あり/なしどちらの攻撃力にも適用)。
+  function megaScale(v) { return G.player.megaEvolveTurns > 0 ? v * 2 : v; }
   function effAtk() {
-    var base = G.player.atk + (G.player.weapon ? G.player.weapon.value : 0);
-    return G.player.megaEvolveTurns > 0 ? base * 2 : base; // メガシンカ中は攻撃力2倍
+    return megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0));
   }
   function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
   // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
-  // メガシンカ中は素手でも2倍になる(effAtkと同じ扱い)。
-  function unarmedAtk() {
-    return G.player.megaEvolveTurns > 0 ? G.player.atk * 2 : G.player.atk;
-  }
+  function unarmedAtk() { return megaScale(G.player.atk); }
 
   function gainExp(amount) {
     G.player.exp += amount;
@@ -1014,17 +1024,16 @@
   // まとめて拾えるため、qtyにその数量を渡す。スタックは99個/99本を上限とする。
   function addItemToInventory(def, qty) {
     qty = typeof qty === "number" ? qty : 1;
-    if (def.cat === "weapon" || def.cat === "shield") {
-      if (G.player.inventory.length >= INV_CAP) return false;
-      G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: 1 });
-      return true;
-    }
-    for (var i = 0; i < G.player.inventory.length; i++) {
-      var slot = G.player.inventory[i];
-      if (slot.key === def.key) { slot.count = Math.min(99, slot.count + qty); return true; }
+    // 武器/盾は個別の装備候補として扱うため、同じ種類でもスタック(数量まとめ)しない。
+    var stackable = def.cat !== "weapon" && def.cat !== "shield";
+    if (stackable) {
+      for (var i = 0; i < G.player.inventory.length; i++) {
+        var slot = G.player.inventory[i];
+        if (slot.key === def.key) { slot.count = Math.min(99, slot.count + qty); return true; }
+      }
     }
     if (G.player.inventory.length >= INV_CAP) return false;
-    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: Math.min(99, qty) });
+    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: stackable ? Math.min(99, qty) : 1 });
     return true;
   }
 
@@ -1045,18 +1054,20 @@
     }
   }
 
+  // 武器/盾の装備スロット用オブジェクトを作る({name,value,key}の3フィールドのみ保持)。
+  // tryPickupの自動装備・equipInventorySlotの手動装備の双方で使う。
+  function makeEquipRef(name, value, key) {
+    return { name: name, value: value, key: key };
+  }
+
   function tryPickup(x, y) {
     for (var i = 0; i < G.floorItems.length; i++) {
       var it = G.floorItems[i];
       if (it.x === x && it.y === y) {
         var def = it.def;
         // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
-        if (def.cat === "weapon" && !G.player.weapon) {
-          G.player.weapon = { name: def.name, value: def.value, key: def.key };
-          addMessage(def.name + "を拾い、自動的に装備した!", "note");
-          G.floorItems.splice(i, 1);
-        } else if (def.cat === "shield" && !G.player.shield) {
-          G.player.shield = { name: def.name, value: def.value, key: def.key };
+        if ((def.cat === "weapon" || def.cat === "shield") && !G.player[def.cat]) {
+          G.player[def.cat] = makeEquipRef(def.name, def.value, def.key);
           addMessage(def.name + "を拾い、自動的に装備した!", "note");
           G.floorItems.splice(i, 1);
         } else if (def.cat === "throwable") {
@@ -1148,20 +1159,26 @@
     saveGame();
   }
 
+  // 装備を外した際、元のアイテムを持ち物へ戻す。持ち物がいっぱいで戻せなければ
+  // 足元に置く。qtyは投げ物のみ意味を持つ(makeFloorItemEntry参照。武器/盾は無視される)。
+  function returnOrDropItem(def, qty) {
+    var restored = addItemToInventory(def, qty);
+    if (!restored) {
+      G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, def, qty));
+      addMessage(def.name + "は足元に置かれた。", "");
+    }
+  }
+
   function equipInventorySlot(index) {
     var slot = G.player.inventory[index];
     if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield")) return;
     G.player.inventory.splice(index, 1);
-    var slotName = slot.cat === "weapon" ? "weapon" : "shield";
+    var slotName = slot.cat;
     var prev = G.player[slotName];
-    G.player[slotName] = { name: slot.name, value: slot.value, key: slot.key };
+    G.player[slotName] = makeEquipRef(slot.name, slot.value, slot.key);
     addMessage(slot.name + "を装備した。", "note");
     if (prev) {
-      var restored = addItemToInventory({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
-      if (!restored) {
-        G.floorItems.push({ x: G.player.x, y: G.player.y, def: { key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" } });
-        addMessage(prev.name + "は足元に置かれた。", "");
-      }
+      returnOrDropItem({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
     }
     renderAll();
     saveGame();
@@ -1178,11 +1195,7 @@
     addMessage(slot.name + "を装備した。", "note");
     if (prev) {
       var prevDef = findItemDefByKey(prev.key) || { key: prev.key, name: prev.name, cat: "throwable", sub: "", value: 0, sym: prev.sym, color: prev.color, desc: "" };
-      var restored = addItemToInventory(prevDef, prev.count);
-      if (!restored) {
-        G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, prevDef, prev.count));
-        addMessage(prev.name + "は足元に置かれた。", "");
-      }
+      returnOrDropItem(prevDef, prev.count);
     }
     renderAll();
     saveGame();
@@ -1235,10 +1248,12 @@
   }
 
   // 敵を倒した位置の近くに空いている床マスを探す(アイテムドロップ用)
+  // 自マス+周囲8マス(3x3)のオフセット一覧。findDropSpot/findFreeAdjacentTileで共用。
+  var ADJACENT_OFFSETS = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+
   function findDropSpot(x, y) {
-    var candidates = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-    for (var i = 0; i < candidates.length; i++) {
-      var nx = x + candidates[i][0], ny = y + candidates[i][1];
+    for (var i = 0; i < ADJACENT_OFFSETS.length; i++) {
+      var nx = x + ADJACENT_OFFSETS[i][0], ny = y + ADJACENT_OFFSETS[i][1];
       if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
       var occupiedByItem = false;
       for (var j = 0; j < G.floorItems.length; j++) {
@@ -1253,9 +1268,8 @@
   // (x,y)に隣接する、壁でもプレイヤー/敵/アイテムでも塞がれていない床マスを1つ探す。
   // スライムの分裂や深淵の魔物の瞬間移動先探しに使う。
   function findFreeAdjacentTile(x, y) {
-    var candidates = [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
-    for (var i = 0; i < candidates.length; i++) {
-      var nx = x + candidates[i][0], ny = y + candidates[i][1];
+    for (var i = 0; i < ADJACENT_OFFSETS.length; i++) {
+      var nx = x + ADJACENT_OFFSETS[i][0], ny = y + ADJACENT_OFFSETS[i][1];
       if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
       if (tileOccupied(nx, ny)) continue;
       return { x: nx, y: ny };
@@ -1288,7 +1302,7 @@
     if (!spot) return;
     var halfHp = Math.floor(enemy.hp / 2);
     enemy.hp -= halfHp;
-    var clone = JSON.parse(JSON.stringify(enemy));
+    var clone = Object.assign({}, enemy); // enemyは全フィールドが数値/文字列/真偽値のみなので浅いコピーで十分
     clone.hp = halfHp;
     clone.x = spot.x; clone.y = spot.y;
     G.enemies.push(clone);
@@ -1311,7 +1325,7 @@
     var rate = enemy.boss ? BOSS_DROP_RATE : (typeof enemy.dropRate === "number" ? enemy.dropRate : 0.15);
     if (!chance(rate)) return;
     var depth = G.floor;
-    var pool = ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    var pool = itemPoolForDepth(depth);
     if (enemy.boss) {
       var richPool = pool.filter(function (it) { return it.cat === "weapon" || it.cat === "shield" || it.cat === "scroll"; });
       if (richPool.length) pool = richPool;
@@ -1805,15 +1819,19 @@
   var WALL_LIT = "#332a1f", WALL_DIM = "#1c1712";
   var FLOOR_LIT = "#a3895f", FLOOR_DIM = "#463a29";
   var STAIRS_LIT = "#E9D08A", STAIRS_DIM = "#7a6f4a";
+  // 壁タイルの上端/下端の陰影色は、壁ごとにshadeColorを呼ぶと(タイル数×毎フレーム)
+  // 分だけ無駄な再計算になるため、明/暗の2状態だけ事前に計算しておく。
+  var WALL_LIT_TOP = shadeColor(WALL_LIT, 0.18), WALL_LIT_BOTTOM = shadeColor(WALL_LIT, -0.24);
+  var WALL_DIM_TOP = shadeColor(WALL_DIM, 0.06), WALL_DIM_BOTTOM = shadeColor(WALL_DIM, -0.1);
 
   function drawWallTile(x, y, lit) {
     var px = x * TILE, py = y * TILE;
     var base = lit ? WALL_LIT : WALL_DIM;
     ctx.fillStyle = base;
     ctx.fillRect(px, py, TILE, TILE);
-    ctx.fillStyle = shadeColor(base, lit ? 0.18 : 0.06);
+    ctx.fillStyle = lit ? WALL_LIT_TOP : WALL_DIM_TOP;
     ctx.fillRect(px, py, TILE, Math.max(1, TILE * 0.08));
-    ctx.fillStyle = shadeColor(base, lit ? -0.24 : -0.1);
+    ctx.fillStyle = lit ? WALL_LIT_BOTTOM : WALL_DIM_BOTTOM;
     ctx.fillRect(px, py + TILE - Math.max(1, TILE * 0.08), TILE, Math.max(1, TILE * 0.08));
     ctx.fillStyle = "rgba(0,0,0,0.35)";
     ctx.fillRect(px + TILE - 1, py, 1, TILE);
@@ -1887,19 +1905,22 @@
   }
 
   // 敵・アイテムの丸アイコン描画(冒険者本体は drawPlayerFigure が別途担当)
+  // ボス限定の光る輪(グロウリング)を描く。drawEntityGlyph・drawMonsterの双方で使う。
+  function drawBossRing(cx, cy, r) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
   function drawEntityGlyph(x, y, glyph, color, alpha, isBoss) {
     var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
     ctx.save();
     ctx.globalAlpha = alpha;
     var r = isBoss ? TILE / 2 - 1 : TILE / 2 - 3;
     drawShadow(cx, cy + r * 0.85, r * 0.9);
-    if (isBoss) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r + 3, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,255,255,0.55)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
+    if (isBoss) drawBossRing(cx, cy, r + 3);
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -2092,13 +2113,7 @@
     var r = (enemy.boss ? TILE * 0.44 : (enemy.big ? TILE * 0.4 : TILE * 0.34));
     ctx.save();
     drawShadow(cx, cy + r * 0.85, r * 0.85);
-    if (enemy.boss) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r + 4, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255,255,255,0.55)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-    }
+    if (enemy.boss) drawBossRing(cx, cy, r + 4);
     switch (enemy.shape) {
       case "blob": drawBlobMonster(cx, cy, r, enemy.color); break;
       case "beast": drawBeastMonster(cx, cy, r, enemy.color); break;
@@ -2528,7 +2543,7 @@
   // 開始時点の持ち物。何も持たない状態だと序盤の空腹管理が厳しく餓死しやすいため、
   // 大きなおにぎりを1つ持たせておく。
   function giveStartingItems() {
-    var bigOnigiri = ITEM_TYPES.filter(function (it) { return it.key === "onigiri_big"; })[0];
+    var bigOnigiri = findItemDefByKey("onigiri_big");
     if (bigOnigiri) addItemToInventory(bigOnigiri);
   }
 
@@ -2586,7 +2601,7 @@
      入力
   ========================================================= */
   // z は攻撃アクション専用。q/e/c は固定の斜め移動キーとしてそのまま残す。
-  // 上下左右(矢印/WASD)と x は「x を押しながら方向キー」で任意の斜め方向に
+  // 上下左右(矢印キー)と x は「x を押しながら方向キー」で任意の斜め方向に
   // 移動できるよう、下の held-key 方式で個別に扱う(KEY_MAPには含めない)。
   var KEY_MAP = {
     q: [-1, -1], e: [1, -1], c: [1, 1],
@@ -2637,28 +2652,19 @@
     if (pendingMoveTimers[dir] !== null) { clearTimeout(pendingMoveTimers[dir]); pendingMoveTimers[dir] = null; }
   }
 
-  function schedulePlainMove(dir) {
-    cancelPendingMove(dir);
-    pendingMoveTimers[dir] = setTimeout(function () {
-      pendingMoveTimers[dir] = null;
-      // 猶予時間内にxが押されなければ通常の単発移動として実行する。
-      // (キーをすぐ離した「タップ」でも移動できるよう、方向キーが今も
-      // 押されているかどうかはここでは条件にしない。xとの組み合わせに
-      // 昇格した場合は cancelPendingMove 側で明示的にキャンセル済み)
-      if (!xHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
-    }, PLAIN_MOVE_DELAY_MS);
-  }
-
-  // 既に別の軸の方向キーが押された状態で新たに押されたキー用。xの到着をより長く待ち、
-  // 猶予時間内にxが来なければ(=斜め移動ではなかった)、最後に押したこちらの方向へ
-  // 単発移動する。もう一方の軸の保留中タイマーは呼び出し側で明示的にキャンセルする
-  // ため、xが来なかった場合に2回分の単発移動が二重に発生することはない。
-  function scheduleComboAwaitMove(dir) {
+  // 方向キー単体の移動を、delayMsだけ遅らせて予約する(斜めコンボ形成の猶予)。
+  // 猶予時間内にxが押されなければ通常の単発移動として実行する。(キーをすぐ離した
+  // 「タップ」でも移動できるよう、方向キーが今も押されているかどうかはここでは
+  // 条件にしない。xとの組み合わせに昇格した場合は cancelPendingMove 側で
+  // 明示的にキャンセル済み)。
+  // PLAIN_MOVE_DELAY_MS(通常の一押し)とCOMBO_AWAIT_DELAY_MS(既に別軸の方向キーが
+  // 押された状態での新規プレス。xの到着をより長く待つ)の2箇所から呼ばれる。
+  function scheduleDelayedMove(dir, delayMs) {
     cancelPendingMove(dir);
     pendingMoveTimers[dir] = setTimeout(function () {
       pendingMoveTimers[dir] = null;
       if (!xHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
-    }, COMBO_AWAIT_DELAY_MS);
+    }, delayMs);
   }
 
   var DIR_VECTOR = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
@@ -2688,14 +2694,14 @@
         tryXComboMove();
       } else if (comboAttempt) {
         // 斜め移動を狙っている可能性が高いので、両軸の保留中タイマーをキャンセルし、
-        // xの到着をより長く待つ(scheduleComboAwaitMove)。
+        // xの到着をより長く待つ。
         cancelPendingMove("up"); cancelPendingMove("down");
         cancelPendingMove("left"); cancelPendingMove("right");
-        scheduleComboAwaitMove(dir);
+        scheduleDelayedMove(dir, COMBO_AWAIT_DELAY_MS);
       } else if (ev.repeat) {
         movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); // 押しっぱなし中は従来通り即座に反応
       } else {
-        schedulePlainMove(dir); // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
+        scheduleDelayedMove(dir, PLAIN_MOVE_DELAY_MS); // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
       }
       return;
     }
