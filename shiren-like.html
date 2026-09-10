@@ -1510,10 +1510,16 @@
   /* =========================================================
      行動・ターン処理
   ========================================================= */
+  // 攻撃時、プレイヤーの攻撃演出(拳/剣・MISS表示)が見えてから敵が反応するまでの間隔。
+  // この間はturnBusyがtrueになり、新たな入力を受け付けない(連打で行動順が乱れるのを防ぐ)。
+  var ENEMY_TURN_DELAY_MS = 300;
+  var turnBusy = false;
+  var enemyTurnTimer = null;
+
   // 移動キーは「移動(と向きを変える)」専用。攻撃はZキー/攻撃ボタンで行う(performPlayerAction)。
   // 壁や敵にぶつかったときはその方向を向くだけで、ターンは消費しない。
   function movePlayer(dx, dy) {
-    if (!G || G.gameOver) return;
+    if (!G || G.gameOver || turnBusy) return;
     if (dx === 0 && dy === 0) { doTurn(); return; }
     G.player.facing = { dx: dx, dy: dy };
     var nx = G.player.x + dx, ny = G.player.y + dy;
@@ -1533,7 +1539,7 @@
   // Zキー/攻撃ボタン:階段の上に乗っていれば次の階へ降りる。
   // そうでなければ、向いている方向の1マス先に敵がいれば攻撃する。
   function performPlayerAction() {
-    if (!G || G.gameOver) return;
+    if (!G || G.gameOver || turnBusy) return;
     if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
       descend();
       return;
@@ -1551,7 +1557,8 @@
     // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
     triggerAttackEffect(tx, ty);
     if (target) { playerAttackEnemy(target); }
-    doTurn();
+    // 攻撃の演出が見えるよう、敵の行動は少し遅らせる(移動時はこの遅延を入れない)。
+    doTurn(ENEMY_TURN_DELAY_MS);
   }
 
   // 投げた矢・石が命中せず床に落ちる際の着地処理。既にその場に別のアイテムが
@@ -1567,7 +1574,7 @@
   // 命中すれば投げたものは消費されるだけだが、外れた場合・壁にぶつかった場合・
   // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。
   function performThrowAction() {
-    if (!G || G.gameOver) return;
+    if (!G || G.gameOver || turnBusy) return;
     var quiver = G.player.throwable;
     if (!quiver || quiver.count <= 0) {
       addMessage("投げられる物を持っていない。", "warn");
@@ -1609,10 +1616,14 @@
       dropThrownItem(landX, landY, itemDef);
     }
 
-    doTurn();
+    // 攻撃(投擲)の結果が見えるよう、敵の行動は少し遅らせる。
+    doTurn(ENEMY_TURN_DELAY_MS);
   }
 
-  function doTurn() {
+  // delayEnemyMsを渡すと、ここまで(プレイヤー側の処理)を先に描画してから、その分だけ
+  // 間を置いて敵の行動(enemyTurn以降)を行う。攻撃演出とセットで使い、プレイヤーの攻撃と
+  // 敵の反応が同時に描かれて見えてしまうのを防ぐ(移動時は省略し、従来通り即座に処理する)。
+  function doTurn(delayEnemyMs) {
     G.turn++;
     if (G.player.hunger > 0) {
       if (G.turn % 3 === 0) G.player.hunger = Math.max(0, G.player.hunger - 1);
@@ -1641,6 +1652,26 @@
     }
     trySpawnWanderingMonster();
     if (checkPlayerDeath()) return;
+
+    if (delayEnemyMs) {
+      // ここまでの結果(プレイヤーの攻撃演出・HP/満腹度の変化など)を一度描画してから、
+      // 少し間を置いて敵に行動させる。この間はturnBusyがtrueになり新たな入力を受け付けない。
+      computeVisibility();
+      renderAll();
+      saveGame();
+      turnBusy = true;
+      enemyTurnTimer = setTimeout(function () {
+        enemyTurnTimer = null;
+        turnBusy = false;
+        if (!G || G.gameOver) return;
+        enemyTurn();
+        if (checkPlayerDeath()) return;
+        computeVisibility();
+        renderAll();
+        saveGame();
+      }, delayEnemyMs);
+      return;
+    }
 
     enemyTurn();
     if (checkPlayerDeath()) return;
@@ -3009,6 +3040,8 @@
   function clearTransientEffectTimers() {
     if (attackEffectTimer) { clearTimeout(attackEffectTimer); attackEffectTimer = null; }
     if (missEffectTimer) { clearTimeout(missEffectTimer); missEffectTimer = null; }
+    if (enemyTurnTimer) { clearTimeout(enemyTurnTimer); enemyTurnTimer = null; }
+    turnBusy = false;
   }
 
   function hideOverlays() {
