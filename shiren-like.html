@@ -236,15 +236,27 @@
   }
   .dpad button:active { background: var(--accent); color: var(--accent-ink); }
   .dpad button.center { background: var(--wall); color: var(--ink-soft); font-size: 11px; }
-  .btn-attack {
+  .action-row {
+    display: flex;
+    gap: 8px;
     width: 100%;
+  }
+  .btn-attack, .btn-shoot {
+    flex: 1;
     padding: 10px;
-    background: var(--danger);
-    color: #fff;
     font-size: 13px;
     letter-spacing: 0.05em;
   }
-  .btn-attack:active { filter: brightness(0.88); transform: translateY(1px); }
+  .btn-attack {
+    background: var(--danger);
+    color: #fff;
+  }
+  .btn-shoot {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn-attack:active, .btn-shoot:active { filter: brightness(0.88); transform: translateY(1px); }
+  .btn-shoot:disabled { opacity: 0.5; filter: none; transform: none; cursor: not-allowed; }
   .help-text {
     font-size: 11px;
     color: var(--ink-soft);
@@ -380,8 +392,11 @@
         <button data-dx="0" data-dy="1">↓</button>
         <button data-dx="1" data-dy="1">↘</button>
       </div>
-      <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
-      <div class="help-text">矢印 / WASD で移動・向き変更<br>Zキーまたは上のボタンで攻撃<br>階段の上でZキーを押すと降ります</div>
+      <div class="action-row">
+        <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
+        <button class="btn-shoot" id="btn-shoot">射撃 (S)</button>
+      </div>
+      <div class="help-text">矢印キーで移動・向き変更<br>Zキーまたは「攻撃」ボタンで攻撃<br>Sキーまたは「射撃」ボタンで装備中の投げ物(矢・石)を投擲<br>階段の上でZキーを押すと降ります</div>
     </div>
 
     <div class="panels">
@@ -389,6 +404,7 @@
         <h3>装備</h3>
         <div class="equip-row"><span class="label">武器</span><span id="equip-weapon">なし</span></div>
         <div class="equip-row"><span class="label">盾</span><span id="equip-shield">なし</span></div>
+        <div class="equip-row"><span class="label">投げ物</span><span id="equip-throwable">なし</span></div>
         <div class="equip-row"><span class="label">攻撃力</span><span id="equip-atk">-</span></div>
         <div class="equip-row"><span class="label">防御力</span><span id="equip-def">-</span></div>
         <div class="equip-row" id="equip-status-row" hidden><span class="label">状態</span><span id="equip-status"></span></div>
@@ -478,6 +494,11 @@
     { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, minDepth: 20, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
     { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, minDepth: 30, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
     { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, minDepth: 42, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
+    // 投擲アイテム(矢・石)。range=射程距離(マス)、dmgMult=素手の通常攻撃ダメージに
+    // 対する倍率、bundle=床に落ちている状態を拾ったときにまとめて手に入る本数/個数。
+    // 持ち物では1枠にまとめて数量(count)で管理し、上限は99(装備枠・持ち物枠共通)。
+    { key: "ammo_arrow", name: "矢", cat: "throwable", sub: "arrow", value: 0, minDepth: 1, weight: 3, bundle: 6, range: 10, dmgMult: 1, sym: "矢", color: "#c9a15a", desc: "射程10マス。命中時、素手の通常攻撃と同じダメージ" },
+    { key: "ammo_stone", name: "石", cat: "throwable", sub: "stone", value: 0, minDepth: 1, weight: 3, bundle: 4, range: 3, dmgMult: 2, sym: "石", color: "#8a8a8a", desc: "射程3マス。命中時、素手の通常攻撃の2倍のダメージ" },
     // 巻物6種の重み合計は旧3種の合計(2+1+2=5)と同じ5になるよう調整してあり、
     // アイテム全体に占める「巻物」というカテゴリの出現割合そのものは変えていない
     // (既存3種は0.7倍に圧縮し、その分を新規3種に配分している)。
@@ -504,6 +525,12 @@
       if (r <= 0) return list[j];
     }
     return list[list.length - 1];
+  }
+
+  // keyからITEM_TYPESの定義を1つ引く(投げ物の射程・倍率などを装備枠から再取得する用)。
+  function findItemDefByKey(key) {
+    for (var i = 0; i < ITEM_TYPES.length; i++) if (ITEM_TYPES[i].key === key) return ITEM_TYPES[i];
+    return null;
   }
 
   /* =========================================================
@@ -536,6 +563,7 @@
         megaEvolveTurns: 0,
         weapon: null,
         shield: null,
+        throwable: null,
         inventory: [],
         facing: { dx: 0, dy: 1 }
       },
@@ -709,6 +737,16 @@
     return false;
   }
 
+  // 床にアイテムを1つ配置するエントリを作る。投げ物(矢・石)は数量(count)を持つ。
+  // countを省略した場合は定義側のbundle(なければ1)を初期数量として使う
+  // (フロア生成時にまとめて落ちている状態)。1個だけ落とす場合(捨てる/命中せず
+  // 落下した場合)はcountに1を明示的に渡す。
+  function makeFloorItemEntry(x, y, def, count) {
+    var entry = { x: x, y: y, def: def };
+    if (def.cat === "throwable") entry.count = (typeof count === "number") ? count : (def.bundle || 1);
+    return entry;
+  }
+
   function scaledEnemy(def, depth) {
     var over = Math.max(0, depth - def.minDepth);
     return {
@@ -768,7 +806,7 @@
       var idef = weightedPick(itemPool);
       // 通路(roomId===-1)には出現させない。部屋の中にだけ置く
       var ispot = randomFloorTile(G, function (x, y) { return tileOccupied(x, y) || G.roomId[y][x] < 0; });
-      G.floorItems.push({ x: ispot.x, y: ispot.y, def: idef });
+      G.floorItems.push(makeFloorItemEntry(ispot.x, ispot.y, idef));
     }
 
     if (G.monsterHouseRoomId >= 0) populateMonsterHouse(depth);
@@ -806,7 +844,7 @@
     for (var n = 0; n < itemCount; n++) {
       var ispot2 = tiles.pop();
       var idef2 = weightedPick(itemPool2);
-      G.floorItems.push({ x: ispot2.x, y: ispot2.y, def: idef2 });
+      G.floorItems.push(makeFloorItemEntry(ispot2.x, ispot2.y, idef2));
     }
   }
 
@@ -929,6 +967,11 @@
     return G.player.megaEvolveTurns > 0 ? base * 2 : base; // メガシンカ中は攻撃力2倍
   }
   function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
+  // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
+  // メガシンカ中は素手でも2倍になる(effAtkと同じ扱い)。
+  function unarmedAtk() {
+    return G.player.megaEvolveTurns > 0 ? G.player.atk * 2 : G.player.atk;
+  }
 
   function gainExp(amount) {
     G.player.exp += amount;
@@ -946,7 +989,10 @@
   /* =========================================================
      持ち物
   ========================================================= */
-  function addItemToInventory(def) {
+  // qtyを省略すると1個/1本として扱う。矢・石のような投げ物は複数個/複数本を
+  // まとめて拾えるため、qtyにその数量を渡す。スタックは99個/99本を上限とする。
+  function addItemToInventory(def, qty) {
+    qty = typeof qty === "number" ? qty : 1;
     if (def.cat === "weapon" || def.cat === "shield") {
       if (G.player.inventory.length >= INV_CAP) return false;
       G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: 1 });
@@ -954,11 +1000,28 @@
     }
     for (var i = 0; i < G.player.inventory.length; i++) {
       var slot = G.player.inventory[i];
-      if (slot.key === def.key) { slot.count++; return true; }
+      if (slot.key === def.key) { slot.count = Math.min(99, slot.count + qty); return true; }
     }
     if (G.player.inventory.length >= INV_CAP) return false;
-    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: 1 });
+    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: Math.min(99, qty) });
     return true;
+  }
+
+  // 投げ物(矢・石)の入手処理。既に同じ種類を装備中ならそのまま補充(上限99)、
+  // 何も装備していなければ拾った瞬間に自動装備(武器/盾と同様)、既に別の種類を
+  // 装備中なら持ち物へ通常のスタックとして入る。
+  function pickupThrowable(def, qty) {
+    if (G.player.throwable && G.player.throwable.key === def.key) {
+      G.player.throwable.count = Math.min(99, G.player.throwable.count + qty);
+      addMessage(def.name + "を補充した。(" + G.player.throwable.count + "本/個)", "note");
+    } else if (!G.player.throwable) {
+      G.player.throwable = { key: def.key, name: def.name, sym: def.sym, color: def.color, count: Math.min(99, qty) };
+      addMessage(def.name + "を拾い、自動的に装備した!", "note");
+    } else if (addItemToInventory(def, qty)) {
+      addMessage(def.name + "を拾った。", "note");
+    } else {
+      addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+    }
   }
 
   function tryPickup(x, y) {
@@ -975,6 +1038,10 @@
           G.player.shield = { name: def.name, value: def.value, key: def.key };
           addMessage(def.name + "を拾い、自動的に装備した!", "note");
           G.floorItems.splice(i, 1);
+        } else if (def.cat === "throwable") {
+          var qty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
+          pickupThrowable(def, qty);
+          G.floorItems.splice(i, 1);
         } else if (addItemToInventory(def)) {
           addMessage(def.name + "を拾った。", "note");
           G.floorItems.splice(i, 1);
@@ -990,6 +1057,7 @@
     var slot = G.player.inventory[index];
     if (!slot) return;
     if (slot.cat === "weapon" || slot.cat === "shield") { equipInventorySlot(index); return; }
+    if (slot.cat === "throwable") { equipThrowableSlot(index); return; }
     var consumed = true;
     if (slot.cat === "herb") {
       if (slot.sub === "heal") {
@@ -1078,6 +1146,27 @@
     saveGame();
   }
 
+  // 投げ物(矢・石)を持ち物から装備枠へ切り替える。既に何か装備していれば、
+  // その残数ごと持ち物へ戻す(戻せなければ武器・盾の入れ替えと同様に足元へ置く)。
+  function equipThrowableSlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot || slot.cat !== "throwable") return;
+    G.player.inventory.splice(index, 1);
+    var prev = G.player.throwable;
+    G.player.throwable = { key: slot.key, name: slot.name, sym: slot.sym, color: slot.color, count: slot.count };
+    addMessage(slot.name + "を装備した。", "note");
+    if (prev) {
+      var prevDef = findItemDefByKey(prev.key) || { key: prev.key, name: prev.name, cat: "throwable", sub: "", value: 0, sym: prev.sym, color: prev.color, desc: "" };
+      var restored = addItemToInventory(prevDef, prev.count);
+      if (!restored) {
+        G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, prevDef, prev.count));
+        addMessage(prev.name + "は足元に置かれた。", "");
+      }
+    }
+    renderAll();
+    saveGame();
+  }
+
   function dropInventorySlot(index) {
     var slot = G.player.inventory[index];
     if (!slot) return;
@@ -1087,7 +1176,10 @@
         return;
       }
     }
-    G.floorItems.push({ x: G.player.x, y: G.player.y, def: { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc } });
+    var dropDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
+    // 1回の「捨てる」操作ではスタックのうち1個/1本だけを足元に置く(矢・石を大量に
+    // 持っていても、床に積み上がるのは常に1つ)。
+    G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, dropDef, 1));
     addMessage(slot.name + "を置いた。", "");
     slot.count--;
     if (slot.count <= 0) G.player.inventory.splice(index, 1);
@@ -1207,7 +1299,7 @@
     var def = weightedPick(pool);
     var spot = findDropSpot(enemy.x, enemy.y);
     if (!spot) return;
-    G.floorItems.push({ x: spot.x, y: spot.y, def: def });
+    G.floorItems.push(makeFloorItemEntry(spot.x, spot.y, def));
     addMessage(enemy.name + "は" + def.name + "を落とした!", "note");
   }
 
@@ -1327,6 +1419,69 @@
     // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
     triggerAttackEffect(tx, ty);
     if (target) { playerAttackEnemy(target); }
+    doTurn();
+  }
+
+  // 投げた矢・石が命中せず床に落ちる際の着地処理。既にその場に別のアイテムが
+  // 置かれていれば、投げたものはそのまま消える(重ねて置くことはできない)。
+  function dropThrownItem(x, y, def) {
+    for (var i = 0; i < G.floorItems.length; i++) {
+      if (G.floorItems[i].x === x && G.floorItems[i].y === y) return;
+    }
+    G.floorItems.push(makeFloorItemEntry(x, y, def, 1));
+  }
+
+  // Sキー/射撃ボタン:装備中の投げ物(矢・石)を、向いている方向へ射程距離分投げる。
+  // 命中率は通常攻撃と同じ(HIT_CHANCE)。ダメージは素手の通常攻撃を基準にし、
+  // アイテムごとの倍率(矢=1倍、石=2倍)を掛ける(武器を装備していても影響しない)。
+  // 命中すれば投げたものは消費されるだけだが、外れた場合・壁にぶつかった場合・
+  // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。
+  function performThrowAction() {
+    if (!G || G.gameOver) return;
+    var quiver = G.player.throwable;
+    if (!quiver || quiver.count <= 0) {
+      addMessage("投げられる物を持っていない。", "warn");
+      return;
+    }
+    var itemDef = findItemDefByKey(quiver.key);
+    var range = (itemDef && itemDef.range) || 1;
+    var dmgMult = (itemDef && itemDef.dmgMult) || 1;
+    var facing = G.player.facing || { dx: 0, dy: 1 };
+    var dx = facing.dx, dy = facing.dy;
+
+    var px = G.player.x, py = G.player.y;
+    var landX = px, landY = py;
+    var target = null;
+    for (var i = 1; i <= range; i++) {
+      var tx = px + dx * i, ty = py + dy * i;
+      // 壁(またはマップ外)に突き当たったら、その手前(直前のlandX/landY)で止まる
+      if (!inBounds(tx, ty) || G.grid[ty][tx] === T_WALL) break;
+      landX = tx; landY = ty;
+      var found = null;
+      for (var k = 0; k < G.enemies.length; k++) {
+        if (G.enemies[k].x === tx && G.enemies[k].y === ty) { found = G.enemies[k]; break; }
+      }
+      if (found) { target = found; break; }
+    }
+
+    quiver.count--;
+    if (quiver.count <= 0) G.player.throwable = null; // 撃ち尽くしたら装備解除
+
+    if (target) {
+      target.awake = true;
+      if (chance(HIT_CHANCE)) {
+        var dmg = computeDamage(unarmedAtk() * dmgMult, target.def);
+        addMessage(quiver.name + "が" + target.name + "に命中!" + dmg + "のダメージ!", "");
+        var killed = applyEnemyDamage(target, dmg);
+        if (!killed && target.ability === "split") trySplitEnemy(target);
+      } else {
+        addMessage(quiver.name + "は" + target.name + "に外れて足元に落ちた。", "warn");
+        if (itemDef) dropThrownItem(target.x, target.y, itemDef);
+      }
+    } else if (itemDef) {
+      dropThrownItem(landX, landY, itemDef);
+    }
+
     doTurn();
   }
 
@@ -1484,14 +1639,26 @@
     renderActionButton();
   }
 
-  // 階段の上にいる間は攻撃ボタンの見た目を「降りる」用に切り替える
+  // 階段の上にいる間は攻撃ボタンの見た目を「降りる」用に切り替える。
+  // 射撃ボタンには装備中の投げ物の残数を表示し、何も装備していなければ無効化する。
   function renderActionButton() {
     var btn = document.getElementById("btn-action");
-    if (!btn) return;
-    if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
-      btn.textContent = "階段を降りる (Z)";
-    } else {
-      btn.textContent = "攻撃 (Z)";
+    if (btn) {
+      if (G.grid[G.player.y][G.player.x] === T_STAIRS) {
+        btn.textContent = "階段を降りる (Z)";
+      } else {
+        btn.textContent = "攻撃 (Z)";
+      }
+    }
+    var shootBtn = document.getElementById("btn-shoot");
+    if (shootBtn) {
+      if (G.player.throwable) {
+        shootBtn.textContent = "射撃 (S) ×" + G.player.throwable.count;
+        shootBtn.disabled = false;
+      } else {
+        shootBtn.textContent = "射撃 (S)";
+        shootBtn.disabled = true;
+      }
     }
   }
 
@@ -1507,6 +1674,7 @@
   function renderEquip() {
     document.getElementById("equip-weapon").textContent = G.player.weapon ? G.player.weapon.name : "なし";
     document.getElementById("equip-shield").textContent = G.player.shield ? G.player.shield.name : "なし";
+    document.getElementById("equip-throwable").textContent = G.player.throwable ? (G.player.throwable.name + " ×" + G.player.throwable.count) : "なし";
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
     var statusRow = document.getElementById("equip-status-row");
@@ -1527,7 +1695,7 @@
     var html = "";
     for (var i = 0; i < G.player.inventory.length; i++) {
       var it = G.player.inventory[i];
-      var actionLabel = (it.cat === "weapon" || it.cat === "shield") ? "装備" : "使う";
+      var actionLabel = (it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable") ? "装備" : "使う";
       html += '<div class="inv-item">' +
         '<div class="sym" style="background:' + it.color + '22;color:' + it.color + '">' + it.sym + '</div>' +
         '<div class="name">' + escapeHtml(it.name) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(it.desc || "") + '</small></div>' +
@@ -2420,11 +2588,13 @@
   var COMBO_AWAIT_DELAY_MS = 150;
   var pendingMoveTimers = { up: null, down: null, left: null, right: null };
 
+  // 右手は十字キー(矢印キー)専用、左手はアクションキー(Z/X/S)という操作分担にするため、
+  // 移動はWASDを廃止し矢印キーのみで行う。空いたSキーは射撃(投擲)キーに割り当てる。
   function normalizeDirKey(key) {
-    if (key === "ArrowUp" || key === "w") return "up";
-    if (key === "ArrowDown" || key === "s") return "down";
-    if (key === "ArrowLeft" || key === "a") return "left";
-    if (key === "ArrowRight" || key === "d") return "right";
+    if (key === "ArrowUp") return "up";
+    if (key === "ArrowDown") return "down";
+    if (key === "ArrowLeft") return "left";
+    if (key === "ArrowRight") return "right";
     return null;
   }
 
@@ -2476,6 +2646,7 @@
     if (!G || G.gameOver) return;
     var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
     if (key === "z") { ev.preventDefault(); performPlayerAction(); return; }
+    if (key === "s") { ev.preventDefault(); performThrowAction(); return; }
     if (key === "x") {
       ev.preventDefault();
       xHeld = true;
@@ -2527,6 +2698,10 @@
 
   document.getElementById("btn-action").addEventListener("click", function () {
     performPlayerAction();
+  });
+
+  document.getElementById("btn-shoot").addEventListener("click", function () {
+    performThrowAction();
   });
 
   document.getElementById("inv-list").addEventListener("click", function (ev) {
