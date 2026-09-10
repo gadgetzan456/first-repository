@@ -105,6 +105,12 @@
     margin: 0 0 18px;
   }
 
+  #end-cause:not(:empty) {
+    color: var(--danger);
+    font-weight: bold;
+    margin-top: -10px;
+  }
+
   .overlay-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -346,6 +352,7 @@
     <div class="panel overlay-card">
       <h2 id="end-title">力尽きた…</h2>
       <p id="end-desc"></p>
+      <p id="end-cause"></p>
       <div class="overlay-stats" id="end-stats"></div>
       <button class="btn-main" id="btn-restart">最初からやり直す</button>
     </div>
@@ -474,6 +481,42 @@
     50: { name: "深淵の王ザガレス", sym: "覇", color: "#8f2540", hp: 400, atk: 106, def: 26, exp: 1000 }
   };
   var BOSS_DROP_RATE = 1.0; // ボスは必ず良いアイテムを落とす
+
+  // モンスターごとの死亡時セリフ(結果画面に表示する「何によってどうなったか」の一言)。
+  // キーはENEMY_TYPES/ボスの"boss"+階層のkeyと対応させている。
+  var DEATH_FLAVOR = {
+    slime: "スライムに全身を包み込まれ、そのまま溶かされてしまった。",
+    rat: "群がる巨大ネズミに次々と噛みつかれ、力尽きた。",
+    bat: "コウモリによって血を吸いつくされた。",
+    mushroom: "毒キノコの猛毒に侵され、意識が遠のいていった。",
+    goblin: "ゴブリンの群れに袋叩きにされた。",
+    skeleton: "スケルトンの骨の剣に貫かれた。",
+    giantbat: "大コウモリに血を吸いつくされ、干からびてしまった。",
+    orc: "怒り狂ったオークの一撃で吹き飛ばされた。",
+    armor: "鎧武者の重い一撃を受け、その場に崩れ落ちた。",
+    sorcerer: "妖術師の放った呪詛に貫かれた。",
+    wraith: "死霊の凍える手に生気を吸い取られた。",
+    ogre: "大鬼の会心の一撃を受け、一瞬で意識を刈り取られた。",
+    dragonwarrior: "竜鱗の戦士の一撃が防御をすり抜け、致命傷を負った。",
+    fiend: "深淵の魔物に瞬時に距離を詰められ、なす術なく倒された。",
+    boss10: "牙の王ボアグラの巨大な牙に切り裂かれた。",
+    boss20: "鉄甲のグロムダの鉄拳に打ち砕かれた。",
+    boss30: "業火のバルザックの猛火に焼き尽くされた。",
+    boss40: "氷牙のフェンリクの牙に貫かれ、そのまま凍りついた。",
+    boss50: "深淵の王ザガレスの一撃に、全てが闇に飲み込まれた。"
+  };
+  var DEATH_FLAVOR_HUNGER = "満たされない空腹に体力を奪われ、飢えで力尽きた。";
+  var DEATH_FLAVOR_POISON = "毒がついに全身に回り、そのまま息絶えた。";
+
+  // 死因(G.lastDamageCause)から、結果画面に表示する一言セリフを組み立てる。
+  // 該当するセリフが無いモンスター(将来追加分など)は汎用の一言にフォールバックする。
+  function describeDeathCause(cause) {
+    if (!cause) return "";
+    if (cause.type === "hunger") return DEATH_FLAVOR_HUNGER;
+    if (cause.type === "poison") return DEATH_FLAVOR_POISON;
+    if (cause.type === "enemy") return DEATH_FLAVOR[cause.key] || (cause.name + "に倒された。");
+    return "";
+  }
   var HIT_CHANCE = 0.78; // 命中率の基本値。プレイヤー→敵・敵→プレイヤーの通常攻撃どちらにも適用
 
   var ITEM_TYPES = [
@@ -570,6 +613,7 @@
       monsterHouseRoomId: -1,
       mapRevealActive: false,
       attackEffect: null,
+      lastDamageCause: null, // 直近でプレイヤーがダメージを受けた原因(結果画面の死因表示に使用)
       player: {
         x: 0, y: 0,
         hp: 23, maxHp: 23,
@@ -1437,6 +1481,7 @@
     var defFactor = enemy.ability === "pierce" ? 0.25 : undefined; // 竜鱗の戦士:防御貫通
     var dmg = computeDamage(enemy.atk, effDef(), critChance, defFactor);
     G.player.hp -= dmg;
+    G.lastDamageCause = { type: "enemy", key: enemy.key, name: enemy.name, boss: !!enemy.boss };
     addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
     if (enemy.ability === "drain") { // コウモリ系の吸血
       var healed = Math.min(enemy.maxHp - enemy.hp, Math.round(dmg * 0.5));
@@ -1573,11 +1618,13 @@
     }
     if (G.player.hunger <= 0) {
       G.player.hp -= 2;
+      G.lastDamageCause = { type: "hunger" };
       addMessage("お腹が空いて力が入らない…", "warn");
     }
     if (G.player.poison > 0) {
       G.player.poison--;
       G.player.hp -= 2;
+      G.lastDamageCause = { type: "poison" };
       addMessage("毒で体がむしばまれる…", "warn");
     }
     // 敵の攻撃力を強化した分、自然回復も強めに調整(以前は25ターンごとに1)。
@@ -2924,6 +2971,7 @@
     clearSave();
     document.getElementById("end-title").textContent = "力尽きた…";
     document.getElementById("end-desc").textContent = "迷宮の奥深く、地下" + G.floor + "階で力尽きてしまった。";
+    document.getElementById("end-cause").textContent = describeDeathCause(G.lastDamageCause);
     fillEndStats();
     document.getElementById("screen-end").hidden = false;
   }
@@ -2933,6 +2981,7 @@
     G.gameOver = true;
     document.getElementById("end-title").textContent = "迷宮を制覇した!";
     document.getElementById("end-desc").textContent = "ついに地下50階の王を討ち、迷宮の最深部を制覇した。";
+    document.getElementById("end-cause").textContent = "";
     fillEndStats();
     document.getElementById("screen-end").hidden = false;
   }
