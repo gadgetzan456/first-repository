@@ -1332,6 +1332,11 @@
     }
     if (!pool.length) return;
     var def = weightedPick(pool);
+    // 装備中の武器/盾以下の価値(攻撃力/防御力の上昇量)しかない武器/盾は、
+    // 手に入れても意味がないため、抽選で選ばれても「何も出なかった」ことにする
+    // (他のアイテムへの振り直しはしない。あくまでその回のドロップが消えるだけ)。
+    if (def.cat === "weapon" && G.player.weapon && def.value <= G.player.weapon.value) return;
+    if (def.cat === "shield" && G.player.shield && def.value <= G.player.shield.value) return;
     var spot = findDropSpot(enemy.x, enemy.y);
     if (!spot) return;
     G.floorItems.push(makeFloorItemEntry(spot.x, spot.y, def));
