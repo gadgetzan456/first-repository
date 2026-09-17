@@ -569,7 +569,7 @@
     // 巻物カテゴリ全体の出現割合は今回もそのぶん純増する。
     { key: "scroll_stairs", name: "階段の巻物", cat: "scroll", sub: "stairs", value: 0, weight: 0.6, sym: "巻", color: "#9a8a6a", desc: "次のフロアへ移動する" },
     { key: "scroll_wakeup", name: "起床の巻物", cat: "scroll", sub: "wakeup", value: 0, weight: 0.5, sym: "巻", color: "#e89a3a", desc: "このフロアにいる、動けない状態の敵をすべて解除する(睡眠・金縛り・モンスターハウスの待機状態が対象)" },
-    { key: "scroll_feast", name: "満腹の巻物", cat: "scroll", sub: "feast", value: 0, weight: 0.1, sym: "巻", color: "#f0c8a0", desc: "持ち物の空きスペースすべてに、満タンのおにぎりが生成される(激レア)" },
+    { key: "scroll_feast", name: "満腹の巻物", cat: "scroll", sub: "feast", value: 0, weight: 0.1, sym: "巻", color: "#f0c8a0", desc: "持ち物の空きスペースすべてに、おにぎりが1つずつ生成される(激レア)" },
     // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
     // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
     // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
@@ -1443,21 +1443,16 @@
           addMessage(scrollName + "を読んだが、動けないモンスターはいなかった。", "");
         }
       } else if (slot.sub === "feast") {
-        // 既存のおにぎりスタックがあれば先に満タン(99)にし、残った空きスペース
-        // それぞれに満タンのおにぎりスタックを新設する。
+        // 巻物・おにぎりなど(投げ物以外)は1つで持ち物枠を1つ使うのが基本のため、
+        // 既存のスタックへまとめて足すのではなく、空いている枠それぞれに
+        // 1個ずつ別のおにぎりを生成する(スタックはしない)。
         var onigiriDef = findItemDefByKey("onigiri");
-        var feastChanged = false;
-        var existingOnigiri = G.player.inventory.find(function (s) { return s.key === "onigiri"; });
-        if (existingOnigiri && existingOnigiri.count < 99) {
-          existingOnigiri.count = 99;
-          feastChanged = true;
+        var emptySlots = INV_CAP - G.player.inventory.length;
+        for (var fi = 0; fi < emptySlots; fi++) {
+          G.player.inventory.push({ key: onigiriDef.key, name: onigiriDef.name, cat: onigiriDef.cat, sub: onigiriDef.sub, value: onigiriDef.value, sym: onigiriDef.sym, color: onigiriDef.color, desc: onigiriDef.desc, count: 1 });
         }
-        while (G.player.inventory.length < INV_CAP) {
-          G.player.inventory.push({ key: onigiriDef.key, name: onigiriDef.name, cat: onigiriDef.cat, sub: onigiriDef.sub, value: onigiriDef.value, sym: onigiriDef.sym, color: onigiriDef.color, desc: onigiriDef.desc, count: 99 });
-          feastChanged = true;
-        }
-        if (feastChanged) {
-          addMessage(scrollName + "の力で、持ち物がおにぎりで満たされた!", "good");
+        if (emptySlots > 0) {
+          addMessage(scrollName + "の力で、持ち物の空きすべてにおにぎりが現れた!", "good");
         } else {
           addMessage(scrollName + "を読んだが、持ち物に空きが無かった。", "");
         }
