@@ -526,49 +526,50 @@
   var HIT_CHANCE = 0.78; // 命中率の基本値。プレイヤー→敵・敵→プレイヤーの通常攻撃どちらにも適用
 
   var ITEM_TYPES = [
-    { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, minDepth: 1, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
-    { key: "antidote", name: "毒消し草", cat: "herb", sub: "antidote", value: 0, minDepth: 1, weight: 3, sym: "毒", color: "#5a9a7a", desc: "毒を治す" },
-    { key: "fullpotion", name: "全回復の薬", cat: "herb", sub: "fullheal", value: 0, minDepth: 8, weight: 1, sym: "全", color: "#d9a441", desc: "HPを完全に回復する" },
-    { key: "onigiri", name: "おにぎり", cat: "food", sub: "small", value: 40, minDepth: 1, weight: 6, sym: "食", color: "#c9a15a", desc: "満腹度を40回復する" },
-    { key: "onigiri_big", name: "大きなおにぎり", cat: "food", sub: "big", value: 75, minDepth: 6, weight: 3, sym: "食", color: "#e0b96a", desc: "満腹度を75回復する" },
-    { key: "sw_wood", name: "木の剣", cat: "weapon", value: 2, minDepth: 1, weight: 5, sym: "剣", color: "#a9895a", desc: "攻撃力+2" },
-    { key: "sw_copper", name: "銅の剣", cat: "weapon", value: 4, minDepth: 4, weight: 4, sym: "剣", color: "#c9793f", desc: "攻撃力+4" },
-    { key: "sw_iron", name: "鉄の剣", cat: "weapon", value: 7, minDepth: 10, weight: 3, sym: "剣", color: "#b0b0b8", desc: "攻撃力+7" },
-    { key: "sw_steel", name: "鋼の剣", cat: "weapon", value: 11, minDepth: 18, weight: 2, sym: "剣", color: "#d0d8e0", desc: "攻撃力+11" },
-    { key: "sw_silver", name: "銀の剣", cat: "weapon", value: 16, minDepth: 28, weight: 2, sym: "剣", color: "#e8eef2", desc: "攻撃力+16" },
-    { key: "sw_dragon", name: "竜牙の剣", cat: "weapon", value: 22, minDepth: 40, weight: 1, sym: "剣", color: "#e04040", desc: "攻撃力+22" },
-    { key: "sh_wood", name: "木の盾", cat: "shield", value: 2, minDepth: 1, weight: 5, sym: "盾", color: "#a9895a", desc: "防御力+2" },
-    { key: "sh_copper", name: "銅の盾", cat: "shield", value: 4, minDepth: 5, weight: 4, sym: "盾", color: "#c9793f", desc: "防御力+4" },
-    { key: "sh_iron", name: "鉄の盾", cat: "shield", value: 7, minDepth: 12, weight: 3, sym: "盾", color: "#b0b0b8", desc: "防御力+7" },
-    { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, minDepth: 20, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
-    { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, minDepth: 30, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
-    { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, minDepth: 42, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
+    { key: "herb", name: "薬草", cat: "herb", sub: "heal", value: 20, weight: 7, sym: "草", color: "#6fa85a", desc: "HPを20回復する" },
+    { key: "antidote", name: "毒消し草", cat: "herb", sub: "antidote", value: 0, weight: 3, sym: "毒", color: "#5a9a7a", desc: "毒を治す" },
+    { key: "fullpotion", name: "全回復の薬", cat: "herb", sub: "fullheal", value: 0, weight: 1, sym: "全", color: "#d9a441", desc: "HPを完全に回復する" },
+    { key: "onigiri", name: "おにぎり", cat: "food", sub: "small", value: 40, weight: 6, sym: "食", color: "#c9a15a", desc: "満腹度を40回復する" },
+    { key: "onigiri_big", name: "大きなおにぎり", cat: "food", sub: "big", value: 75, weight: 3, sym: "食", color: "#e0b96a", desc: "満腹度を75回復する" },
+    { key: "sw_wood", name: "木の剣", cat: "weapon", value: 2, weight: 5, sym: "剣", color: "#a9895a", desc: "攻撃力+2" },
+    { key: "sw_copper", name: "銅の剣", cat: "weapon", value: 4, weight: 4, sym: "剣", color: "#c9793f", desc: "攻撃力+4" },
+    { key: "sw_iron", name: "鉄の剣", cat: "weapon", value: 7, weight: 3, sym: "剣", color: "#b0b0b8", desc: "攻撃力+7" },
+    { key: "sw_steel", name: "鋼の剣", cat: "weapon", value: 11, weight: 2, sym: "剣", color: "#d0d8e0", desc: "攻撃力+11" },
+    { key: "sw_silver", name: "銀の剣", cat: "weapon", value: 16, weight: 2, sym: "剣", color: "#e8eef2", desc: "攻撃力+16" },
+    { key: "sw_dragon", name: "竜牙の剣", cat: "weapon", value: 22, weight: 1, sym: "剣", color: "#e04040", desc: "攻撃力+22" },
+    { key: "sh_wood", name: "木の盾", cat: "shield", value: 2, weight: 5, sym: "盾", color: "#a9895a", desc: "防御力+2" },
+    { key: "sh_copper", name: "銅の盾", cat: "shield", value: 4, weight: 4, sym: "盾", color: "#c9793f", desc: "防御力+4" },
+    { key: "sh_iron", name: "鉄の盾", cat: "shield", value: 7, weight: 3, sym: "盾", color: "#b0b0b8", desc: "防御力+7" },
+    { key: "sh_steel", name: "鋼の盾", cat: "shield", value: 11, weight: 2, sym: "盾", color: "#d0d8e0", desc: "防御力+11" },
+    { key: "sh_silver", name: "銀の盾", cat: "shield", value: 15, weight: 2, sym: "盾", color: "#e8eef2", desc: "防御力+15" },
+    { key: "sh_dragon", name: "竜鱗の盾", cat: "shield", value: 20, weight: 1, sym: "盾", color: "#e04040", desc: "防御力+20" },
     // 投擲アイテム(矢・石)。range=射程距離(マス)、dmgMult=素手の通常攻撃ダメージに
     // 対する倍率、bundle=床に落ちている状態を拾ったときにまとめて手に入る本数/個数。
     // 持ち物では1枠にまとめて数量(count)で管理し、上限は99(装備枠・持ち物枠共通)。
-    { key: "ammo_arrow", name: "矢", cat: "throwable", sub: "arrow", value: 0, minDepth: 1, weight: 3, bundle: 6, range: 10, dmgMult: 1, sym: "矢", color: "#c9a15a", desc: "射程10マス。命中時、素手の通常攻撃と同じダメージ" },
-    { key: "ammo_stone", name: "石", cat: "throwable", sub: "stone", value: 0, minDepth: 1, weight: 3, bundle: 4, range: 3, dmgMult: 2, sym: "石", color: "#8a8a8a", desc: "射程3マス。命中時、素手の通常攻撃の2倍のダメージ" },
+    { key: "ammo_arrow", name: "矢", cat: "throwable", sub: "arrow", value: 0, weight: 3, bundle: 6, range: 10, dmgMult: 1, sym: "矢", color: "#c9a15a", desc: "射程10マス。命中時、素手の通常攻撃と同じダメージ" },
+    { key: "ammo_stone", name: "石", cat: "throwable", sub: "stone", value: 0, weight: 3, bundle: 4, range: 3, dmgMult: 2, sym: "石", color: "#8a8a8a", desc: "射程3マス。命中時、素手の通常攻撃の2倍のダメージ" },
     // 巻物6種の重み合計は旧3種の合計(2+1+2=5)と同じ5になるよう調整してあり、
     // アイテム全体に占める「巻物」というカテゴリの出現割合そのものは変えていない
     // (既存3種は0.7倍に圧縮し、その分を新規3種に配分している)。
-    { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, minDepth: 3, weight: 1.4, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
-    { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, minDepth: 3, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
-    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, minDepth: 5, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の部屋へ飛ぶ" },
-    { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, minDepth: 4, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
-    { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, minDepth: 8, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
-    { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, minDepth: 6, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" },
+    { key: "scroll_enchant_weapon", name: "強化の巻物(武器)", cat: "scroll", sub: "enchant_weapon", value: 0, weight: 1.4, sym: "巻", color: "#d9a441", desc: "武器を1段階強化する(攻撃+1)" },
+    { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
+    { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の部屋へ飛ぶ" },
+    { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
+    { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
+    { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" },
     // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
     // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
     // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
     // 投げ物と同様、同種を複数拾うと回数がまとめて加算される)。
-    // 重み・使用回数・出現階層は効果の強さから判断して設定している(強力なものほど
-    // 出現が遅く、レア(重み小)で、使用回数も少ない)。
-    { key: "wand_haste", name: "加速の杖", cat: "wand", sub: "haste", value: 0, minDepth: 2, weight: 1.0, bundle: 5, sym: "杖", color: "#e0503f", desc: "命中した敵は10ターンの間、1ターンに2回行動するようになる(敵を強化してしまうので注意)" },
-    { key: "wand_sleep", name: "睡眠の杖", cat: "wand", sub: "sleep", value: 0, minDepth: 5, weight: 0.8, bundle: 3, sym: "杖", color: "#5c7fb0", desc: "命中した敵は5ターンの間、動くことも攻撃することもできなくなる" },
-    { key: "wand_confuse", name: "混乱の杖", cat: "wand", sub: "confuse", value: 0, minDepth: 7, weight: 0.9, bundle: 4, sym: "杖", color: "#c98fd0", desc: "命中した敵は8ターンの間混乱し、ランダムな方向へよろめくだけになる" },
-    { key: "wand_knockback", name: "衝撃の杖", cat: "wand", sub: "knockback", value: 0, minDepth: 9, weight: 0.8, bundle: 3, sym: "杖", color: "#e8c96a", desc: "命中した敵をまっすぐ後方へ数マス吹き飛ばす" },
-    { key: "wand_weaken", name: "弱体の杖", cat: "wand", sub: "weaken", value: 0, minDepth: 11, weight: 0.9, bundle: 4, sym: "杖", color: "#6fa85a", desc: "命中した敵は15ターンの間、攻撃力が半分になる" },
-    { key: "wand_paralyze", name: "金縛りの杖", cat: "wand", sub: "paralyze", value: 0, minDepth: 14, weight: 0.5, bundle: 2, sym: "杖", color: "#8a6fae", desc: "命中した敵は、ダメージを受けるか攻撃/投擲が外れるまで動けなくなる" }
+    // 重み・使用回数は効果の強さから判断して設定している(強力なものほどレア
+    // (重み小)で、使用回数も少ない)。アイテムの出現に階層制限は無いため、
+    // 序盤から強力な杖が出ることもある。
+    { key: "wand_haste", name: "加速の杖", cat: "wand", sub: "haste", value: 0, weight: 1.0, bundle: 5, sym: "杖", color: "#e0503f", desc: "命中した敵は10ターンの間、1ターンに2回行動するようになる(敵を強化してしまうので注意)" },
+    { key: "wand_sleep", name: "睡眠の杖", cat: "wand", sub: "sleep", value: 0, weight: 0.8, bundle: 3, sym: "杖", color: "#5c7fb0", desc: "命中した敵は5ターンの間、動くことも攻撃することもできなくなる" },
+    { key: "wand_confuse", name: "混乱の杖", cat: "wand", sub: "confuse", value: 0, weight: 0.9, bundle: 4, sym: "杖", color: "#c98fd0", desc: "命中した敵は8ターンの間混乱し、ランダムな方向へよろめくだけになる" },
+    { key: "wand_knockback", name: "衝撃の杖", cat: "wand", sub: "knockback", value: 0, weight: 0.8, bundle: 3, sym: "杖", color: "#e8c96a", desc: "命中した敵をまっすぐ後方へ数マス吹き飛ばす" },
+    { key: "wand_weaken", name: "弱体の杖", cat: "wand", sub: "weaken", value: 0, weight: 0.9, bundle: 4, sym: "杖", color: "#6fa85a", desc: "命中した敵は15ターンの間、攻撃力が半分になる" },
+    { key: "wand_paralyze", name: "金縛りの杖", cat: "wand", sub: "paralyze", value: 0, weight: 0.5, bundle: 2, sym: "杖", color: "#8a6fae", desc: "命中した敵は、ダメージを受けるか攻撃/投擲が外れるまで動けなくなる" }
   ];
 
   /* =========================================================
@@ -594,13 +595,18 @@
     return null;
   }
 
-  // その階に出現しうる敵/アイテムの定義一覧(minDepth<=depthのもの)を返す。
+  // その階に出現しうる敵の定義一覧(minDepth<=depthのもの)を返す。
   // フロア生成・モンスターハウス・徘徊湧き・敵ドロップなど、複数箇所から呼ばれる。
+  // 敵は本来の出現階より深い階に紛れ込むこともある(強化・体色変化については
+  // scaledEnemy参照)ため、ここでのminDepthは「最低出現階層」の意味しか持たない。
   function enemyPoolForDepth(depth) {
     return ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
   }
+  // アイテムの出現候補は階層による制限を設けず、常に全種類を対象にする。
+  // 強力なアイテムを序盤に引き当てて一気に有利になれるのも、この手のゲームの
+  // 醍醐味であるため(depth引数は他の呼び出し元と揃えるため残しているだけで未使用)。
   function itemPoolForDepth(depth) {
-    return ITEM_TYPES.filter(function (it) { return it.minDepth <= depth; });
+    return ITEM_TYPES;
   }
 
   // 装備中の武器/盾と同じか、それより価値(攻撃力/防御力の上昇量)が低い武器/盾は、
