@@ -398,6 +398,7 @@
           <div class="legend-item"><span class="legend-badge" style="background:#FF6A6A">速</span><div><b>過負荷</b> シャード高速化(注意)</div></div>
           <div class="legend-item"><span class="legend-badge" style="background:#FFD24C">1UP</span><div><b>バックアップ+1</b> レア出現</div></div>
           <div class="legend-item"><span class="legend-badge" style="background:#FF7A3D">炎</span><div><b>焼却</b> シャードがノードを貫通</div></div>
+          <div class="legend-item"><span class="legend-badge" style="background:#7C4DFF">巨</span><div><b>巨大化</b> 焼却と同じく貫通し、シャードも大型化</div></div>
           <div class="legend-item"><span class="legend-badge" style="background:#FFE066">$</span><div><b>データ窃取</b> スコアボーナス</div></div>
           <div class="legend-item"><span class="legend-badge" style="background:#4A6B7A">硬</span><div><b>強化ICEノード</b> 2回撃破で破壊</div></div>
           <div class="legend-item"><span class="legend-badge" style="background:#6B8494">鋼</span><div><b>耐性ICEノード</b> 破壊不可、避けて進もう</div></div>
@@ -529,10 +530,11 @@
     { key: 'fast', label: '速', color: '#FF6A6A', good: false, dur: 8 },
     { key: 'life', label: '1UP', color: '#FFD24C', good: true, dur: 0 },
     { key: 'fire', label: '炎', color: '#FF7A3D', good: true, dur: 6 },
+    { key: 'giant', label: '巨', color: '#7C4DFF', good: true, dur: 6 },
     { key: 'score', label: '$', color: '#FFE066', good: true, dur: 0 }
   ];
-  // 出現重み(合計100): 悪い能力も一定確率で混ざる
-  var POWERUP_WEIGHTS = [16, 12, 9, 9, 9, 9, 9, 4, 9, 14];
+  // 出現重み(比率のみ意味を持つ): 悪い能力も一定確率で混ざる
+  var POWERUP_WEIGHTS = [16, 12, 9, 9, 9, 9, 9, 4, 9, 9, 14];
 
   function pickPowerup() {
     var total = 0, i;
@@ -573,6 +575,7 @@
       laserUntil: 0,
       laserCooldown: 0,
       fireUntil: 0,
+      giantUntil: 0,
       scoreBuffUntil: 0,
       missTimer: 0,
       clearTimer: 0,
@@ -679,6 +682,7 @@
     G.catchUntil = 0;
     G.laserUntil = 0;
     G.fireUntil = 0;
+    G.giantUntil = 0;
     G.scoreBuffUntil = 0;
     G.paddle.w = PADDLE_W_NORMAL;
     G.paddle.x = (LOGICAL_W - PADDLE_W_NORMAL) / 2;
@@ -688,7 +692,8 @@
   }
 
   function baseSpeedForLevel(level) {
-    return Math.min(230 + (level - 1) * 14, 480);
+    // 玉速度は基準値の1.5倍
+    return Math.min(345 + (level - 1) * 21, 720);
   }
 
   function spawnBallOnPaddle(resetAll) {
@@ -822,6 +827,9 @@
         break;
       case 'fire':
         G.fireUntil = t + pu.dur;
+        break;
+      case 'giant':
+        G.giantUntil = t + pu.dur;
         break;
       case 'score': {
         var mult = (G.scoreBuffUntil > t ? 2 : 1);
@@ -960,8 +968,8 @@
     if (brick.destroyed) return false;
     if (!circleRectOverlap(ball.x, ball.y, ball.r, brick.x, brick.y, brick.w, brick.h)) return false;
 
-    var fireballOn = G.fireUntil > nowT();
-    if (fireballOn && brick.type !== TYPE.STEEL) {
+    var pierceOn = G.fireUntil > nowT() || G.giantUntil > nowT();
+    if (pierceOn && brick.type !== TYPE.STEEL) {
       hitBrick(brick);
       return false; // 貫通するので跳ね返らない
     }
@@ -981,6 +989,7 @@
   }
 
   function stepBall(ball, dt) {
+    ball.r = G.giantUntil > nowT() ? BALL_R * 1.85 : BALL_R;
     if (ball.stuck) {
       ball.x = Math.max(G.paddle.x + ball.r, Math.min(G.paddle.x + G.paddle.w - ball.r, G.paddle.x + G.paddle.w / 2 + ball.stuckOffset));
       ball.y = PADDLE_Y - ball.r - 1;
@@ -1097,7 +1106,7 @@
     G.paddle.w = PADDLE_W_NORMAL;
     G.paddle.x = Math.max(0, Math.min(LOGICAL_W - G.paddle.w, G.paddle.x));
     G.expandUntil = 0; G.shrinkUntil = 0; G.speedFactor = 1; G.speedFactorUntil = 0;
-    G.catchUntil = 0; G.laserUntil = 0; G.fireUntil = 0;
+    G.catchUntil = 0; G.laserUntil = 0; G.fireUntil = 0; G.giantUntil = 0;
     G.capsules = []; G.lasers = [];
     document.getElementById('missSub').textContent = 'バックアップ ' + G.lives + ' 基で再接続します';
     missOverlay.classList.add('show');
@@ -1142,6 +1151,7 @@
     if (G.catchUntil > t) chips.push('捕捉 ' + rem(G.catchUntil) + 's');
     if (G.laserUntil > t) chips.push('レーザー ' + rem(G.laserUntil) + 's');
     if (G.fireUntil > t) chips.push('焼却 ' + rem(G.fireUntil) + 's');
+    if (G.giantUntil > t) chips.push('巨大化 ' + rem(G.giantUntil) + 's');
     if (G.scoreBuffUntil > t) chips.push('キャッシュ×2 ' + rem(G.scoreBuffUntil) + 's');
     if (G.combo >= 3) chips.push('COMBO x' + (1 + Math.min(G.combo, 10) * 0.15).toFixed(1));
     buffsRow.innerHTML = chips.map(function (c) { return '<span class="buff-chip">' + c + '</span>'; }).join('');
@@ -1308,13 +1318,15 @@
 
     // データシャード(ボール)
     var fireOn = G.fireUntil > t;
+    var giantOn = G.giantUntil > t;
     G.balls.forEach(function (ball) {
       ctx.save();
-      ctx.shadowColor = fireOn ? '#FF5A36' : '#2DE2E6';
-      ctx.shadowBlur = 10;
+      ctx.shadowColor = fireOn ? '#FF5A36' : (giantOn ? '#7C4DFF' : '#2DE2E6');
+      ctx.shadowBlur = giantOn ? 16 : 10;
       ctx.beginPath();
       var rg = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 1, ball.x, ball.y, ball.r);
       if (fireOn) { rg.addColorStop(0, '#fff'); rg.addColorStop(1, '#FF5A36'); }
+      else if (giantOn) { rg.addColorStop(0, '#fff'); rg.addColorStop(1, '#7C4DFF'); }
       else { rg.addColorStop(0, '#ffffff'); rg.addColorStop(1, '#2DE2E6'); }
       ctx.fillStyle = rg;
       ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
