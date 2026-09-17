@@ -565,6 +565,11 @@
     { key: "scroll_decoy", name: "身代わりの巻物", cat: "scroll", sub: "decoy", value: 0, weight: 0.5, sym: "巻", color: "#7a9a6a", desc: "持ち物にある間、破壊の巻物から装備を守ってくれる(効果が発動すると身代わりとして1つ消費される)" },
     { key: "scroll_summon", name: "敵呼びの巻物", cat: "scroll", sub: "summon", value: 0, weight: 0.5, sym: "巻", color: "#4a3a2a", desc: "自分の周囲に3〜5匹のモンスターを呼び出す(呼び出された直後の1ターンは動けない)" },
     { key: "scroll_identify", name: "識別の巻物", cat: "scroll", sub: "identify", value: 0, weight: 0.9, sym: "巻", color: "#b8a8e0", desc: "持ち物にある未識別の巻物を1つ、ランダムに識別する" },
+    // 追加の巻物3種。巻物追加のたびに他アイテムの重み再配分は行わない方針のため、
+    // 巻物カテゴリ全体の出現割合は今回もそのぶん純増する。
+    { key: "scroll_stairs", name: "階段の巻物", cat: "scroll", sub: "stairs", value: 0, weight: 0.6, sym: "巻", color: "#9a8a6a", desc: "次のフロアへ移動する" },
+    { key: "scroll_wakeup", name: "起床の巻物", cat: "scroll", sub: "wakeup", value: 0, weight: 0.5, sym: "巻", color: "#e89a3a", desc: "このフロアにいる、動けない状態の敵をすべて解除する(睡眠・金縛り・モンスターハウスの待機状態が対象)" },
+    { key: "scroll_feast", name: "満腹の巻物", cat: "scroll", sub: "feast", value: 0, weight: 0.1, sym: "巻", color: "#f0c8a0", desc: "持ち物の空きスペースすべてに、満タンのおにぎりが生成される(激レア)" },
     // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
     // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
     // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
@@ -1415,6 +1420,46 @@
           addMessage(scrollName + "の力で、" + scrollDisplayName(targetKey) + "の正体が明らかになった!", "good");
         } else {
           addMessage(scrollName + "を読んだが、他に未識別の巻物を持っていなかった。", "");
+        }
+      } else if (slot.sub === "stairs") {
+        addMessage(scrollName + "の力で、足元に階段が現れ、吸い込まれるように次の階へ落ちていった!", "note");
+        descend();
+      } else if (slot.sub === "wakeup") {
+        // 「動けない状態」=睡眠・金縛り・モンスターハウスの待機のみを対象とする
+        // (混乱/加速/弱体は行動自体はできるため対象外)。
+        var releasedCount = 0;
+        G.enemies.forEach(function (e) {
+          if (e.monsterHouseDormant || e.sleepTurns > 0 || e.paralyzed) {
+            e.monsterHouseDormant = false;
+            e.sleepTurns = 0;
+            e.paralyzed = false;
+            e.awake = true;
+            releasedCount++;
+          }
+        });
+        if (releasedCount > 0) {
+          addMessage(scrollName + "の力で、動けなかった" + releasedCount + "匹のモンスターが目を覚ました!", "warn");
+        } else {
+          addMessage(scrollName + "を読んだが、動けないモンスターはいなかった。", "");
+        }
+      } else if (slot.sub === "feast") {
+        // 既存のおにぎりスタックがあれば先に満タン(99)にし、残った空きスペース
+        // それぞれに満タンのおにぎりスタックを新設する。
+        var onigiriDef = findItemDefByKey("onigiri");
+        var feastChanged = false;
+        var existingOnigiri = G.player.inventory.find(function (s) { return s.key === "onigiri"; });
+        if (existingOnigiri && existingOnigiri.count < 99) {
+          existingOnigiri.count = 99;
+          feastChanged = true;
+        }
+        while (G.player.inventory.length < INV_CAP) {
+          G.player.inventory.push({ key: onigiriDef.key, name: onigiriDef.name, cat: onigiriDef.cat, sub: onigiriDef.sub, value: onigiriDef.value, sym: onigiriDef.sym, color: onigiriDef.color, desc: onigiriDef.desc, count: 99 });
+          feastChanged = true;
+        }
+        if (feastChanged) {
+          addMessage(scrollName + "の力で、持ち物がおにぎりで満たされた!", "good");
+        } else {
+          addMessage(scrollName + "を読んだが、持ち物に空きが無かった。", "");
         }
       }
     } else { consumed = false; }
