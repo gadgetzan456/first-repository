@@ -557,6 +557,14 @@
     { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
     { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
     { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" },
+    // 追加の巻物4種。破壊・敵呼びは読むと不利益がある「はずれ」寄りの巻物、
+    // 身代わりは破壊の巻物から装備を守る受け身の巻物、識別は未識別の巻物を
+    // 安全に見分けるための巻物で、全体としてリスクとそれを軽減する手段の
+    // 両方を用意している。
+    { key: "scroll_destroy", name: "破壊の巻物", cat: "scroll", sub: "destroy", value: 0, weight: 0.5, sym: "巻", color: "#8a2f2f", desc: "装備中の武器・盾・投げ物をすべて破壊する(身代わりの巻物を持っていれば、代わりにそれを1つ破壊する)" },
+    { key: "scroll_decoy", name: "身代わりの巻物", cat: "scroll", sub: "decoy", value: 0, weight: 0.5, sym: "巻", color: "#7a9a6a", desc: "持ち物にある間、破壊の巻物から装備を守ってくれる(効果が発動すると身代わりとして1つ消費される)" },
+    { key: "scroll_summon", name: "敵呼びの巻物", cat: "scroll", sub: "summon", value: 0, weight: 0.5, sym: "巻", color: "#4a3a2a", desc: "自分の周囲に3〜5匹のモンスターを呼び出す(呼び出された直後の1ターンは動けない)" },
+    { key: "scroll_identify", name: "識別の巻物", cat: "scroll", sub: "identify", value: 0, weight: 0.9, sym: "巻", color: "#b8a8e0", desc: "持ち物にある未識別の巻物を1つ、ランダムに識別する" },
     // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
     // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
     // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
@@ -593,6 +601,58 @@
   function findItemDefByKey(key) {
     for (var i = 0; i < ITEM_TYPES.length; i++) if (ITEM_TYPES[i].key === key) return ITEM_TYPES[i];
     return null;
+  }
+
+  /* =========================================================
+     巻物の識別
+  ========================================================= */
+  // 未識別の巻物の見た目名に使う色の一覧(巻物の種類数より多く用意しておく)。
+  var SCROLL_DISGUISE_COLORS = ["赤", "青", "緑", "黄", "白", "黒", "紫", "橙", "桃", "灰", "金", "銀", "茶", "藍"];
+
+  // 新規ゲーム開始時に、巻物の種類ごとにランダムな色名の見た目("○○の巻物")を
+  // 割り当てる(色は1プレイ内で重複しない)。真の名前が分かるのは、その種類を
+  // 1度でも読む(=識別する)までで、識別状態はG.scrollIdentityに保持する。
+  function assignScrollIdentities() {
+    var scrollDefs = ITEM_TYPES.filter(function (it) { return it.cat === "scroll"; });
+    var colors = SCROLL_DISGUISE_COLORS.slice();
+    for (var i = colors.length - 1; i > 0; i--) {
+      var j = rnd(0, i);
+      var tmp = colors[i]; colors[i] = colors[j]; colors[j] = tmp;
+    }
+    var identity = {};
+    scrollDefs.forEach(function (def, idx) {
+      identity[def.key] = { identified: false, disguiseName: colors[idx] + "の巻物" };
+    });
+    return identity;
+  }
+
+  // 巻物1種を識別済みにする(以後その種類は本当の名前で表示される)。
+  // 既に識別済みなら何もしない。戻り値はこの呼び出しで新たに識別したかどうか。
+  function identifyScroll(key) {
+    var identity = G.scrollIdentity && G.scrollIdentity[key];
+    if (identity && !identity.identified) {
+      identity.identified = true;
+      return true;
+    }
+    return false;
+  }
+
+  // 巻物(key)の現在の表示名。識別済みなら本来の名前、未識別なら色名の見た目を返す。
+  // 巻物以外のカテゴリでは呼ばないため、identityが見つからない場合は定義の名前に
+  // フォールバックする(古いセーブなど、識別情報が無いケースへの保険)。
+  function scrollDisplayName(key) {
+    var identity = G.scrollIdentity && G.scrollIdentity[key];
+    if (identity && !identity.identified) return identity.disguiseName;
+    var def = findItemDefByKey(key);
+    return def ? def.name : key;
+  }
+
+  // 巻物(key)の現在の表示説明文。未識別なら効果を伏せた汎用文を返す。
+  function scrollDisplayDesc(key) {
+    var identity = G.scrollIdentity && G.scrollIdentity[key];
+    if (identity && !identity.identified) return "未識別の巻物。読むまで効果は分からない。";
+    var def = findItemDefByKey(key);
+    return def ? def.desc : "";
   }
 
   // その階に出現しうる敵の定義一覧(minDepth<=depthのもの)を返す。
@@ -639,6 +699,7 @@
       attackEffect: null,
       missEffect: null,
       lastDamageCause: null, // 直近でプレイヤーがダメージを受けた原因(結果画面の死因表示に使用)
+      scrollIdentity: assignScrollIdentities(), // 巻物の種類ごとの識別状態と見た目の色名
       player: {
         x: 0, y: 0,
         hp: 23, maxHp: 23,
@@ -1216,6 +1277,14 @@
       } else {
         addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
       }
+    } else if (def.cat === "scroll") {
+      // 巻物は未識別の間、拾った時点の見た目(色名)で表示する。
+      if (addItemToInventory(def)) {
+        addMessage(scrollDisplayName(def.key) + "を拾った。", "note");
+        G.floorItems.splice(i, 1);
+      } else {
+        addMessage("荷物がいっぱいで" + scrollDisplayName(def.key) + "を拾えなかった。", "warn");
+      }
     } else if (addItemToInventory(def)) {
       addMessage(def.name + "を拾った。", "note");
       G.floorItems.splice(i, 1);
@@ -1247,12 +1316,16 @@
       G.player.hunger = Math.min(G.player.maxHunger, G.player.hunger + slot.value);
       addMessage(slot.name + "を食べた。満腹度が回復した。", "good");
     } else if (slot.cat === "scroll") {
+      // 読んだ時点でその種類は識別される(以後は常に本当の名前で表示される)。
+      // scrollNameは識別された直後の名前(=このメッセージ内では本当の名前)を指す。
+      identifyScroll(slot.key);
+      var scrollName = scrollDisplayName(slot.key);
       if (slot.sub === "enchant_weapon") {
-        if (G.player.weapon) { G.player.weapon.value += 1; addMessage(slot.name + "の力で" + G.player.weapon.name + "が強化された!(攻撃+1)", "good"); }
-        else { addMessage(slot.name + "を読んだが、強化する武器がなく力は消えた。", "warn"); }
+        if (G.player.weapon) { G.player.weapon.value += 1; addMessage(scrollName + "の力で" + G.player.weapon.name + "が強化された!(攻撃+1)", "good"); }
+        else { addMessage(scrollName + "を読んだが、強化する武器がなく力は消えた。", "warn"); }
       } else if (slot.sub === "enchant_shield") {
-        if (G.player.shield) { G.player.shield.value += 1; addMessage(slot.name + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
-        else { addMessage(slot.name + "を読んだが、強化する盾がなく力は消えた。", "warn"); }
+        if (G.player.shield) { G.player.shield.value += 1; addMessage(scrollName + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
+        else { addMessage(scrollName + "を読んだが、強化する盾がなく力は消えた。", "warn"); }
       } else if (slot.sub === "teleport") {
         // 今いる部屋とは別の部屋へ飛ぶ(通路や同じ部屋への再抽選は避ける)。
         var curRoomId = G.roomId[G.player.y][G.player.x];
@@ -1260,28 +1333,28 @@
         var destRoom = pick(otherRooms.length ? otherRooms : G.rooms);
         var spot = randomTileInRoom(destRoom, function (x, y) { return tileOccupied(x, y); });
         G.player.x = spot.x; G.player.y = spot.y;
-        addMessage(slot.name + "の光に包まれ、別の部屋へ瞬間移動した!", "note");
+        addMessage(scrollName + "の光に包まれ、別の部屋へ瞬間移動した!", "note");
         computeVisibility();
       } else if (slot.sub === "reveal") {
         // 明かりの巻物:この階の通路の形を全て見えるようにし、
         // 敵の位置もこの階にいる間ずっと分かるようにする(フロア移動でリセット)
         for (var ry = 0; ry < H; ry++) for (var rx = 0; rx < W; rx++) G.discovered[ry][rx] = true;
         G.mapRevealActive = true;
-        addMessage(slot.name + "を使い、この階の様子が頭に浮かんだ!", "note");
+        addMessage(scrollName + "を使い、この階の様子が頭に浮かんだ!", "note");
       } else if (slot.sub === "megaevolve") {
         G.player.megaEvolveTurns = slot.value;
-        addMessage(slot.name + "の力で体が漲る!" + slot.value + "ターンの間、攻撃力が2倍になった!", "good");
+        addMessage(scrollName + "の力で体が漲る!" + slot.value + "ターンの間、攻撃力が2倍になった!", "good");
       } else if (slot.sub === "vacuum") {
         var homeRoom = G.roomId[G.player.y][G.player.x];
         if (homeRoom < 0) {
-          addMessage(slot.name + "を使ったが、ここは部屋ではないため効果がなかった。", "warn");
+          addMessage(scrollName + "を使ったが、ここは部屋ではないため効果がなかった。", "warn");
         } else {
           var vDmg = G.player.level * 10;
           var targets = G.enemies.filter(function (en) { return G.roomId[en.y][en.x] === homeRoom; });
           if (targets.length === 0) {
-            addMessage(slot.name + "を使ったが、部屋に敵はいなかった。", "");
+            addMessage(scrollName + "を使ったが、部屋に敵はいなかった。", "");
           } else {
-            addMessage(slot.name + "の真空波が部屋を切り裂いた!", "note");
+            addMessage(scrollName + "の真空波が部屋を切り裂いた!", "note");
             for (var vi = 0; vi < targets.length; vi++) {
               var vt = targets[vi];
               addMessage(vt.name + "に" + vDmg + "のダメージ!", "");
@@ -1289,11 +1362,70 @@
             }
           }
         }
+      } else if (slot.sub === "destroy") {
+        // 身代わりの巻物を持っていれば、装備の代わりにそれを1つ破壊する。
+        var decoySlot = G.player.inventory.find(function (s) { return s.key === "scroll_decoy"; });
+        if (decoySlot) {
+          addMessage(scrollDisplayName("scroll_decoy") + "が身代わりとなって砕け散り、装備は守られた!", "good");
+          decoySlot.count--;
+          if (decoySlot.count <= 0) {
+            var decoyIdx = G.player.inventory.indexOf(decoySlot);
+            if (decoyIdx >= 0) G.player.inventory.splice(decoyIdx, 1);
+          }
+        } else {
+          var destroyedNames = [];
+          if (G.player.weapon) { destroyedNames.push(G.player.weapon.name); G.player.weapon = null; }
+          if (G.player.shield) { destroyedNames.push(G.player.shield.name); G.player.shield = null; }
+          if (G.player.throwable) { destroyedNames.push(G.player.throwable.name); G.player.throwable = null; }
+          if (destroyedNames.length > 0) {
+            addMessage(scrollName + "の力で、装備していた" + destroyedNames.join("・") + "が粉々に砕け散った!", "warn");
+          } else {
+            addMessage(scrollName + "を読んだが、装備している物が無く何も起きなかった。", "");
+          }
+        }
+      } else if (slot.sub === "decoy") {
+        // 身代わりの巻物自体は、読んでも能動的な効果はない(持っているだけで身代わりになる)。
+        addMessage(scrollName + "を読んだが、特に何も起こらなかった。持っているだけで身代わりになってくれるようだ。", "");
+      } else if (slot.sub === "summon") {
+        var summonSpots = findFreeTilesAround(G.player.x, G.player.y, rnd(3, 5));
+        var summonPool = enemyPoolForDepth(G.floor);
+        for (var smi = 0; smi < summonSpots.length; smi++) {
+          var summonDef = weightedPick(summonPool);
+          var summonedEnemy = scaledEnemy(summonDef, G.floor);
+          summonedEnemy.x = summonSpots[smi].x; summonedEnemy.y = summonSpots[smi].y;
+          summonedEnemy.awake = true;
+          summonedEnemy.sleepTurns = 1; // 呼び出された直後の1ターンは動けない
+          G.enemies.push(summonedEnemy);
+        }
+        if (summonSpots.length > 0) {
+          addMessage(scrollName + "の力で、" + summonSpots.length + "匹のモンスターが周囲に現れた!", "warn");
+        } else {
+          addMessage(scrollName + "を読んだが、モンスターが現れる隙間が無かった。", "warn");
+        }
+      } else if (slot.sub === "identify") {
+        var candidateKeys = [];
+        G.player.inventory.forEach(function (s) {
+          if (s.cat === "scroll" && G.scrollIdentity[s.key] && !G.scrollIdentity[s.key].identified && candidateKeys.indexOf(s.key) === -1) {
+            candidateKeys.push(s.key);
+          }
+        });
+        if (candidateKeys.length > 0) {
+          var targetKey = pick(candidateKeys);
+          identifyScroll(targetKey);
+          addMessage(scrollName + "の力で、" + scrollDisplayName(targetKey) + "の正体が明らかになった!", "good");
+        } else {
+          addMessage(scrollName + "を読んだが、他に未識別の巻物を持っていなかった。", "");
+        }
       }
     } else { consumed = false; }
     if (consumed) {
-      slot.count--;
-      if (slot.count <= 0) G.player.inventory.splice(index, 1);
+      // 巻物の効果(破壊の巻物の身代わり消費など)が、自分より前の持ち物を
+      // 削除しているとindexがずれるため、その場でインデックスを取り直す。
+      var curIdx = G.player.inventory.indexOf(slot);
+      if (curIdx >= 0) {
+        slot.count--;
+        if (slot.count <= 0) G.player.inventory.splice(curIdx, 1);
+      }
     }
     renderAll();
     saveGame();
@@ -1352,7 +1484,7 @@
     // 1回の「捨てる」操作ではスタックのうち1個/1本だけを足元に置く(矢・石を大量に
     // 持っていても、床に積み上がるのは常に1つ)。
     G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, dropDef, 1));
-    addMessage(slot.name + "を置いた。", "");
+    addMessage((slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name) + "を置いた。", "");
     slot.count--;
     if (slot.count <= 0) G.player.inventory.splice(index, 1);
     renderAll();
@@ -1409,6 +1541,21 @@
       return { x: nx, y: ny };
     }
     return null;
+  }
+
+  // (x,y)の周囲8マスから、空いている床マスを最大maxCount個集めて返す(自マス自体は
+  // 含めない)。敵呼びの巻物で複数体を隣接させて呼び出す際に使う。
+  function findFreeTilesAround(x, y, maxCount) {
+    var spots = [];
+    for (var i = 0; i < ADJACENT_OFFSETS.length && spots.length < maxCount; i++) {
+      var dx = ADJACENT_OFFSETS[i][0], dy = ADJACENT_OFFSETS[i][1];
+      if (dx === 0 && dy === 0) continue;
+      var nx = x + dx, ny = y + dy;
+      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) continue;
+      if (tileOccupied(nx, ny)) continue;
+      spots.push({ x: nx, y: ny });
+    }
+    return spots;
   }
 
   // (x1,y1)から(x2,y2)までの間(距離2以内)に壁が挟まっていないかを調べる。
@@ -1472,7 +1619,7 @@
     var spot = findDropSpot(enemy.x, enemy.y);
     if (!spot) return;
     G.floorItems.push(makeFloorItemEntry(spot.x, spot.y, def));
-    addMessage(enemy.name + "は" + def.name + "を落とした!", "note");
+    addMessage(enemy.name + "は" + (def.cat === "scroll" ? scrollDisplayName(def.key) : def.name) + "を落とした!", "note");
   }
 
   // 敵にダメージを与え、致命傷なら撃破処理(不死判定・経験値・ドロップ・クリア判定)を
@@ -2116,9 +2263,12 @@
     for (var i = 0; i < G.player.inventory.length; i++) {
       var it = G.player.inventory[i];
       var actionLabel = (it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable") ? "装備" : "使う";
+      // 巻物は未識別の間、本来の名前/説明ではなく色名の見た目と伏せた説明文を表示する。
+      var dispName = it.cat === "scroll" ? scrollDisplayName(it.key) : it.name;
+      var dispDesc = it.cat === "scroll" ? scrollDisplayDesc(it.key) : (it.desc || "");
       html += '<div class="inv-item">' +
         '<div class="sym" style="background:' + it.color + '22;color:' + it.color + '">' + it.sym + '</div>' +
-        '<div class="name">' + escapeHtml(it.name) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(it.desc || "") + '</small></div>' +
+        '<div class="name">' + escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(dispDesc) + '</small></div>' +
         '<div class="acts"><button data-act="use" data-idx="' + i + '">' + actionLabel + '</button>' +
         '<button data-act="drop" data-idx="' + i + '">捨てる</button></div>' +
         '</div>';
@@ -3395,6 +3545,8 @@
     G.gameOver = false;
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
     G.missEffect = null;
+    // 巻物追加前のセーブデータには識別情報が無いため、その場合だけ新規に割り当てる。
+    if (!G.scrollIdentity) G.scrollIdentity = assignScrollIdentities();
     if (G.enemies) {
       for (var i = 0; i < G.enemies.length; i++) {
         G.enemies[i].lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
