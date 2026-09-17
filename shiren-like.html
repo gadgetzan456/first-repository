@@ -1340,6 +1340,8 @@
   }
 
   function useInventorySlot(index) {
+    if (!G || G.gameOver || turnBusy) return;
+    if (handlePlayerIncapacitated()) return;
     var slot = G.player.inventory[index];
     if (!slot) return;
     if (slot.cat === "weapon" || slot.cat === "shield") { equipInventorySlot(index); return; }
@@ -1496,8 +1498,15 @@
       }
     } else { consumed = false; }
     if (consumed) consumeOneFromSlot(slot);
-    renderAll();
-    saveGame();
+    if (slot.cat === "scroll" && slot.sub === "stairs") {
+      // 次のフロアへ移動する処理(descend)側で描画・保存まで完結しており、生成直後の
+      // 新フロアで敵を即座に行動させる必要もないため、階段を直接踏んで降りる場合と
+      // 同様にここでは改めてターンを消費しない。
+      renderAll();
+      saveGame();
+      return;
+    }
+    doTurn();
   }
 
   // 装備を外した際、元のアイテムを持ち物へ戻す。持ち物がいっぱいで戻せなければ
@@ -1521,8 +1530,7 @@
     if (prev) {
       returnOrDropItem({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
     }
-    renderAll();
-    saveGame();
+    doTurn();
   }
 
   // 投げ物(矢・石)を持ち物から装備枠へ切り替える。既に何か装備していれば、
@@ -1538,8 +1546,7 @@
       var prevDef = findItemDefByKey(prev.key) || { key: prev.key, name: prev.name, cat: "throwable", sub: "", value: 0, sym: prev.sym, color: prev.color, desc: "" };
       returnOrDropItem(prevDef, prev.count);
     }
-    renderAll();
-    saveGame();
+    doTurn();
   }
 
   function dropInventorySlot(index) {
