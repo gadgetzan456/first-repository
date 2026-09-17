@@ -416,7 +416,7 @@
   <div class="panel stage-wrap">
     <canvas id="stage" width="884" height="468"></canvas>
     <div class="quick-inv" id="quick-inv" hidden>
-      <div class="quick-inv-title">持ち物(A:閉じる / ↑↓:選択 / Z:使う)</div>
+      <div class="quick-inv-title">持ち物(X:閉じる / ↑↓:選択 / Z:使う)</div>
       <div class="quick-inv-items" id="quick-inv-items"></div>
     </div>
   </div>
@@ -441,7 +441,7 @@
         <button class="btn-attack" id="btn-action">攻撃 (Z)</button>
         <button class="btn-shoot" id="btn-shoot">射撃 (S)</button>
       </div>
-      <div class="help-text">矢印キーで移動・向き変更<br>Zキーまたは「攻撃」ボタンで攻撃<br>Sキーまたは「射撃」ボタンで装備中の投げ物(矢・石)を投擲<br>階段の上でZキーを押すと降ります<br>Aキーで持ち物メニューを開閉(↑↓で選択・Zで使用)</div>
+      <div class="help-text">矢印キーで移動・向き変更<br>Zキーまたは「攻撃」ボタンで攻撃<br>Sキーまたは「射撃」ボタンで装備中の投げ物(矢・石)を投擲<br>階段の上でZキーを押すと降ります<br>Aキーで持ち物メニューを開く、Xキーで閉じる(↑↓で選択・Zで使用)</div>
     </div>
 
     <div class="panels">
@@ -1774,7 +1774,7 @@
   var ENEMY_TURN_DELAY_MS = 300;
   var turnBusy = false;
   var enemyTurnTimer = null;
-  // Aキーで開閉する、持ち物の簡易選択メニュー(画面内オーバーレイ)の状態。
+  // Aキーで開き、Xキーで閉じる持ち物の簡易選択メニュー(画面内オーバーレイ)の状態。
   var quickInvOpen = false;
   var quickInvIndex = 0;
 
@@ -2363,7 +2363,8 @@
 
   // Aキーで開く、画面内の持ち物簡易選択メニュー。効果説明は省略し道具名のみを並べ、
   // 上下キーで選択、Zキーで使用を確定する(装備品は使用=装備に、巻物・杖などは
-  // useInventorySlotへそのまま委譲するので通常の使用処理と完全に同じ)。
+  // useInventorySlotへそのまま委譲するので通常の使用処理と完全に同じ)。Xキーで
+  // 何もせず閉じる。
   function renderQuickInv() {
     var el = document.getElementById("quick-inv-items");
     if (G.player.inventory.length === 0) {
@@ -3723,26 +3724,26 @@
      入力
   ========================================================= */
   // z は攻撃アクション専用。q/e/c は固定の斜め移動キーとしてそのまま残す。
-  // 上下左右(矢印キー)と x は「x を押しながら方向キー」で任意の斜め方向に
-  // 移動できるよう、下の held-key 方式で個別に扱う(KEY_MAPには含めない)。
+  // 上下左右(矢印キー)と左シフトキーは「左シフトを押しながら方向キー」で任意の
+  // 斜め方向に移動できるよう、下の held-key 方式で個別に扱う(KEY_MAPには含めない)。
   var KEY_MAP = {
     q: [-1, -1], e: [1, -1], c: [1, 1],
     " ": [0, 0], ".": [0, 0]
   };
 
-  // 上下左右キーの押下状態と、xキーが押されているかどうかを保持する(押されている間
-  // true、離したら即false)。
+  // 上下左右キーの押下状態と、左シフトキーが押されているかどうかを保持する
+  // (押されている間true、離したら即false)。
   var heldDir = { up: false, down: false, left: false, right: false };
-  var xHeld = false;
+  var shiftHeld = false;
   // 方向キー単体の移動は、コンボ形成の猶予として少しだけ遅らせて実行する
   // (人が2〜3キーをほぼ同時に押しても、ブラウザには数十ms前後した順でイベントが
   // 届くことがあるため。長押し中のキーリピートはこの遅延の対象外にして、
   // 移動の反応が鈍くならないようにしてある)。
   var PLAIN_MOVE_DELAY_MS = 60;
   // 縦横どちらかの方向キーが既に押されている状態で、もう一方の軸の方向キーが
-  // 新たに押された場合は「斜め移動を狙っている」とみなし、xキーの到着をより長く待つ。
-  // 押す順序(横→縦、縦→横のどちらでも)に関わらず同じロジックで扱われるため、
-  // 片方の順序でしか斜め移動が成立しない、という偏りは起きない。
+  // 新たに押された場合は「斜め移動を狙っている」とみなし、左シフトキーの到着を
+  // より長く待つ。押す順序(横→縦、縦→横のどちらでも)に関わらず同じロジックで
+  // 扱われるため、片方の順序でしか斜め移動が成立しない、という偏りは起きない。
   var COMBO_AWAIT_DELAY_MS = 150;
   var pendingMoveTimers = { up: null, down: null, left: null, right: null };
 
@@ -3762,9 +3763,9 @@
     return heldDir.up || heldDir.down;
   }
 
-  // xキーを押しながら上下左右のうち縦横1つずつが押されていれば、
+  // 左シフトキーを押しながら上下左右のうち縦横1つずつが押されていれば、
   // その組み合わせの斜め方向へ移動する。片方だけ(上下のみ・左右のみ)の入力は無視する。
-  function tryXComboMove() {
+  function tryShiftComboMove() {
     var dx = (heldDir.left ? -1 : 0) + (heldDir.right ? 1 : 0);
     var dy = (heldDir.up ? -1 : 0) + (heldDir.down ? 1 : 0);
     if (dx !== 0 && dy !== 0) movePlayer(dx, dy);
@@ -3775,17 +3776,17 @@
   }
 
   // 方向キー単体の移動を、delayMsだけ遅らせて予約する(斜めコンボ形成の猶予)。
-  // 猶予時間内にxが押されなければ通常の単発移動として実行する。(キーをすぐ離した
-  // 「タップ」でも移動できるよう、方向キーが今も押されているかどうかはここでは
-  // 条件にしない。xとの組み合わせに昇格した場合は cancelPendingMove 側で
+  // 猶予時間内に左シフトが押されなければ通常の単発移動として実行する。(キーをすぐ
+  // 離した「タップ」でも移動できるよう、方向キーが今も押されているかどうかはここでは
+  // 条件にしない。左シフトとの組み合わせに昇格した場合は cancelPendingMove 側で
   // 明示的にキャンセル済み)。
   // PLAIN_MOVE_DELAY_MS(通常の一押し)とCOMBO_AWAIT_DELAY_MS(既に別軸の方向キーが
-  // 押された状態での新規プレス。xの到着をより長く待つ)の2箇所から呼ばれる。
+  // 押された状態での新規プレス。左シフトの到着をより長く待つ)の2箇所から呼ばれる。
   function scheduleDelayedMove(dir, delayMs) {
     cancelPendingMove(dir);
     pendingMoveTimers[dir] = setTimeout(function () {
       pendingMoveTimers[dir] = null;
-      if (!xHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
+      if (!shiftHeld) { movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); }
     }, delayMs);
   }
 
@@ -3796,12 +3797,13 @@
     var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
     if (key === "a") {
       ev.preventDefault();
-      if (quickInvOpen) closeQuickInv(); else openQuickInv();
+      if (!quickInvOpen) openQuickInv();
       return;
     }
     if (quickInvOpen) {
       ev.preventDefault();
       if (key === "z") { confirmQuickInv(); return; }
+      if (key === "x") { closeQuickInv(); return; }
       var qdir = normalizeDirKey(key);
       if (qdir === "up") moveQuickInvCursor(-1);
       else if (qdir === "down") moveQuickInvCursor(1);
@@ -3809,12 +3811,12 @@
     }
     if (key === "z") { ev.preventDefault(); performPlayerAction(); return; }
     if (key === "s") { ev.preventDefault(); performThrowAction(); return; }
-    if (key === "x") {
+    if (ev.code === "ShiftLeft") {
       ev.preventDefault();
-      xHeld = true;
+      shiftHeld = true;
       cancelPendingMove("up"); cancelPendingMove("down");
       cancelPendingMove("left"); cancelPendingMove("right");
-      tryXComboMove();
+      tryShiftComboMove();
       return;
     }
     var dir = normalizeDirKey(key);
@@ -3822,21 +3824,21 @@
       ev.preventDefault();
       // 別軸(縦/横)の方向キーが既に押された状態での新規プレスかどうか。押す順序が
       // 横→縦・縦→横のどちらでも同じ扱いになるので、斜め移動の成立に偏りは出ない。
-      var comboAttempt = !xHeld && !ev.repeat && otherAxisHeld(dir);
+      var comboAttempt = !shiftHeld && !ev.repeat && otherAxisHeld(dir);
       heldDir[dir] = true;
-      if (xHeld) {
+      if (shiftHeld) {
         cancelPendingMove(dir);
-        tryXComboMove();
+        tryShiftComboMove();
       } else if (comboAttempt) {
         // 斜め移動を狙っている可能性が高いので、両軸の保留中タイマーをキャンセルし、
-        // xの到着をより長く待つ。
+        // 左シフトの到着をより長く待つ。
         cancelPendingMove("up"); cancelPendingMove("down");
         cancelPendingMove("left"); cancelPendingMove("right");
         scheduleDelayedMove(dir, COMBO_AWAIT_DELAY_MS);
       } else if (ev.repeat) {
         movePlayer(DIR_VECTOR[dir][0], DIR_VECTOR[dir][1]); // 押しっぱなし中は従来通り即座に反応
       } else {
-        scheduleDelayedMove(dir, PLAIN_MOVE_DELAY_MS); // 最初の一押しだけ、xとの組み合わせが来るかを少し待つ
+        scheduleDelayedMove(dir, PLAIN_MOVE_DELAY_MS); // 最初の一押しだけ、左シフトとの組み合わせが来るかを少し待つ
       }
       return;
     }
@@ -3846,7 +3848,7 @@
 
   window.addEventListener("keyup", function (ev) {
     var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
-    if (key === "x") { xHeld = false; return; }
+    if (ev.code === "ShiftLeft") { shiftHeld = false; return; }
     var dir = normalizeDirKey(key);
     // すぐ離す「タップ」でも移動できるよう、離しても保留中の単発移動はキャンセルしない
     if (dir) { heldDir[dir] = false; }
