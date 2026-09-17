@@ -603,9 +603,12 @@
   }
 
   // keyからITEM_TYPESの定義を1つ引く(投げ物の射程・倍率などを装備枠から再取得する用)。
+  // ITEM_TYPES_BY_KEYで事前にkey引きできるようにしておき、都度の線形探索を避ける
+  // (巻物の表示名/説明を毎描画で引くようになったため)。
+  var ITEM_TYPES_BY_KEY = {};
+  ITEM_TYPES.forEach(function (def) { ITEM_TYPES_BY_KEY[def.key] = def; });
   function findItemDefByKey(key) {
-    for (var i = 0; i < ITEM_TYPES.length; i++) if (ITEM_TYPES[i].key === key) return ITEM_TYPES[i];
-    return null;
+    return ITEM_TYPES_BY_KEY[key] || null;
   }
 
   /* =========================================================
@@ -668,9 +671,8 @@
     return ENEMY_TYPES.filter(function (e) { return e.minDepth <= depth; });
   }
   // アイテムの出現候補は階層による制限を設けず、常に全種類を対象にする。
-  // 強力なアイテムを序盤に引き当てて一気に有利になれるのも、この手のゲームの
-  // 醍醐味であるため(depth引数は他の呼び出し元と揃えるため残しているだけで未使用)。
-  function itemPoolForDepth(depth) {
+  // 強力なアイテムを序盤に引き当てて一気に有利になれるのも、この手のゲームの醍醐味であるため。
+  function itemPoolForDepth() {
     return ITEM_TYPES;
   }
 
@@ -1221,6 +1223,12 @@
   ========================================================= */
   // qtyを省略すると1個/1本として扱う。矢・石のような投げ物は複数個/複数本を
   // まとめて拾えるため、qtyにその数量を渡す。スタックは99個/99本を上限とする。
+  // ITEM_TYPESの定義から持ち物スロットのエントリを1つ作る(count個のスタックとして)。
+  // addItemToInventory・満腹の巻物(空き枠へのおにぎり新設)の両方で使う共通の形。
+  function makeInventoryEntry(def, count) {
+    return { key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: count };
+  }
+
   function addItemToInventory(def, qty) {
     qty = typeof qty === "number" ? qty : 1;
     // 武器/盾は個別の装備候補として扱うため、同じ種類でもスタック(数量まとめ)しない。
@@ -1232,7 +1240,7 @@
       }
     }
     if (G.player.inventory.length >= INV_CAP) return false;
-    G.player.inventory.push({ key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: stackable ? Math.min(99, qty) : 1 });
+    G.player.inventory.push(makeInventoryEntry(def, stackable ? Math.min(99, qty) : 1));
     return true;
   }
 
@@ -1296,6 +1304,16 @@
     } else {
       addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
     }
+  }
+
+  // 持ち物スロットのスタックを1個消費し、0になれば持ち物から取り除く。渡されたindexを
+  // 信用せずその場でindexOfし直すため、他のスロットが先に削除されてインデックスがずれて
+  // いても安全に呼べる(破壊の巻物が身代わりの巻物を消費する場合などに使う)。
+  function consumeOneFromSlot(slot) {
+    var idx = G.player.inventory.indexOf(slot);
+    if (idx < 0) return;
+    slot.count--;
+    if (slot.count <= 0) G.player.inventory.splice(idx, 1);
   }
 
   function useInventorySlot(index) {
@@ -1372,11 +1390,7 @@
         var decoySlot = G.player.inventory.find(function (s) { return s.key === "scroll_decoy"; });
         if (decoySlot) {
           addMessage(scrollDisplayName("scroll_decoy") + "が身代わりとなって砕け散り、装備は守られた!", "good");
-          decoySlot.count--;
-          if (decoySlot.count <= 0) {
-            var decoyIdx = G.player.inventory.indexOf(decoySlot);
-            if (decoyIdx >= 0) G.player.inventory.splice(decoyIdx, 1);
-          }
+          consumeOneFromSlot(decoySlot);
         } else {
           var destroyedNames = [];
           if (G.player.weapon) { destroyedNames.push(G.player.weapon.name); G.player.weapon = null; }
@@ -1429,7 +1443,7 @@
         // (混乱/加速/弱体は行動自体はできるため対象外)。
         var releasedCount = 0;
         G.enemies.forEach(function (e) {
-          if (e.monsterHouseDormant || e.sleepTurns > 0 || e.paralyzed) {
+          if (isIncapacitated(e)) {
             e.monsterHouseDormant = false;
             e.sleepTurns = 0;
             e.paralyzed = false;
@@ -1449,7 +1463,7 @@
         var onigiriDef = findItemDefByKey("onigiri");
         var emptySlots = INV_CAP - G.player.inventory.length;
         for (var fi = 0; fi < emptySlots; fi++) {
-          G.player.inventory.push({ key: onigiriDef.key, name: onigiriDef.name, cat: onigiriDef.cat, sub: onigiriDef.sub, value: onigiriDef.value, sym: onigiriDef.sym, color: onigiriDef.color, desc: onigiriDef.desc, count: 1 });
+          G.player.inventory.push(makeInventoryEntry(onigiriDef, 1));
         }
         if (emptySlots > 0) {
           addMessage(scrollName + "の力で、持ち物の空きすべてにおにぎりが現れた!", "good");
@@ -1458,15 +1472,7 @@
         }
       }
     } else { consumed = false; }
-    if (consumed) {
-      // 巻物の効果(破壊の巻物の身代わり消費など)が、自分より前の持ち物を
-      // 削除しているとindexがずれるため、その場でインデックスを取り直す。
-      var curIdx = G.player.inventory.indexOf(slot);
-      if (curIdx >= 0) {
-        slot.count--;
-        if (slot.count <= 0) G.player.inventory.splice(curIdx, 1);
-      }
-    }
+    if (consumed) consumeOneFromSlot(slot);
     renderAll();
     saveGame();
   }
@@ -1667,7 +1673,7 @@
   // 戻り値:実際に倒した(=Gから取り除いた)場合はtrue
   function applyEnemyDamage(enemy, dmg) {
     enemy.hp -= dmg;
-    enemy.paralyzed = false; // 金縛りの杖:ダメージを受けると解ける
+    clearParalysis(enemy); // 金縛りの杖:ダメージを受けると解ける
     if (enemy.hp <= 0) {
       // スケルトンの「不死」:1戦につき1度だけ、致命傷をHP1で耐える
       if (enemy.ability === "undying" && !enemy.undyingUsed) {
@@ -1700,7 +1706,7 @@
     if (!chance(HIT_CHANCE)) {
       addMessage(enemy.name + "への攻撃が外れた!", "");
       triggerMissEffect(enemy.x, enemy.y);
-      enemy.paralyzed = false; // 金縛りの杖:攻撃が外れると解ける
+      clearParalysis(enemy); // 金縛りの杖:攻撃が外れると解ける
       return;
     }
     var dmg = computeDamage(effAtk(), enemy.def);
@@ -1716,7 +1722,7 @@
     if (!chance(HIT_CHANCE)) {
       addMessage(enemy.name + "の攻撃!外れた!", "");
       triggerMissEffect(G.player.x, G.player.y);
-      G.player.paralyzed = false; // 金縛りは攻撃が外れると解ける
+      clearParalysis(G.player); // 金縛りは攻撃が外れると解ける
       return;
     }
     var critChance = enemy.ability === "heavycrit" ? 0.25 : undefined; // 大鬼:会心の一撃
@@ -1724,7 +1730,7 @@
     var atk = (enemy.weakenTurns > 0) ? Math.round(enemy.atk * 0.5) : enemy.atk; // 弱体の杖:攻撃力半減
     var dmg = computeDamage(atk, effDef(), critChance, defFactor);
     G.player.hp -= dmg;
-    G.player.paralyzed = false; // 金縛りはダメージを受けると解ける
+    clearParalysis(G.player); // 金縛りはダメージを受けると解ける
     G.lastDamageCause = { type: "enemy", key: enemy.key, name: enemy.name, boss: !!enemy.boss };
     addMessage(enemy.name + "の攻撃!" + dmg + "のダメージを受けた。", "warn");
     if (enemy.ability === "drain") { // コウモリ系の吸血
@@ -1755,31 +1761,33 @@
   // - 睡眠中/金縛り中:意図した行動はできず、ターンだけが経過する。
   // - 混乱中:意図した行動の代わりに、ランダムな方向へよろめくだけになる。
   function handlePlayerIncapacitated() {
-    if (G.player.sleepTurns > 0) {
-      addMessage("眠っていて体が動かない…", "warn");
-      doTurn();
-      return true;
-    }
-    if (G.player.paralyzed) {
-      addMessage("金縛りで体が動かない…", "warn");
+    if (G.player.sleepTurns > 0 || G.player.paralyzed) {
+      addMessage(G.player.sleepTurns > 0 ? "眠っていて体が動かない…" : "金縛りで体が動かない…", "warn");
       doTurn();
       return true;
     }
     if (G.player.confusedTurns > 0) {
       addMessage("混乱していて、ランダムな方向によろめいた…", "warn");
-      var dx = rnd(-1, 1), dy = rnd(-1, 1);
-      if (dx !== 0 || dy !== 0) {
-        var nx = G.player.x + dx, ny = G.player.y + dy;
-        var cornerBlocked = dx !== 0 && dy !== 0 && isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy);
-        if (inBounds(nx, ny) && G.grid[ny][nx] !== T_WALL && !cornerBlocked && !findEnemyAt(nx, ny)) {
-          G.player.x = nx; G.player.y = ny;
-          tryPickup(nx, ny);
-        }
-      }
+      tryStepPlayer(rnd(-1, 1), rnd(-1, 1)); // 動けなければ何も起きない(ターンだけ経過する)
       doTurn();
       return true;
     }
     return false;
+  }
+
+  // プレイヤーを(dx,dy)方向へ1マス動かせるか判定し、動けるならその場で移動して着地
+  // マスのアイテムを拾う。動けた場合はtrueを返す(向きの変更は呼び出し元の責務)。
+  // 通常の移動(movePlayer)と、混乱時のランダムなよろめき(handlePlayerIncapacitated)の
+  // 両方で使う。
+  function tryStepPlayer(dx, dy) {
+    var nx = G.player.x + dx, ny = G.player.y + dy;
+    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) return false;
+    // 斜め移動は、壁の角(直交する2マスのどちらか一方でも壁)を挟んでいるとすり抜けられない。
+    if (dx !== 0 && dy !== 0 && isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) return false;
+    if (findEnemyAt(nx, ny)) return false;
+    G.player.x = nx; G.player.y = ny;
+    tryPickup(nx, ny);
+    return true;
   }
 
   // 移動キーは「移動(と向きを変える)」専用。攻撃はZキー/攻撃ボタンで行う(performPlayerAction)。
@@ -1789,15 +1797,7 @@
     if (handlePlayerIncapacitated()) return;
     if (dx === 0 && dy === 0) { doTurn(); return; }
     G.player.facing = { dx: dx, dy: dy };
-    var nx = G.player.x + dx, ny = G.player.y + dy;
-    if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) { renderStage(); return; }
-    // 斜め移動は、壁の角(直交する2マスのどちらか一方でも壁)を挟んでいるとすり抜けられない。
-    if (isDiagonalCornerBlocked(G.player.x, G.player.y, dx, dy)) { renderStage(); return; }
-
-    if (findEnemyAt(nx, ny)) { renderStage(); return; }
-
-    G.player.x = nx; G.player.y = ny;
-    tryPickup(nx, ny);
+    if (!tryStepPlayer(dx, dy)) { renderStage(); return; }
     // 階段は乗っただけでは降りない(誤って踏んだだけで進んでしまう事故を防ぐため)。
     // 降りるにはこのマスに乗った状態でZキー/攻撃ボタンを押す(performPlayerAction側)。
     doTurn();
@@ -1880,7 +1880,7 @@
       } else {
         addMessage(quiver.name + "は" + target.name + "に外れて足元に落ちた。", "warn");
         if (itemDef) dropThrownItem(target.x, target.y, itemDef);
-        target.paralyzed = false; // 金縛りの杖:投擲が外れると解ける
+        clearParalysis(target); // 金縛りの杖:投擲が外れると解ける
       }
     } else if (itemDef) {
       dropThrownItem(landX, landY, itemDef);
@@ -1920,25 +1920,44 @@
     doTurn(ENEMY_TURN_DELAY_MS);
   }
 
+  // 杖/呪文が付与する状態異常の持続ターン数。杖(applyWandEffect)・呪術師の呪文
+  // (applySpellToPlayer)の両方から参照し、数値のずれが起きないようにする。
+  var WAND_HASTE_TURNS = 10;
+  var WAND_SLEEP_TURNS = 5;
+  var WAND_CONFUSE_TURNS = 8;
+  var WAND_WEAKEN_TURNS = 15;
   var WAND_KNOCKBACK_DIST = 4; // 衝撃の杖:吹き飛ばす距離(壁・敵・プレイヤーに当たるとそこで止まる)
+
+  // 敵が「動けない」状態(睡眠・金縛り・モンスターハウスの待機)かどうかを判定する。
+  // 起床の巻物の対象判定で使う(enemyTurn側の行動スキップ判定も同じ3項目を見ているが、
+  // sleepTurnsの消費などターン経過の副作用を伴うためそちらは個別に書いている)。
+  function isIncapacitated(e) {
+    return !!(e.monsterHouseDormant || e.sleepTurns > 0 || e.paralyzed);
+  }
+
+  // 金縛りを解除する(ダメージを受けた・攻撃/投擲が外れた等、combatの結果として呼ばれる)。
+  // 敵・プレイヤーどちらのオブジェクトにも使う。
+  function clearParalysis(entity) {
+    entity.paralyzed = false;
+  }
 
   // 杖ごとの効果を対象に適用する。杖はダメージを与えず、状態異常や位置操作のみを行う。
   function applyWandEffect(wand, target, dx, dy) {
     if (wand.sub === "haste") {
-      target.hasteTurns = 10;
+      target.hasteTurns = WAND_HASTE_TURNS;
       addMessage(wand.name + "を振ると、" + target.name + "の動きが加速した!", "warn");
     } else if (wand.sub === "sleep") {
-      target.sleepTurns = 5;
+      target.sleepTurns = WAND_SLEEP_TURNS;
       addMessage(wand.name + "を振ると、" + target.name + "は眠ってしまった!", "good");
     } else if (wand.sub === "confuse") {
-      target.confusedTurns = 8;
+      target.confusedTurns = WAND_CONFUSE_TURNS;
       addMessage(wand.name + "を振ると、" + target.name + "は混乱した!", "good");
     } else if (wand.sub === "knockback") {
       var moved = knockbackEnemy(target, dx, dy, WAND_KNOCKBACK_DIST);
       if (moved > 0) addMessage(wand.name + "を振ると、" + target.name + "が" + moved + "マス吹き飛んだ!", "good");
       else addMessage(wand.name + "を振ったが、" + target.name + "は壁際で吹き飛ばなかった。", "");
     } else if (wand.sub === "weaken") {
-      target.weakenTurns = 15;
+      target.weakenTurns = WAND_WEAKEN_TURNS;
       addMessage(wand.name + "を振ると、" + target.name + "は弱体化した!", "good");
     } else if (wand.sub === "paralyze") {
       target.paralyzed = true;
@@ -1946,32 +1965,35 @@
     }
   }
 
-  // 敵を(dx,dy)方向へ最大maxDistマス吹き飛ばす(衝撃の杖)。壁・プレイヤー・他の敵に
-  // ぶつかった時点で止まる。実際に動けた距離を返す。
-  function knockbackEnemy(enemy, dx, dy, maxDist) {
+  // (mover.x, mover.y)を(dx,dy)方向へ最大maxDistマス動かす共通処理。壁・範囲外・
+  // isBlocked(x,y)がtrueを返すマスに当たった時点で止まる。実際に動けた距離を返す。
+  // 衝撃の杖(敵が対象)と呪術師の衝撃の呪文(プレイヤーが対象)の両方で使う。
+  function knockbackEntity(mover, dx, dy, maxDist, isBlocked) {
     var moved = 0;
     for (var i = 0; i < maxDist; i++) {
-      var nx = enemy.x + dx, ny = enemy.y + dy;
+      var nx = mover.x + dx, ny = mover.y + dy;
       if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) break;
-      if (nx === G.player.x && ny === G.player.y) break;
-      if (findEnemyAt(nx, ny, enemy)) break;
-      enemy.x = nx; enemy.y = ny;
+      if (isBlocked(nx, ny)) break;
+      mover.x = nx; mover.y = ny;
       moved++;
     }
     return moved;
   }
 
+  // 敵を(dx,dy)方向へ最大maxDistマス吹き飛ばす(衝撃の杖)。壁・プレイヤー・他の敵に
+  // ぶつかった時点で止まる。実際に動けた距離を返す。
+  function knockbackEnemy(enemy, dx, dy, maxDist) {
+    return knockbackEntity(enemy, dx, dy, maxDist, function (x, y) {
+      return (x === G.player.x && y === G.player.y) || !!findEnemyAt(x, y, enemy);
+    });
+  }
+
   // プレイヤーを(dx,dy)方向へ最大maxDistマス吹き飛ばす(呪術師の衝撃の呪文)。
   // 壁・敵にぶつかった時点で止まる。着地したマスのアイテムは通常の移動と同様に拾う。
   function knockbackPlayer(dx, dy, maxDist) {
-    var moved = 0;
-    for (var i = 0; i < maxDist; i++) {
-      var nx = G.player.x + dx, ny = G.player.y + dy;
-      if (!inBounds(nx, ny) || G.grid[ny][nx] === T_WALL) break;
-      if (findEnemyAt(nx, ny)) break;
-      G.player.x = nx; G.player.y = ny;
-      moved++;
-    }
+    var moved = knockbackEntity(G.player, dx, dy, maxDist, function (x, y) {
+      return !!findEnemyAt(x, y);
+    });
     if (moved > 0) tryPickup(G.player.x, G.player.y);
     return moved;
   }
@@ -1984,17 +2006,17 @@
   // ダメージは与えない。
   function applySpellToPlayer(sub, caster, dx, dy) {
     if (sub === "sleep") {
-      G.player.sleepTurns = 5;
+      G.player.sleepTurns = WAND_SLEEP_TURNS;
       addMessage(caster.name + "の呪文で、体が動かなくなった!", "warn");
     } else if (sub === "confuse") {
-      G.player.confusedTurns = 8;
+      G.player.confusedTurns = WAND_CONFUSE_TURNS;
       addMessage(caster.name + "の呪文で、頭が混乱した!", "warn");
     } else if (sub === "knockback") {
       var moved = knockbackPlayer(dx, dy, WAND_KNOCKBACK_DIST);
       if (moved > 0) addMessage(caster.name + "の呪文で、体が吹き飛ばされた!", "warn");
       else addMessage(caster.name + "の呪文を受けたが、壁際で吹き飛ばなかった。", "warn");
     } else if (sub === "weaken") {
-      G.player.weakenTurns = 15;
+      G.player.weakenTurns = WAND_WEAKEN_TURNS;
       addMessage(caster.name + "の呪文で、力が抜けていく…", "warn");
     } else if (sub === "paralyze") {
       G.player.paralyzed = true;
@@ -2031,14 +2053,14 @@
     if (G.player.hunger <= 0) {
       G.player.hp -= 2;
       G.lastDamageCause = { type: "hunger" };
-      G.player.paralyzed = false; // 金縛りはダメージを受けると解ける(空腹によるものも含む)
+      clearParalysis(G.player); // 金縛りはダメージを受けると解ける(空腹によるものも含む)
       addMessage("お腹が空いて力が入らない…", "warn");
     }
     if (G.player.poison > 0) {
       G.player.poison--;
       G.player.hp -= 2;
       G.lastDamageCause = { type: "poison" };
-      G.player.paralyzed = false; // 金縛りはダメージを受けると解ける(毒によるものも含む)
+      clearParalysis(G.player); // 金縛りはダメージを受けると解ける(毒によるものも含む)
       addMessage("毒で体がむしばまれる…", "warn");
     }
     // 呪術師の呪文による状態異常のターン経過(行動できるかどうかに関わらず毎ターン進む)。
