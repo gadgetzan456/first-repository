@@ -397,6 +397,18 @@
   }
   .inv-item .name { flex: 1; min-width: 0; }
   .inv-item .name small { display: block; color: var(--ink-soft); font-size: 10.5px; }
+  .equip-badge {
+    display: inline-block;
+    width: 14px; height: 14px;
+    line-height: 14px;
+    text-align: center;
+    border-radius: 3px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
   .inv-item .acts { display: flex; gap: 4px; flex-shrink: 0; }
   .inv-item .acts button {
     font-size: 10.5px;
@@ -517,7 +529,7 @@
   var W = 34, H = 18;
   var TILE = 26;
   var MAX_FLOOR = 50;
-  var INV_CAP = 8;
+  var INV_CAP = 10; // 装備中の武器/盾/投げ物もこの枠を消費する
   var SAVE_KEY = "meikyu50_save_v1";
   var WANDER_SPAWN_CHANCE = 0.03; // 行動1回ごとに新しい敵が湧く確率(低確率)
   var WANDER_MAX_ENEMIES = 16; // 湧きすぎ防止のための1フロアあたりの敵数上限
@@ -816,10 +828,7 @@
         sleepTurns: 0,
         confusedTurns: 0,
         weakenTurns: 0,
-        weapon: null,
-        shield: null,
-        throwable: null,
-        inventory: [],
+        inventory: [], // 装備中の武器/盾/投げ物も他のアイテムと同じくここに入る(slot.equippedで判定)
         facing: { dx: 0, dy: 1 },
         lungeOffset: null // 攻撃モーション中の踏み込み表示位置(triggerPlayerLunge参照)
       },
@@ -1291,10 +1300,23 @@
   function weakenScale(v) { return G.player.weakenTurns > 0 ? Math.round(v * 0.5) : v; }
   // 鉄壁の巻物の効果中は防御力を2倍にする。
   function ironScale(v) { return G.player.ironWallTurns > 0 ? v * 2 : v; }
-  function effAtk() {
-    return weakenScale(megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0)));
+  // 持ち物の中から、指定カテゴリ(weapon/shield/throwable)で現在装備中(equipped:true)の
+  // スロットを探す。各カテゴリにつき同時に装備できるのは最大1つ。見つからなければnull。
+  function findEquippedSlot(cat) {
+    for (var i = 0; i < G.player.inventory.length; i++) {
+      var s = G.player.inventory[i];
+      if (s.cat === cat && s.equipped) return s;
+    }
+    return null;
   }
-  function effDef() { return ironScale(G.player.def + (G.player.shield ? G.player.shield.value : 0)); }
+  function effAtk() {
+    var weapon = findEquippedSlot("weapon");
+    return weakenScale(megaScale(G.player.atk + (weapon ? weapon.value : 0)));
+  }
+  function effDef() {
+    var shield = findEquippedSlot("shield");
+    return ironScale(G.player.def + (shield ? shield.value : 0));
+  }
   // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
   function unarmedAtk() { return weakenScale(megaScale(G.player.atk)); }
 
@@ -1322,8 +1344,13 @@
     return { key: def.key, name: def.name, cat: def.cat, sub: def.sub, value: def.value, sym: def.sym, color: def.color, desc: def.desc, count: count };
   }
 
-  function addItemToInventory(def, qty) {
+  // optsに{autoEquip:true}を渡すと、対象カテゴリ(weapon/shield/throwable)で
+  // まだ何も装備していない場合に限り、今回の追加分(既存スタックへの合流・
+  // 新規枠どちらでも)を自動的に装備状態にする(武器/盾/投げ物を拾った際に使う)。
+  function addItemToInventory(def, qty, opts) {
     qty = typeof qty === "number" ? qty : 1;
+    var autoEquip = !!(opts && opts.autoEquip) &&
+      (def.cat === "weapon" || def.cat === "shield" || def.cat === "throwable");
     // 投げ物(矢・石)と杖(countは残り使用回数)は数量/回数をまとめて管理するため
     // スタックする。それ以外(薬草・おにぎり・巻物など)は基本1つで持ち物枠を1つ
     // 使うため、同じ種類でも別々の枠に入る(武器/盾は個別の装備候補として扱うため、
@@ -1332,35 +1359,18 @@
     if (stackable) {
       for (var i = 0; i < G.player.inventory.length; i++) {
         var slot = G.player.inventory[i];
-        if (slot.key === def.key) { slot.count = Math.min(99, slot.count + qty); return true; }
+        if (slot.key === def.key) {
+          slot.count = Math.min(99, slot.count + qty);
+          if (autoEquip && !findEquippedSlot(def.cat)) slot.equipped = true;
+          return true;
+        }
       }
     }
     if (G.player.inventory.length >= INV_CAP) return false;
-    G.player.inventory.push(makeInventoryEntry(def, stackable ? Math.min(99, qty) : 1));
+    var entry = makeInventoryEntry(def, stackable ? Math.min(99, qty) : 1);
+    if (autoEquip && !findEquippedSlot(def.cat)) entry.equipped = true;
+    G.player.inventory.push(entry);
     return true;
-  }
-
-  // 投げ物(矢・石)の入手処理。既に同じ種類を装備中ならそのまま補充(上限99)、
-  // 何も装備していなければ拾った瞬間に自動装備(武器/盾と同様)、既に別の種類を
-  // 装備中なら持ち物へ通常のスタックとして入る。
-  function pickupThrowable(def, qty) {
-    if (G.player.throwable && G.player.throwable.key === def.key) {
-      G.player.throwable.count = Math.min(99, G.player.throwable.count + qty);
-      addMessage(def.name + "を補充した。(" + G.player.throwable.count + "本/個)", "note");
-    } else if (!G.player.throwable) {
-      G.player.throwable = { key: def.key, name: def.name, sym: def.sym, color: def.color, count: Math.min(99, qty) };
-      addMessage(def.name + "を拾い、自動的に装備した!", "note");
-    } else if (addItemToInventory(def, qty)) {
-      addMessage(def.name + "を拾った。", "note");
-    } else {
-      addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
-    }
-  }
-
-  // 武器/盾の装備スロット用オブジェクトを作る({name,value,key}の3フィールドのみ保持)。
-  // tryPickupの自動装備・equipInventorySlotの手動装備の双方で使う。
-  function makeEquipRef(name, value, key) {
-    return { name: name, value: value, key: key };
   }
 
   function tryPickup(x, y) {
@@ -1368,15 +1378,25 @@
     if (!it) return;
     var def = it.def;
     var i = G.floorItems.indexOf(it);
-    // 武器/盾は、何も装備していなければ拾った瞬間に自動で装備する
-    if ((def.cat === "weapon" || def.cat === "shield") && !G.player[def.cat]) {
-      G.player[def.cat] = makeEquipRef(def.name, def.value, def.key);
-      addMessage(def.name + "を拾い、自動的に装備した!", "note");
-      G.floorItems.splice(i, 1);
+    // 武器/盾/投げ物は、その部位に何も装備していなければ拾った瞬間に自動で装備する
+    // (持ち物枠は他のアイテムと同様に消費する)。
+    if (def.cat === "weapon" || def.cat === "shield") {
+      var hadNoneEquipped = !findEquippedSlot(def.cat);
+      if (addItemToInventory(def, 1, { autoEquip: true })) {
+        addMessage(def.name + (hadNoneEquipped ? "を拾い、自動的に装備した!" : "を拾った。"), "note");
+        G.floorItems.splice(i, 1);
+      } else {
+        addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+      }
     } else if (def.cat === "throwable") {
-      var qty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
-      pickupThrowable(def, qty);
-      G.floorItems.splice(i, 1);
+      var tqty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
+      var hadNoneEquippedT = !findEquippedSlot("throwable");
+      if (addItemToInventory(def, tqty, { autoEquip: true })) {
+        addMessage(def.name + (hadNoneEquippedT ? "を拾い、自動的に装備した!" : "を拾った。"), "note");
+        G.floorItems.splice(i, 1);
+      } else {
+        addMessage("荷物がいっぱいで" + def.name + "を拾えなかった。", "warn");
+      }
     } else if (def.cat === "wand") {
       // 杖は装備枠を持たず、通常のスタックとして持ち物に入る(countが残り使用回数)。
       var wqty = (typeof it.count === "number") ? it.count : (def.bundle || 1);
@@ -1417,8 +1437,14 @@
     if (handlePlayerIncapacitated()) return;
     var slot = G.player.inventory[index];
     if (!slot) return;
-    if (slot.cat === "weapon" || slot.cat === "shield") { equipInventorySlot(index); return; }
-    if (slot.cat === "throwable") { equipThrowableSlot(index); return; }
+    if (slot.cat === "weapon" || slot.cat === "shield") {
+      if (slot.equipped) unequipInventorySlot(index); else equipInventorySlot(index);
+      return;
+    }
+    if (slot.cat === "throwable") {
+      if (slot.equipped) unequipInventorySlot(index); else equipThrowableSlot(index);
+      return;
+    }
     if (slot.cat === "wand") { castWand(index); return; }
     var consumed = true;
     if (slot.cat === "herb") {
@@ -1442,10 +1468,12 @@
       identifyScroll(slot.key);
       var scrollName = scrollDisplayName(slot.key);
       if (slot.sub === "enchant_weapon") {
-        if (G.player.weapon) { G.player.weapon.value += 1; addMessage(scrollName + "の力で" + G.player.weapon.name + "が強化された!(攻撃+1)", "good"); }
+        var enchWeapon = findEquippedSlot("weapon");
+        if (enchWeapon) { enchWeapon.value += 1; addMessage(scrollName + "の力で" + enchWeapon.name + "が強化された!(攻撃+1)", "good"); }
         else { addMessage(scrollName + "を読んだが、強化する武器がなく力は消えた。", "warn"); }
       } else if (slot.sub === "enchant_shield") {
-        if (G.player.shield) { G.player.shield.value += 1; addMessage(scrollName + "の力で" + G.player.shield.name + "が強化された!(防御+1)", "good"); }
+        var enchShield = findEquippedSlot("shield");
+        if (enchShield) { enchShield.value += 1; addMessage(scrollName + "の力で" + enchShield.name + "が強化された!(防御+1)", "good"); }
         else { addMessage(scrollName + "を読んだが、強化する盾がなく力は消えた。", "warn"); }
       } else if (slot.sub === "teleport") {
         // 今いる部屋とは別の部屋へ飛ぶ(通路や同じ部屋への再抽選は避ける)。
@@ -1491,9 +1519,14 @@
           consumeOneFromSlot(decoySlot);
         } else {
           var destroyedNames = [];
-          if (G.player.weapon) { destroyedNames.push(G.player.weapon.name); G.player.weapon = null; }
-          if (G.player.shield) { destroyedNames.push(G.player.shield.name); G.player.shield = null; }
-          if (G.player.throwable) { destroyedNames.push(G.player.throwable.name); G.player.throwable = null; }
+          ["weapon", "shield", "throwable"].forEach(function (destroyCat) {
+            var eq = findEquippedSlot(destroyCat);
+            if (eq) {
+              destroyedNames.push(eq.name);
+              var eqIdx = G.player.inventory.indexOf(eq);
+              if (eqIdx >= 0) G.player.inventory.splice(eqIdx, 1);
+            }
+          });
           if (destroyedNames.length > 0) {
             addMessage(scrollName + "の力で、装備していた" + destroyedNames.join("・") + "が粉々に砕け散った!", "warn");
           } else {
@@ -1588,7 +1621,7 @@
         G.player.weakenTurns = slot.value;
         addMessage(scrollName + "を読むと、体から力が抜けていった…" + slot.value + "ターンの間、攻撃力が半分になった。", "warn");
       } else if (slot.sub === "curse") {
-        if (G.player.weapon || G.player.shield) {
+        if (findEquippedSlot("weapon") || findEquippedSlot("shield")) {
           G.player.curseTurns = slot.value;
           addMessage(scrollName + "の禍々しい力で、装備が体に貼り付いて外せなくなった…", "warn");
         } else {
@@ -1608,63 +1641,69 @@
     doTurn();
   }
 
-  // 装備を外した際、元のアイテムを持ち物へ戻す。持ち物がいっぱいで戻せなければ
-  // 足元に置く。qtyは投げ物のみ意味を持つ(makeFloorItemEntry参照。武器/盾は無視される)。
-  function returnOrDropItem(def, qty) {
-    var restored = addItemToInventory(def, qty);
-    if (!restored) {
-      G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, def, qty));
-      addMessage(def.name + "は足元に置かれた。", "");
-    }
-  }
+  // 装備品は持ち物の中に留まったまま、equippedフラグのon/offだけで切り替わる
+  // (もう一方の装備候補を持ち物から追い出す必要が無いので、容量チェックも不要)。
 
   function equipInventorySlot(index) {
     var slot = G.player.inventory[index];
-    if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield")) return;
-    var slotName = slot.cat;
+    if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield") || slot.equipped) return;
+    var current = findEquippedSlot(slot.cat);
     // 呪いの巻物の効果中は、既に何か装備している部位(武器/盾)を付け替えられない
     // (何も装備していない部位への新規装備は「外す」動作を伴わないため許可する)。
-    if (G.player.curseTurns > 0 && G.player[slotName]) {
-      addMessage("呪いのせいで、今の" + (slotName === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
+    if (G.player.curseTurns > 0 && current) {
+      addMessage("呪いのせいで、今の" + (slot.cat === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
       doTurn();
       return;
     }
-    G.player.inventory.splice(index, 1);
-    var prev = G.player[slotName];
-    G.player[slotName] = makeEquipRef(slot.name, slot.value, slot.key);
+    if (current) current.equipped = false;
+    slot.equipped = true;
     addMessage(slot.name + "を装備した。", "note");
-    if (prev) {
-      returnOrDropItem({ key: prev.key, name: prev.name, cat: slotName, value: prev.value, sym: slot.sym, color: slot.color, desc: "" });
-    }
     doTurn();
   }
 
-  // 投げ物(矢・石)を持ち物から装備枠へ切り替える。既に何か装備していれば、
-  // その残数ごと持ち物へ戻す(戻せなければ武器・盾の入れ替えと同様に足元へ置く)。
+  // 投げ物(矢・石)を装備状態にする。既に何か装備していれば、そちらは装備解除される
+  // だけで持ち物には留まったまま(枠の移動は発生しない)。
   function equipThrowableSlot(index) {
     var slot = G.player.inventory[index];
-    if (!slot || slot.cat !== "throwable") return;
-    G.player.inventory.splice(index, 1);
-    var prev = G.player.throwable;
-    G.player.throwable = { key: slot.key, name: slot.name, sym: slot.sym, color: slot.color, count: slot.count };
+    if (!slot || slot.cat !== "throwable" || slot.equipped) return;
+    var current = findEquippedSlot("throwable");
+    if (current) current.equipped = false;
+    slot.equipped = true;
     addMessage(slot.name + "を装備した。", "note");
-    if (prev) {
-      var prevDef = findItemDefByKey(prev.key) || { key: prev.key, name: prev.name, cat: "throwable", sub: "", value: 0, sym: prev.sym, color: prev.color, desc: "" };
-      returnOrDropItem(prevDef, prev.count);
+    doTurn();
+  }
+
+  // 武器/盾/投げ物の装備を解除する(持ち物には残ったまま、ただの未装備アイテムになる)。
+  // 武器/盾は呪いの巻物の効果中は外せない(投げ物は呪いの対象外)。
+  function unequipInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot || !slot.equipped) return;
+    if ((slot.cat === "weapon" || slot.cat === "shield") && G.player.curseTurns > 0) {
+      addMessage("呪いのせいで、今の" + (slot.cat === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
+      doTurn();
+      return;
     }
+    slot.equipped = false;
+    addMessage(slot.name + "を外した。", "note");
     doTurn();
   }
 
   function dropInventorySlot(index) {
     var slot = G.player.inventory[index];
     if (!slot) return;
+    // 呪われた武器/盾は、装備を外す操作と同様に捨てることもできない。
+    if (slot.equipped && (slot.cat === "weapon" || slot.cat === "shield") && G.player.curseTurns > 0) {
+      addMessage("呪いのせいで、今の" + (slot.cat === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
+      return;
+    }
     if (findFloorItemAt(G.player.x, G.player.y)) {
       addMessage("ここには物を置けない。", "warn");
       return;
     }
     var dropDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
     // 1回の「捨てる」操作ではスタックのうち1個/1本だけを足元に置く(矢・石を大量に
-    // 持っていても、床に積み上がるのは常に1つ)。
+    // 持っていても、床に積み上がるのは常に1つ)。装備中のものを最後の1個/1本まで
+    // 捨てると、そのまま装備解除された状態になる。
     G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, dropDef, 1));
     addMessage((slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name) + "を置いた。", "");
     slot.count--;
@@ -2014,7 +2053,7 @@
   function performThrowAction() {
     if (!G || G.gameOver || turnBusy || quickInvOpen) return;
     if (handlePlayerIncapacitated()) return;
-    var quiver = G.player.throwable;
+    var quiver = findEquippedSlot("throwable");
     if (!quiver || quiver.count <= 0) {
       addMessage("投げられる物を持っていない。", "warn");
       return;
@@ -2037,8 +2076,7 @@
       if (found) { target = found; break; }
     }
 
-    quiver.count--;
-    if (quiver.count <= 0) G.player.throwable = null; // 撃ち尽くしたら装備解除
+    consumeOneFromSlot(quiver); // 撃ち尽くしたら持ち物からも消える(装備状態も自然に解除される)
 
     if (target) {
       target.awake = true;
@@ -2466,8 +2504,9 @@
     }
     var shootBtn = document.getElementById("btn-shoot");
     if (shootBtn) {
-      if (G.player.throwable) {
-        shootBtn.textContent = "射撃 (S) ×" + G.player.throwable.count;
+      var equippedThrowable = findEquippedSlot("throwable");
+      if (equippedThrowable) {
+        shootBtn.textContent = "射撃 (S) ×" + equippedThrowable.count;
         shootBtn.disabled = false;
       } else {
         shootBtn.textContent = "射撃 (S)";
@@ -2486,9 +2525,12 @@
   }
 
   function renderEquip() {
-    document.getElementById("equip-weapon").textContent = G.player.weapon ? G.player.weapon.name : "なし";
-    document.getElementById("equip-shield").textContent = G.player.shield ? G.player.shield.name : "なし";
-    document.getElementById("equip-throwable").textContent = G.player.throwable ? (G.player.throwable.name + " ×" + G.player.throwable.count) : "なし";
+    var eqWeapon = findEquippedSlot("weapon");
+    var eqShield = findEquippedSlot("shield");
+    var eqThrowable = findEquippedSlot("throwable");
+    document.getElementById("equip-weapon").textContent = eqWeapon ? eqWeapon.name : "なし";
+    document.getElementById("equip-shield").textContent = eqShield ? eqShield.name : "なし";
+    document.getElementById("equip-throwable").textContent = eqThrowable ? (eqThrowable.name + " ×" + eqThrowable.count) : "なし";
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
     var statuses = [];
@@ -2517,13 +2559,15 @@
     var html = "";
     for (var i = 0; i < G.player.inventory.length; i++) {
       var it = G.player.inventory[i];
-      var actionLabel = (it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable") ? "装備" : "使う";
+      var equipable = it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable";
+      var actionLabel = equipable ? (it.equipped ? "外す" : "装備") : "使う";
       // 巻物は未識別の間、本来の名前/説明ではなく色名の見た目と伏せた説明文を表示する。
       var dispName = it.cat === "scroll" ? scrollDisplayName(it.key) : it.name;
       var dispDesc = it.cat === "scroll" ? scrollDisplayDesc(it.key) : (it.desc || "");
       html += '<div class="inv-item">' +
         '<div class="sym" style="background:' + it.color + '22;color:' + it.color + '">' + it.sym + '</div>' +
-        '<div class="name">' + escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(dispDesc) + '</small></div>' +
+        '<div class="name">' + (it.equipped ? '<span class="equip-badge" title="装備中">E</span>' : '') +
+        escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(dispDesc) + '</small></div>' +
         '<div class="acts"><button data-act="use" data-idx="' + i + '">' + actionLabel + '</button>' +
         '<button data-act="drop" data-idx="' + i + '">捨てる</button></div>' +
         '</div>';
@@ -2553,7 +2597,7 @@
   // 効果の要約を返す。
   function quickInvSummary(slot) {
     if (slot.cat === "weapon" || slot.cat === "shield") {
-      var current = G.player[slot.cat];
+      var current = findEquippedSlot(slot.cat);
       var delta = slot.value - (current ? current.value : 0);
       if (delta > 0) return "↑" + delta;
       if (delta < 0) return "↓" + Math.abs(delta);
@@ -2591,7 +2635,8 @@
       var it = G.player.inventory[i];
       var dispName = it.cat === "scroll" ? scrollDisplayName(it.key) : it.name;
       html += '<div class="quick-inv-row' + (i === quickInvIndex ? " sel" : "") + '">' +
-        '<span class="name">' + escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '</span>' +
+        '<span class="name">' + (it.equipped ? '<span class="equip-badge" title="装備中">E</span>' : '') +
+        escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '</span>' +
         '<span class="summary">' + escapeHtml(quickInvSummary(it)) + '</span>' +
         '</div>';
     }
@@ -2626,7 +2671,8 @@
     var el = document.getElementById("quick-inv-confirm");
     var slot = G.player.inventory[quickInvIndex];
     if (!slot) return;
-    var actionLabel = (slot.cat === "weapon" || slot.cat === "shield" || slot.cat === "throwable") ? "装備する" : "使う";
+    var equipable = slot.cat === "weapon" || slot.cat === "shield" || slot.cat === "throwable";
+    var actionLabel = equipable ? (slot.equipped ? "外す" : "装備する") : "使う";
     var dispName = slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name;
     var options = [actionLabel, "捨てる"];
     var html = '<div class="quick-inv-confirm-title">' + escapeHtml(dispName) + '</div>';
@@ -3691,8 +3737,8 @@
     var c = { skin: "#e0b48a", hair: "#5a3c28", tunic: "#3f6b52", cape: "#a5502c", leg: "#3a2e22" };
     var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
     var dx = facing.dx, dy = facing.dy;
-    var hasShield = !!(G.player && G.player.shield);
-    var hasWeapon = !!(G.player && G.player.weapon);
+    var hasShield = !!(G.player && findEquippedSlot("shield"));
+    var hasWeapon = !!(G.player && findEquippedSlot("weapon"));
 
     drawShadow(cx, cy + TILE * 0.36, TILE * 0.32);
 
@@ -3774,7 +3820,7 @@
     triggerTimedEffect(
       function () { return attackEffectTimer; },
       function (t) { attackEffectTimer = t; },
-      function () { G.attackEffect = { x: x, y: y, kind: G.player.weapon ? "sword" : "fist" }; },
+      function () { G.attackEffect = { x: x, y: y, kind: findEquippedSlot("weapon") ? "sword" : "fist" }; },
       function () { if (G) G.attackEffect = null; },
       ATTACK_EFFECT_MS
     );
@@ -3957,6 +4003,22 @@
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
     G.missEffect = null;
     if (G.player) G.player.lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
+    // 装備を持ち物に統合する前のセーブデータ(旧形式:G.player.weapon/shield/throwableが
+    // 独立フィールドだった)からの移行。残っていれば、持ち物内のequipped:trueなスロット
+    // として取り込む(持ち物枠も新しい上限(INV_CAP)に含まれる)。
+    if (G.player) {
+      ["weapon", "shield", "throwable"].forEach(function (migrateCat) {
+        var old = G.player[migrateCat];
+        if (old) {
+          var def = findItemDefByKey(old.key) ||
+            { key: old.key, name: old.name, cat: migrateCat, sub: "", value: old.value || 0, sym: old.sym || "?", color: old.color || "#ccc", desc: "" };
+          var entry = makeInventoryEntry(def, migrateCat === "throwable" ? (old.count || 1) : 1);
+          entry.equipped = true;
+          G.player.inventory.push(entry);
+          delete G.player[migrateCat];
+        }
+      });
+    }
     // 巻物追加前のセーブデータには識別情報が無いため、その場合だけ新規に割り当てる。
     if (!G.scrollIdentity) G.scrollIdentity = assignScrollIdentities();
     if (G.enemies) {

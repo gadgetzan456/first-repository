@@ -25,14 +25,17 @@
 
 `G`はゲーム1プレイ分の状態を持つオブジェクト(`newRunState()`で生成、`startNewGame`/`continueGame`で差し替え)。主なフィールド:
 
-- `G.player` — `{ x, y, hp, maxHp, hunger, maxHunger, level, exp, atk, weapon, shield, throwable, inventory: [...], sleepTurns, paralyzed, confusedTurns, hasteTurns, weakenTurns, megaEvolveTurns, poison, ... }`
+- `G.player` — `{ x, y, hp, maxHp, hunger, maxHunger, level, exp, atk, def, inventory: [...], sleepTurns, paralyzed, confusedTurns, hasteTurns, weakenTurns, megaEvolveTurns, ironWallTurns, curseTurns, poison, ... }`
 - `G.floor` / `G.turn` / `G.grid` / `G.rooms` / `G.roomId` / `G.enemies` / `G.floorItems` / `G.log` / `G.scrollIdentity` / `G.gameOver`
 
-インベントリの1スロットは`{ key, name, cat, sub, value, sym, color, desc, count }`。`makeInventoryEntry(def, count)`で作る。
+インベントリの1スロットは`{ key, name, cat, sub, value, sym, color, desc, count, equipped? }`。`makeInventoryEntry(def, count)`で作る。**装備中の武器/盾/投げ物も`G.player.inventory`の中に入っており、独立フィールド(`G.player.weapon`のようなもの)は存在しない。** 該当スロットに`equipped: true`が立っているかどうかで区別する(各カテゴリにつき同時に装備できるのは1つまで)。現在装備中のスロットを取得するには`findEquippedSlot(cat)`(`cat`は`"weapon"`/`"shield"`/`"throwable"`)を使うこと — `G.player.weapon`のような直接参照は存在しないので書かない。
 
 ## 現時点で確立している仕様・設計方針
 
-- **持ち物枠は8個(`INV_CAP = 8`)。** ユーザーが明示的に「大事にしたい」と言っている値なので、変更するときは必ず確認を取ること。
+- **持ち物枠は10個(`INV_CAP = 10`)。** 装備中の武器/盾/投げ物もこの10枠のうちに含まれる(装備専用の別枠は無い)。ユーザーが枠数について「大事にしたい」と言ったことがあるので、変更するときは必ず確認を取ること。
+- **装備の付け替えは、対象スロットの`equipped`フラグを付け替えるだけ**(`equipInventorySlot`/`equipThrowableSlot`)。持ち物からの出し入れ(容量チェック・床に置く処理)は発生しない。装備解除は`unequipInventorySlot`(持ち物には残ったまま`equipped: false`になる)。`useInventorySlot`は対象スロットが武器/盾/投げ物のとき、`slot.equipped`を見て装備/解除のどちらかへ自動でディスパッチする。拾った瞬間の自動装備は`addItemToInventory(def, qty, {autoEquip: true})`のオプションで行う(該当カテゴリに何も装備していない場合のみ)。
+- **呪いの巻物は武器/盾の装備解除・付け替え・(装備中の状態での)捨てるの3つすべてをブロックする**(`equipInventorySlot`/`unequipInventorySlot`/`dropInventorySlot`それぞれの入口でcurseTurnsをチェック)。投げ物は呪いの対象外。ブロックされた装備/解除の試みはターンを消費する(`doTurn()`を呼ぶ)が、捨てるのブロックはターンを消費しない(「捨てる」操作自体がそもそもターン消費なしのルールのため)。
+- **持ち物欄(サイドバー・Aキーメニューどちらも)では、装備中のアイテムに「E」マーク(`.equip-badge`)が付く。** アクションラベルは武器/盾/投げ物なら装備中は「外す」・未装備なら「装備」または「装備する」、それ以外のカテゴリは常に「使う」。
 - **投げ物(矢・石)と杖以外のアイテムは1枠につき1個まで(スタックしない)。** `addItemToInventory`の`stackable`判定は`def.cat === "throwable" || def.cat === "wand"`のみtrue。薬草・おにぎり・巻物などは同じ種類を複数持っていても別々の枠に並ぶ(count は常に1)。杖の`count`は「残り使用回数」という別概念なのでスタック対象に残している。
 - **アイテムの使用・装備はターン消費あり。** `useInventorySlot`(薬草・おにぎり・巻物・杖の使用、武器/盾/投げ物の装備 すべてこの関数からディスパッチされる)は関数の入口で`turnBusy`と`handlePlayerIncapacitated()`をチェックし、効果適用後に`doTurn()`を呼ぶ。例外は巻物「階段の巻物」(`descend()`を直接呼び、階段を直接踏んで降りる場合と同様にdoTurnを呼ばない)。「捨てる」(`dropInventorySlot`)はターンを消費しない。
 - **クリア条件はボス撃破ではなく単純に地下50階(`MAX_FLOOR`)で階段を踏むこと。** `descend()`内の`if (G.floor >= MAX_FLOOR) { triggerClear(); return; }`がそれ。ボス(10階ごと)は倒さなくてもクリアでき、倒すと良いアイテムを確定ドロップするだけの「強い雑魚敵」という位置づけ。
