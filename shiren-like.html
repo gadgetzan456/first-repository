@@ -501,7 +501,15 @@
     { key: "mushroom", name: "毒キノコ", sym: "毒", color: "#c93f8a", hp: 11, atk: 6, def: 1, exp: 5, minDepth: 4, weight: 4, sleepy: 0.6, poison: true, dropRate: 0.18, shape: "plant", ability: "poison" },
     { key: "goblin", name: "ゴブリン", sym: "ゴ", color: "#5c8a3a", hp: 15, atk: 11, def: 2, exp: 6, minDepth: 3, weight: 5, sleepy: 0.15, dropRate: 0.2, shape: "humanoid", accessory: "none", ability: "alert" },
     { key: "skeleton", name: "スケルトン", sym: "骨", color: "#a39878", hp: 19, atk: 14, def: 3, exp: 9, minDepth: 7, weight: 4, sleepy: 0.15, dropRate: 0.22, shape: "humanoid", accessory: "skull", ability: "undying" },
+    // ドロボウ:単純な殴り合いをしない敵その1。隣接すると攻撃の代わりに持ち物から
+    // 1つ盗み、以後はプレイヤーから逃げ続ける(倒すと盗品をその場に落とす)。
+    // 攻撃力を低めにしてあるのは、脅威の本質が「盗まれること」自体にあり、
+    // 殴り合いの強さで語るモンスターではないため。
+    { key: "thief", name: "ドロボウ", sym: "盗", color: "#8a6a3a", hp: 13, atk: 7, def: 1, exp: 7, minDepth: 5, weight: 4, sleepy: 0.1, dropRate: 0.15, shape: "beast", ability: "steal" },
     { key: "giantbat", name: "大コウモリ", sym: "大", color: "#6a3f8a", hp: 21, atk: 16, def: 2, exp: 12, minDepth: 9, weight: 3, sleepy: 0.1, erratic: 0.35, dropRate: 0.22, shape: "flyer", big: true, ability: "drain", cornerCut: true },
+    // 毒ガエル:単純な殴り合いをしない敵その2。2マス先から毒の攻撃を放つ
+    // (射程は妖術師と同じ仕組みを流用、毒付与は毒キノコと同じ仕組みを流用)。
+    { key: "toadspitter", name: "毒ガエル", sym: "蛙", color: "#7ac93f", hp: 17, atk: 10, def: 1, exp: 11, minDepth: 8, weight: 3, sleepy: 0.2, poison: true, dropRate: 0.2, shape: "beast", ability: "spit" },
     { key: "orc", name: "オーク", sym: "オ", color: "#3f5c2a", hp: 27, atk: 19, def: 4, exp: 14, minDepth: 11, weight: 4, sleepy: 0.15, dropRate: 0.25, shape: "humanoid", accessory: "tusk", ability: "enrage" },
     { key: "armor", name: "鎧武者", sym: "鎧", color: "#7c8894", hp: 35, atk: 24, def: 7, exp: 20, minDepth: 16, weight: 3, sleepy: 0.1, dropRate: 0.28, shape: "humanoid", accessory: "helm", ability: "guard" },
     { key: "sorcerer", name: "妖術師", sym: "妖", color: "#4a4a9c", hp: 25, atk: 27, def: 3, exp: 22, minDepth: 20, weight: 3, sleepy: 0.2, dropRate: 0.28, shape: "robed", ability: "ranged" },
@@ -534,7 +542,9 @@
     mushroom: "毒キノコの猛毒に侵され、意識が遠のいていった。",
     goblin: "ゴブリンの群れに袋叩きにされた。",
     skeleton: "スケルトンの骨の剣に貫かれた。",
+    thief: "盗品を取り返そうと追いすがったところを、ドロボウに反撃されて力尽きた。",
     giantbat: "大コウモリに血を吸いつくされ、干からびてしまった。",
+    toadspitter: "毒ガエルの吐く猛毒にじわじわと体を蝕まれ、力尽きた。",
     orc: "怒り狂ったオークの一撃で吹き飛ばされた。",
     armor: "鎧武者の重い一撃を受け、その場に崩れ落ちた。",
     sorcerer: "妖術師の放った呪詛に貫かれた。",
@@ -608,6 +618,16 @@
     { key: "scroll_stairs", name: "階段の巻物", cat: "scroll", sub: "stairs", value: 0, weight: 0.6, sym: "巻", color: "#9a8a6a", desc: "次のフロアへ移動する" },
     { key: "scroll_wakeup", name: "起床の巻物", cat: "scroll", sub: "wakeup", value: 0, weight: 0.5, sym: "巻", color: "#e89a3a", desc: "このフロアにいる、動けない状態の敵をすべて解除する(睡眠・金縛り・モンスターハウスの待機状態が対象)" },
     { key: "scroll_feast", name: "満腹の巻物", cat: "scroll", sub: "feast", value: 0, weight: 0.1, sym: "巻", color: "#f0c8a0", desc: "持ち物の空きスペースすべてに、おにぎりが1つずつ生成される(激レア)" },
+    // 追加の巻物4種。メリット2種(鉄壁・眠り)・デメリット2種(衰弱・呪い)で、
+    // 既存の破壊・敵呼び(デメリット)と強化・テレポートなど(メリット)のバランスに
+    // 合わせている。鉄壁は身体強化(攻撃版)の防御版、眠りは起床の巻物の逆効果、
+    // 衰弱は弱体の杖/呪文と同じ効果を自分に使う巻物、呪いは装備を一定ターン
+    // 外せなくする巻物(既存の「外す」操作自体が無いため、武器/盾の付け替え
+    // (装備)を一時的に禁止する形で実装している)。
+    { key: "scroll_ironwall", name: "鉄壁の巻物", cat: "scroll", sub: "ironwall", value: 100, weight: 0.4, sym: "巻", color: "#7a8ca0", desc: "100ターンの間、防御力が2倍になる" },
+    { key: "scroll_sleepall", name: "眠りの巻物", cat: "scroll", sub: "sleepall", value: 0, weight: 0.5, sym: "巻", color: "#4a4a8a", desc: "同じ部屋にいる敵全員を5ターンの間眠らせる(部屋の外では不発)" },
+    { key: "scroll_selfweaken", name: "衰弱の巻物", cat: "scroll", sub: "selfweaken", value: 15, weight: 0.5, sym: "巻", color: "#6a7a4a", desc: "読むと、15ターンの間、自分の攻撃力が半分になる" },
+    { key: "scroll_curse", name: "呪いの巻物", cat: "scroll", sub: "curse", value: 30, weight: 0.4, sym: "巻", color: "#3a2a4a", desc: "読むと、30ターンの間、装備中の武器・盾を付け替えられなくなる(何も装備していなければ効果はない)" },
     // 杖6種。振ると射程無限(壁は貫通できない)で、命中した敵に杖ごとの効果を与える
     // (ダメージは与えない)。使用回数(charges)制で、0になると持ち物から消滅する。
     // bundleは床で拾った際に得られる使用回数(=充填済みの1本を拾うイメージ。
@@ -653,7 +673,7 @@
      巻物の識別
   ========================================================= */
   // 未識別の巻物の見た目名に使う色の一覧(巻物の種類数より多く用意しておく)。
-  var SCROLL_DISGUISE_COLORS = ["赤", "青", "緑", "黄", "白", "黒", "紫", "橙", "桃", "灰", "金", "銀", "茶", "藍"];
+  var SCROLL_DISGUISE_COLORS = ["赤", "青", "緑", "黄", "白", "黒", "紫", "橙", "桃", "灰", "金", "銀", "茶", "藍", "朱", "翠", "紺", "煤"];
 
   // 新規ゲーム開始時に、巻物の種類ごとにランダムな色名の見た目("○○の巻物")を
   // 割り当てる(色は1プレイ内で重複しない)。真の名前が分かるのは、その種類を
@@ -744,6 +764,8 @@
         hunger: 100, maxHunger: 100,
         poison: 0,
         megaEvolveTurns: 0,
+        ironWallTurns: 0, // 鉄壁の巻物:防御力2倍
+        curseTurns: 0, // 呪いの巻物:武器/盾の付け替えができない
         // 呪術師などの呪文による状態異常(効果は杖と共通、プレイヤー側の実装はdoTurn/各行動関数を参照)
         paralyzed: false,
         sleepTurns: 0,
@@ -1221,10 +1243,12 @@
   function megaScale(v) { return G.player.megaEvolveTurns > 0 ? v * 2 : v; }
   // 呪術師の弱体の呪文を受けている間は攻撃力が半分になる(武器あり/なしどちらにも適用)。
   function weakenScale(v) { return G.player.weakenTurns > 0 ? Math.round(v * 0.5) : v; }
+  // 鉄壁の巻物の効果中は防御力を2倍にする。
+  function ironScale(v) { return G.player.ironWallTurns > 0 ? v * 2 : v; }
   function effAtk() {
     return weakenScale(megaScale(G.player.atk + (G.player.weapon ? G.player.weapon.value : 0)));
   }
-  function effDef() { return G.player.def + (G.player.shield ? G.player.shield.value : 0); }
+  function effDef() { return ironScale(G.player.def + (G.player.shield ? G.player.shield.value : 0)); }
   // 武器を持っていないときの攻撃力(素手の攻撃力)。矢・石の投擲ダメージの基準に使う。
   function unarmedAtk() { return weakenScale(megaScale(G.player.atk)); }
 
@@ -1498,6 +1522,32 @@
         } else {
           addMessage(scrollName + "を読んだが、持ち物に空きが無かった。", "");
         }
+      } else if (slot.sub === "ironwall") {
+        G.player.ironWallTurns = slot.value;
+        addMessage(scrollName + "の力で、肌が鉄のように硬くなった!" + slot.value + "ターンの間、防御力が2倍になった!", "good");
+      } else if (slot.sub === "sleepall") {
+        var sleepRoom = G.roomId[G.player.y][G.player.x];
+        if (sleepRoom < 0) {
+          addMessage(scrollName + "を使ったが、ここは部屋ではないため効果がなかった。", "warn");
+        } else {
+          var sleepTargets = G.enemies.filter(function (en) { return G.roomId[en.y][en.x] === sleepRoom; });
+          if (sleepTargets.length === 0) {
+            addMessage(scrollName + "を使ったが、部屋に敵はいなかった。", "");
+          } else {
+            sleepTargets.forEach(function (en) { en.sleepTurns = WAND_SLEEP_TURNS; });
+            addMessage(scrollName + "の力で、部屋にいた" + sleepTargets.length + "匹の敵が眠りに落ちた!", "good");
+          }
+        }
+      } else if (slot.sub === "selfweaken") {
+        G.player.weakenTurns = slot.value;
+        addMessage(scrollName + "を読むと、体から力が抜けていった…" + slot.value + "ターンの間、攻撃力が半分になった。", "warn");
+      } else if (slot.sub === "curse") {
+        if (G.player.weapon || G.player.shield) {
+          G.player.curseTurns = slot.value;
+          addMessage(scrollName + "の禍々しい力で、装備が体に貼り付いて外せなくなった…", "warn");
+        } else {
+          addMessage(scrollName + "を読んだが、何も装備していなかったので効果はなかった。", "");
+        }
       }
     } else { consumed = false; }
     if (consumed) consumeOneFromSlot(slot);
@@ -1525,8 +1575,15 @@
   function equipInventorySlot(index) {
     var slot = G.player.inventory[index];
     if (!slot || (slot.cat !== "weapon" && slot.cat !== "shield")) return;
-    G.player.inventory.splice(index, 1);
     var slotName = slot.cat;
+    // 呪いの巻物の効果中は、既に何か装備している部位(武器/盾)を付け替えられない
+    // (何も装備していない部位への新規装備は「外す」動作を伴わないため許可する)。
+    if (G.player.curseTurns > 0 && G.player[slotName]) {
+      addMessage("呪いのせいで、今の" + (slotName === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
+      doTurn();
+      return;
+    }
+    G.player.inventory.splice(index, 1);
     var prev = G.player[slotName];
     G.player[slotName] = makeEquipRef(slot.name, slot.value, slot.key);
     addMessage(slot.name + "を装備した。", "note");
@@ -1717,6 +1774,16 @@
       if (enemy.lungeTimer) { clearTimeout(enemy.lungeTimer); enemy.lungeTimer = null; } // 消滅後に無駄な再描画をしない
       var idx = G.enemies.indexOf(enemy);
       if (idx >= 0) G.enemies.splice(idx, 1);
+      // ドロボウを倒すと、盗まれていたアイテムがその場に落ちて取り戻せる
+      // (通常のドロップ抽選(rollEnemyDrop)とは独立に、確定で発生する)。
+      if (enemy.stolenItem) {
+        var stolenSpot = findDropSpot(enemy.x, enemy.y);
+        if (stolenSpot) {
+          G.floorItems.push(makeFloorItemEntry(stolenSpot.x, stolenSpot.y, enemy.stolenItem));
+          var stolenBackLabel = enemy.stolenItem.cat === "scroll" ? scrollDisplayName(enemy.stolenItem.key) : enemy.stolenItem.name;
+          addMessage(stolenBackLabel + "を取り戻した!", "good");
+        }
+      }
       rollEnemyDrop(enemy);
       if (enemy.boss && G.floor === MAX_FLOOR) { triggerClear(); }
       return true;
@@ -1774,6 +1841,22 @@
       G.player.poison = 6;
       addMessage("毒を受けてしまった…", "warn");
     }
+  }
+
+  // ドロボウの「盗み」:プレイヤーの持ち物からランダムに1枠選び、そのスタックから
+  // 1個奪う(スタックしないアイテムなら丸ごと1個)。奪った内容はenemy.stolenItemに
+  // 保持しておき、後で倒したときにその場へ落とす(取り返せる)。持ち物が空なら
+  // 何も奪わずfalseを返し、呼び出し元(enemyTurn)は通常攻撃にフォールスルーする。
+  function stealRandomItem(enemy) {
+    if (G.player.inventory.length === 0) return false;
+    var slot = pick(G.player.inventory);
+    var stolenDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
+    var stolenLabel = stolenDef.cat === "scroll" ? scrollDisplayName(stolenDef.key) : stolenDef.name;
+    consumeOneFromSlot(slot);
+    enemy.stolenItem = stolenDef;
+    enemy.hasStolen = true;
+    addMessage(enemy.name + "が" + stolenLabel + "を盗んで逃げ出した!", "warn");
+    return true;
   }
 
   /* =========================================================
@@ -2111,6 +2194,14 @@
       G.player.megaEvolveTurns--;
       if (G.player.megaEvolveTurns === 0) addMessage("身体強化の効果が切れた。", "note");
     }
+    if (G.player.ironWallTurns > 0) {
+      G.player.ironWallTurns--;
+      if (G.player.ironWallTurns === 0) addMessage("鉄壁の効果が切れた。", "note");
+    }
+    if (G.player.curseTurns > 0) {
+      G.player.curseTurns--;
+      if (G.player.curseTurns === 0) addMessage("呪いが解けた。", "good");
+    }
     trySpawnWanderingMonster();
     if (checkPlayerDeath()) return;
 
@@ -2224,8 +2315,15 @@
           }
         }
 
+        // ドロボウは盗んだ後は一切攻撃せず、プレイヤーから逃げ続ける
+        // (「巨大ネズミの逃走」と同じ移動ロジック。HPではなく盗み終わったかどうかで判定)。
+        if (e.ability === "steal" && e.hasStolen) {
+          moveEnemyStep(e, -pdx, -pdy);
+          continue;
+        }
+
         var actDist = Math.max(Math.abs(e.x - G.player.x), Math.abs(e.y - G.player.y));
-        var attackRange = (e.ability === "ranged") ? 2 : 1; // 妖術師は2マス先まで攻撃可
+        var attackRange = (e.ability === "ranged" || e.ability === "spit") ? 2 : 1; // 妖術師・毒ガエルは2マス先まで攻撃可
         if (actDist <= attackRange) {
           var canAttack;
           if (actDist <= 1) {
@@ -2235,7 +2333,13 @@
           } else {
             canAttack = hasClearLine(e.x, e.y, G.player.x, G.player.y);
           }
-          if (canAttack) { enemyAttackPlayer(e); continue; }
+          if (canAttack) {
+            // ドロボウはまだ盗んでいなければ、通常攻撃の代わりに盗みを試みる
+            // (持ち物が空なら盗めないので、その場合だけ通常攻撃にフォールスルーする)。
+            if (e.ability === "steal" && stealRandomItem(e)) { continue; }
+            enemyAttackPlayer(e);
+            continue;
+          }
         }
 
         // 深淵の魔物の「瞬間移動」:離れていると低確率でプレイヤーの隣まで一気に詰め寄る
@@ -2335,10 +2439,12 @@
     document.getElementById("equip-def").textContent = effDef();
     var statuses = [];
     if (G.player.megaEvolveTurns > 0) statuses.push("身体強化中(残り" + G.player.megaEvolveTurns + "ターン)");
+    if (G.player.ironWallTurns > 0) statuses.push("鉄壁中(残り" + G.player.ironWallTurns + "ターン)");
     if (G.player.paralyzed) statuses.push("金縛り中");
     if (G.player.sleepTurns > 0) statuses.push("睡眠中(残り" + G.player.sleepTurns + "ターン)");
     if (G.player.confusedTurns > 0) statuses.push("混乱中(残り" + G.player.confusedTurns + "ターン)");
     if (G.player.weakenTurns > 0) statuses.push("弱体中(残り" + G.player.weakenTurns + "ターン)");
+    if (G.player.curseTurns > 0) statuses.push("呪い中(残り" + G.player.curseTurns + "ターン、装備を外せない)");
     var statusRow = document.getElementById("equip-status-row");
     if (statuses.length > 0) {
       statusRow.hidden = false;
@@ -3157,6 +3263,7 @@
     else if (enemy.confusedTurns > 0) { glyph = "乱"; color = "#c98fd0"; }
     else if (enemy.hasteTurns > 0) { glyph = "速"; color = "#e0503f"; }
     else if (enemy.weakenTurns > 0) { glyph = "弱"; color = "#6fa85a"; }
+    else if (enemy.hasStolen) { glyph = "盗"; color = "#8a6a3a"; } // ドロボウ:盗品を持って逃走中
     if (!glyph) return;
     var bx = cx + r * 0.72, by = cy - r * 0.72, br = TILE * 0.16;
     ctx.save();
