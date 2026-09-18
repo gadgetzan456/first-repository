@@ -219,16 +219,23 @@
     margin-bottom: 8px;
   }
   .quick-inv-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
     padding: 6px 8px;
     border-radius: 5px;
     font-size: 14px;
     color: var(--ink-soft);
   }
+  .quick-inv-row .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .quick-inv-row .summary { flex-shrink: 0; font-size: 12px; opacity: 0.8; }
   .quick-inv-row.sel {
     background: var(--accent);
     color: var(--accent-ink);
     font-weight: 700;
   }
+  .quick-inv-row.sel .summary { opacity: 0.85; }
   .quick-inv-empty { color: var(--ink-soft); font-size: 13px; padding: 4px 2px; }
 
   .log {
@@ -2483,10 +2490,55 @@
     el.innerHTML = html;
   }
 
-  // Aキーで開く、画面内の持ち物簡易選択メニュー。効果説明は省略し道具名のみを並べ、
-  // 上下キーで選択、Zキーで使用を確定する(装備品は使用=装備に、巻物・杖などは
-  // useInventorySlotへそのまま委譲するので通常の使用処理と完全に同じ)。Xキーで
-  // 何もせず閉じる。
+  // 持ち物簡易選択メニューの右側に出す簡易効果(巻物・杖はsubキー、
+  // 投げ物もsubキーで引く)。巻物は未識別の間、効果を伏せる(識別システムの
+  // 意味を保つため、quickInvSummary側でidentifiedを見てから参照する)。
+  var SCROLL_SUMMARY = {
+    enchant_weapon: "武器+1", enchant_shield: "盾+1", teleport: "瞬間移動", reveal: "地図判明",
+    megaevolve: "攻撃2倍", vacuum: "部屋に大ダメージ", destroy: "装備破壊", decoy: "身代わり",
+    summon: "敵を召喚", identify: "巻物識別", stairs: "次の階へ", wakeup: "行動不能解除",
+    feast: "おにぎり生成", ironwall: "防御2倍", sleepall: "敵を眠らせる", selfweaken: "自分弱体化",
+    curse: "装備呪い"
+  };
+  var WAND_SUMMARY = {
+    haste: "敵を加速", sleep: "敵を睡眠", confuse: "敵を混乱",
+    knockback: "敵を吹き飛ばす", weaken: "敵を弱体化", paralyze: "敵を金縛り"
+  };
+  var THROWABLE_SUMMARY = { arrow: "射程10", stone: "射程3・2倍" };
+
+  // 持ち物1枠(slot)の簡易効果を1行で返す。武器/盾は現在の装備との差分を
+  // 「↑差分」「↓差分」の数字と矢印だけで表す(装備すると上がるか下がるかが
+  // 一目で分かるように)。食料は満腹度回復量、草・巻物・杖・投げ物は
+  // 効果の要約を返す。
+  function quickInvSummary(slot) {
+    if (slot.cat === "weapon" || slot.cat === "shield") {
+      var current = G.player[slot.cat];
+      var delta = slot.value - (current ? current.value : 0);
+      if (delta > 0) return "↑" + delta;
+      if (delta < 0) return "↓" + Math.abs(delta);
+      return "→0";
+    }
+    if (slot.cat === "food") return "満腹度+" + slot.value;
+    if (slot.cat === "herb") {
+      if (slot.sub === "heal") return "HP+" + slot.value;
+      if (slot.sub === "fullheal") return "HP全回復";
+      if (slot.sub === "antidote") return "毒消し";
+      return "";
+    }
+    if (slot.cat === "scroll") {
+      var identity = G.scrollIdentity && G.scrollIdentity[slot.key];
+      if (!identity || !identity.identified) return "未識別";
+      return SCROLL_SUMMARY[slot.sub] || "";
+    }
+    if (slot.cat === "wand") return WAND_SUMMARY[slot.sub] || "";
+    if (slot.cat === "throwable") return THROWABLE_SUMMARY[slot.sub] || "";
+    return "";
+  }
+
+  // Aキーで開く、画面内の持ち物簡易選択メニュー。道具名の右側に簡易効果
+  // (quickInvSummary)を添えて並べ、上下キーで選択、Zキーで使用を確定する
+  // (装備品は使用=装備に、巻物・杖などはuseInventorySlotへそのまま委譲する
+  // ので通常の使用処理と完全に同じ)。Xキーで何もせず閉じる。
   function renderQuickInv() {
     var el = document.getElementById("quick-inv-items");
     if (G.player.inventory.length === 0) {
@@ -2498,7 +2550,9 @@
       var it = G.player.inventory[i];
       var dispName = it.cat === "scroll" ? scrollDisplayName(it.key) : it.name;
       html += '<div class="quick-inv-row' + (i === quickInvIndex ? " sel" : "") + '">' +
-        escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '</div>';
+        '<span class="name">' + escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '</span>' +
+        '<span class="summary">' + escapeHtml(quickInvSummary(it)) + '</span>' +
+        '</div>';
     }
     el.innerHTML = html;
   }
