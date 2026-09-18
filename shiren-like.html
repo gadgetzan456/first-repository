@@ -1254,8 +1254,11 @@
 
   function addItemToInventory(def, qty) {
     qty = typeof qty === "number" ? qty : 1;
-    // 武器/盾は個別の装備候補として扱うため、同じ種類でもスタック(数量まとめ)しない。
-    var stackable = def.cat !== "weapon" && def.cat !== "shield";
+    // 投げ物(矢・石)と杖(countは残り使用回数)は数量/回数をまとめて管理するため
+    // スタックする。それ以外(薬草・おにぎり・巻物など)は基本1つで持ち物枠を1つ
+    // 使うため、同じ種類でも別々の枠に入る(武器/盾は個別の装備候補として扱うため、
+    // 元からスタックしない)。
+    var stackable = def.cat === "throwable" || def.cat === "wand";
     if (stackable) {
       for (var i = 0; i < G.player.inventory.length; i++) {
         var slot = G.player.inventory[i];
