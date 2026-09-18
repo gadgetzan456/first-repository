@@ -238,6 +238,43 @@
   .quick-inv-row.sel .summary { opacity: 0.85; }
   .quick-inv-empty { color: var(--ink-soft); font-size: 13px; padding: 4px 2px; }
 
+  /* Zキーで選択した後に出る、使う/装備する・捨てるの確認サブメニュー */
+  .quick-inv-confirm {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(20, 16, 10, 0.97);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 140px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+  }
+  .quick-inv-confirm[hidden] { display: none; }
+  .quick-inv-confirm-title {
+    color: var(--accent);
+    font-size: 13px;
+    margin-bottom: 8px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .quick-inv-confirm-row {
+    padding: 8px 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .quick-inv-confirm-row.sel {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+  }
+
   .log {
     height: 108px;
     overflow-y: auto;
@@ -423,8 +460,9 @@
   <div class="panel stage-wrap">
     <canvas id="stage" width="884" height="468"></canvas>
     <div class="quick-inv" id="quick-inv" hidden>
-      <div class="quick-inv-title">持ち物(X:閉じる / ↑↓:選択 / Z:使う)</div>
+      <div class="quick-inv-title">持ち物(X:閉じる / ↑↓:選択 / Z:決定)</div>
       <div class="quick-inv-items" id="quick-inv-items"></div>
+      <div class="quick-inv-confirm" id="quick-inv-confirm" hidden></div>
     </div>
   </div>
 
@@ -1878,6 +1916,9 @@
   // Aキーで開き、Xキーで閉じる持ち物の簡易選択メニュー(画面内オーバーレイ)の状態。
   var quickInvOpen = false;
   var quickInvIndex = 0;
+  // 持ち物メニューでZキーを押した後に出る、使う/装備する・捨てるの確認サブメニュー。
+  var quickInvConfirmOpen = false;
+  var quickInvConfirmIndex = 0;
 
   // 呪術師の呪文による行動不能/混乱を、行動の入り口(movePlayer/performPlayerAction/
   // performThrowAction/castWand)でまとめて処理する。行動できない場合はtrueを返し、
@@ -2536,9 +2577,9 @@
   }
 
   // Aキーで開く、画面内の持ち物簡易選択メニュー。道具名の右側に簡易効果
-  // (quickInvSummary)を添えて並べ、上下キーで選択、Zキーで使用を確定する
-  // (装備品は使用=装備に、巻物・杖などはuseInventorySlotへそのまま委譲する
-  // ので通常の使用処理と完全に同じ)。Xキーで何もせず閉じる。
+  // (quickInvSummary)を添えて並べ、上下キーで選択、Zキーを押すと「使う/装備する・
+  // 捨てる」を選ぶ確認サブメニュー(quick-inv-confirm)が開く(即座には実行しない)。
+  // Xキーで何もせず閉じる。
   function renderQuickInv() {
     var el = document.getElementById("quick-inv-items");
     if (G.player.inventory.length === 0) {
@@ -2568,6 +2609,7 @@
   function closeQuickInv() {
     quickInvOpen = false;
     document.getElementById("quick-inv").hidden = true;
+    closeQuickInvActionMenu();
   }
 
   function moveQuickInvCursor(delta) {
@@ -2577,11 +2619,49 @@
     renderQuickInv();
   }
 
-  function confirmQuickInv() {
-    if (G.player.inventory.length === 0) { closeQuickInv(); return; }
+  // 選択中のアイテムに対する「使う/装備する・捨てる」の確認サブメニュー。
+  // 武器・盾・投げ物は「装備する」、それ以外は「使う」とラベルを出し分ける
+  // (サイドバーのactionLabelと同じ判定)。
+  function renderQuickInvActionMenu() {
+    var el = document.getElementById("quick-inv-confirm");
+    var slot = G.player.inventory[quickInvIndex];
+    if (!slot) return;
+    var actionLabel = (slot.cat === "weapon" || slot.cat === "shield" || slot.cat === "throwable") ? "装備する" : "使う";
+    var dispName = slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name;
+    var options = [actionLabel, "捨てる"];
+    var html = '<div class="quick-inv-confirm-title">' + escapeHtml(dispName) + '</div>';
+    for (var i = 0; i < options.length; i++) {
+      html += '<div class="quick-inv-confirm-row' + (i === quickInvConfirmIndex ? " sel" : "") + '">' + options[i] + '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function openQuickInvActionMenu() {
+    if (G.player.inventory.length === 0) return;
+    quickInvConfirmOpen = true;
+    quickInvConfirmIndex = 0;
+    renderQuickInvActionMenu();
+    document.getElementById("quick-inv-confirm").hidden = false;
+  }
+
+  function closeQuickInvActionMenu() {
+    quickInvConfirmOpen = false;
+    document.getElementById("quick-inv-confirm").hidden = true;
+  }
+
+  function moveQuickInvActionCursor(delta) {
+    quickInvConfirmIndex = (quickInvConfirmIndex + delta + 2) % 2;
+    renderQuickInvActionMenu();
+  }
+
+  // 確認サブメニューでの選択を実行する。「使う/装備する」ならuseInventorySlotへ
+  // (既存の使用処理と完全に同じ)、「捨てる」ならdropInventorySlotへ委譲する。
+  function confirmQuickInvAction() {
     var idx = quickInvIndex;
+    var useSelected = quickInvConfirmIndex === 0;
     closeQuickInv();
-    useInventorySlot(idx);
+    if (useSelected) useInventorySlot(idx);
+    else dropInventorySlot(idx);
   }
 
   /* ---- タイルの質感描画ヘルパー ---- */
@@ -4001,7 +4081,16 @@
     }
     if (quickInvOpen) {
       ev.preventDefault();
-      if (key === "z") { confirmQuickInv(); return; }
+      if (quickInvConfirmOpen) {
+        // 使う/装備する・捨てるの確認サブメニュー。Xは一覧へ戻るだけ(全体は閉じない)。
+        if (key === "z") { confirmQuickInvAction(); return; }
+        if (key === "x") { closeQuickInvActionMenu(); return; }
+        var adir = normalizeDirKey(key);
+        if (adir === "up") moveQuickInvActionCursor(-1);
+        else if (adir === "down") moveQuickInvActionCursor(1);
+        return;
+      }
+      if (key === "z") { openQuickInvActionMenu(); return; }
       if (key === "x") { closeQuickInv(); return; }
       var qdir = normalizeDirKey(key);
       if (qdir === "up") moveQuickInvCursor(-1);
