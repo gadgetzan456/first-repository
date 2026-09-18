@@ -2620,9 +2620,45 @@
     return "";
   }
 
+  // 持ち物の並び替え優先順位(値が小さいほど先頭)。装備中のもの(武器/盾/投げ物を
+  // 問わず最優先、その中では武器→盾→投げ物の順)→食料→草→巻物→投げ物(未装備)→
+  // 杖→武器(未装備)→盾(未装備)、という並びにする。
+  function inventorySortKey(slot) {
+    if (slot.equipped) {
+      if (slot.cat === "weapon") return 0;
+      if (slot.cat === "shield") return 1;
+      return 2; // throwable
+    }
+    if (slot.cat === "food") return 3;
+    if (slot.cat === "herb") return 4;
+    if (slot.cat === "scroll") return 5;
+    if (slot.cat === "throwable") return 6;
+    if (slot.cat === "wand") return 7;
+    if (slot.cat === "weapon") return 8;
+    if (slot.cat === "shield") return 9;
+    return 10;
+  }
+
+  // 持ち物メニューを開いている間にもう一度Aキーを押すと呼ばれる、持ち物の整理。
+  // inventorySortKeyの順に並べ替える(同順位内の相対順序は保たれる:Array#sortは
+  // 安定ソート)。選択中だったアイテムを見失わないよう、並び替え後に同じスロットを
+  // 探してカーソル位置(quickInvIndex)を追従させる。
+  function sortQuickInv() {
+    var selected = G.player.inventory[quickInvIndex];
+    G.player.inventory.sort(function (a, b) { return inventorySortKey(a) - inventorySortKey(b); });
+    if (selected) {
+      var newIdx = G.player.inventory.indexOf(selected);
+      quickInvIndex = newIdx >= 0 ? newIdx : 0;
+    }
+    renderQuickInv();
+    renderInventory();
+    saveGame();
+  }
+
   // Aキーで開く、画面内の持ち物簡易選択メニュー。道具名の右側に簡易効果
   // (quickInvSummary)を添えて並べ、上下キーで選択、Zキーを押すと「使う/装備する・
   // 捨てる」を選ぶ確認サブメニュー(quick-inv-confirm)が開く(即座には実行しない)。
+  // 開いている間にもう一度Aキーを押すと持ち物が整理される(sortQuickInv)。
   // Xキーで何もせず閉じる。
   function renderQuickInv() {
     var el = document.getElementById("quick-inv-items");
@@ -4138,7 +4174,13 @@
     var key = ev.key.length === 1 ? ev.key.toLowerCase() : ev.key;
     if (key === "a") {
       ev.preventDefault();
-      if (!quickInvOpen) openQuickInv();
+      if (!quickInvOpen) {
+        openQuickInv();
+      } else if (!quickInvConfirmOpen) {
+        // 一覧が開いている間にもう一度Aキーを押すと持ち物を整理する
+        // (確認サブメニュー表示中は対象外)。
+        sortQuickInv();
+      }
       return;
     }
     if (quickInvOpen) {
