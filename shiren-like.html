@@ -775,7 +775,8 @@
         shield: null,
         throwable: null,
         inventory: [],
-        facing: { dx: 0, dy: 1 }
+        facing: { dx: 0, dy: 1 },
+        lungeOffset: null // 攻撃モーション中の踏み込み表示位置(triggerPlayerLunge参照)
       },
       log: []
     };
@@ -1940,7 +1941,12 @@
     // 攻撃先のマスに拳/剣のエフェクトを表示する(装備によって見た目が変わる)。
     // 敵がいなくても素振りとして成立し、1ターン消費して敵も通常通り行動する。
     triggerAttackEffect(tx, ty);
-    if (target) { playerAttackEnemy(target); }
+    // 敵がいる場合のみ、敵の攻撃モーションと対になる踏み込み演出を行う
+    // (素振りでは敵のマスまで近づく必要がないので踏み込まない)。
+    if (target) {
+      triggerPlayerLunge(dx, dy);
+      playerAttackEnemy(target);
+    }
     // 攻撃の演出が見えるよう、敵の行動は少し遅らせる(移動時はこの遅延を入れない)。
     doTurn(ENEMY_TURN_DELAY_MS);
   }
@@ -3544,7 +3550,10 @@
   }
 
   function drawPlayerFigure(x, y) {
-    var cx = x * TILE + TILE / 2, cy = y * TILE + TILE / 2;
+    // 攻撃モーション中は、踏み込み分(lungeOffset)だけ描画位置をずらす(敵側のdrawMonsterと同様)。
+    var lx = (G.player && G.player.lungeOffset) ? G.player.lungeOffset.dx : 0;
+    var ly = (G.player && G.player.lungeOffset) ? G.player.lungeOffset.dy : 0;
+    var cx = (x + lx) * TILE + TILE / 2, cy = (y + ly) * TILE + TILE / 2;
     var c = { skin: "#e0b48a", hair: "#5a3c28", tunic: "#3f6b52", cape: "#a5502c", leg: "#3a2e22" };
     var facing = (G.player && G.player.facing) || { dx: 0, dy: 1 };
     var dx = facing.dx, dy = facing.dy;
@@ -3637,9 +3646,11 @@
     );
   }
 
-  // 敵の攻撃モーション:プレイヤー方向へ0.3マス分だけ踏み込み、少し経つと元の位置へ戻る。
-  // 「攻撃された」ことが見た目で分かるようにするための演出で、命中・外れに関わらず発生する。
-  var ENEMY_LUNGE_MS = 300;
+  // 攻撃モーション:相手方向へ0.3マス分だけ踏み込み、少し経つと元の位置へ戻る。
+  // 「攻撃した/された」ことが見た目で分かるようにするための演出で、命中・外れに
+  // 関わらず発生する。敵側(triggerEnemyLunge)・プレイヤー側(triggerPlayerLunge)の
+  // どちらも共通のtriggerTimedEffectを使い、この定数も共有する。
+  var LUNGE_MS = 300;
 
   function triggerEnemyLunge(enemy) {
     var dx = G.player.x - enemy.x, dy = G.player.y - enemy.y;
@@ -3649,7 +3660,23 @@
       function (t) { enemy.lungeTimer = t; },
       function () { enemy.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 }; },
       function () { enemy.lungeOffset = null; },
-      ENEMY_LUNGE_MS
+      LUNGE_MS
+    );
+  }
+
+  // プレイヤーの攻撃モーション:敵の攻撃時(triggerEnemyLunge)と対になる演出。
+  // 素振り(攻撃先に敵がいない)では呼ばれない。呼び出し元(performPlayerAction)側で
+  // targetがいる場合のみ呼び出すよう制御している。
+  var playerLungeTimer = null;
+
+  function triggerPlayerLunge(dx, dy) {
+    var mag = Math.sqrt(dx * dx + dy * dy) || 1;
+    triggerTimedEffect(
+      function () { return playerLungeTimer; },
+      function (t) { playerLungeTimer = t; },
+      function () { G.player.lungeOffset = { dx: (dx / mag) * 0.3, dy: (dy / mag) * 0.3 }; },
+      function () { if (G) G.player.lungeOffset = null; },
+      LUNGE_MS
     );
   }
 
@@ -3795,6 +3822,7 @@
     G.gameOver = false;
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
     G.missEffect = null;
+    if (G.player) G.player.lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
     // 巻物追加前のセーブデータには識別情報が無いため、その場合だけ新規に割り当てる。
     if (!G.scrollIdentity) G.scrollIdentity = assignScrollIdentities();
     if (G.enemies) {
