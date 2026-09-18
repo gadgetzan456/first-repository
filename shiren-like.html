@@ -593,7 +593,7 @@
     { key: "scroll_enchant_shield", name: "強化の巻物(盾)", cat: "scroll", sub: "enchant_shield", value: 0, weight: 0.7, sym: "巻", color: "#d9a441", desc: "盾を1段階強化する(防御+1)" },
     { key: "scroll_teleport", name: "テレポートの巻物", cat: "scroll", sub: "teleport", value: 0, weight: 1.4, sym: "巻", color: "#5c7fb0", desc: "この階の別の部屋へ飛ぶ" },
     { key: "scroll_reveal", name: "明かりの巻物", cat: "scroll", sub: "reveal", value: 0, weight: 0.7, sym: "巻", color: "#e8c96a", desc: "この階の通路の形と敵の位置が見えるようになる" },
-    { key: "scroll_megaevolve", name: "メガシンカの巻物", cat: "scroll", sub: "megaevolve", value: 100, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
+    { key: "scroll_megaevolve", name: "身体強化の巻物", cat: "scroll", sub: "megaevolve", value: 100, weight: 0.4, sym: "巻", color: "#e0503f", desc: "100ターンの間、攻撃力が2倍になる" },
     { key: "scroll_vacuum", name: "真空切りの巻物", cat: "scroll", sub: "vacuum", value: 0, weight: 0.4, sym: "巻", color: "#8fd0e0", desc: "同じ部屋にいる敵全員にレベル×10のダメージ" },
     // 追加の巻物4種。破壊・敵呼びは読むと不利益がある「はずれ」寄りの巻物、
     // 身代わりは破壊の巻物から装備を守る受け身の巻物、識別は未識別の巻物を
@@ -1217,7 +1217,7 @@
   /* =========================================================
      プレイヤーの能力・装備
   ========================================================= */
-  // メガシンカ中は攻撃力を2倍にする(武器あり/なしどちらの攻撃力にも適用)。
+  // 身体強化中は攻撃力を2倍にする(武器あり/なしどちらの攻撃力にも適用)。
   function megaScale(v) { return G.player.megaEvolveTurns > 0 ? v * 2 : v; }
   // 呪術師の弱体の呪文を受けている間は攻撃力が半分になる(武器あり/なしどちらにも適用)。
   function weakenScale(v) { return G.player.weakenTurns > 0 ? Math.round(v * 0.5) : v; }
@@ -2106,7 +2106,7 @@
     }
     if (G.player.megaEvolveTurns > 0) {
       G.player.megaEvolveTurns--;
-      if (G.player.megaEvolveTurns === 0) addMessage("メガシンカの効果が切れた。", "note");
+      if (G.player.megaEvolveTurns === 0) addMessage("身体強化の効果が切れた。", "note");
     }
     trySpawnWanderingMonster();
     if (checkPlayerDeath()) return;
@@ -2331,7 +2331,7 @@
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
     var statuses = [];
-    if (G.player.megaEvolveTurns > 0) statuses.push("メガシンカ中(残り" + G.player.megaEvolveTurns + "ターン)");
+    if (G.player.megaEvolveTurns > 0) statuses.push("身体強化中(残り" + G.player.megaEvolveTurns + "ターン)");
     if (G.player.paralyzed) statuses.push("金縛り中");
     if (G.player.sleepTurns > 0) statuses.push("睡眠中(残り" + G.player.sleepTurns + "ターン)");
     if (G.player.confusedTurns > 0) statuses.push("混乱中(残り" + G.player.confusedTurns + "ターン)");
