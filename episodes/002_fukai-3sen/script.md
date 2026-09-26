@@ -104,6 +104,44 @@
 - ゲーム内ボイスのファイル：voice_valeera.mp3 / voice_dirtyrat.mp3 / voice_dragonkin.mp3 / voice_anduin_concede.mp3
 - 効果音ファイル：impact_don.mp3 / intro_jan.mp3 / info_pon.mp3 / info_pi.mp3 / annoy_bubuu.mp3 / annoy_ira.mp3 / emphasis_kakiin.mp3 / emphasis_kiraan.mp3 / count_ka.mp3 / attack_zubaan.mp3 / shock_gaan.mp3
 
+## 素材一覧
+置き場所：`episodes/002_fukai-3sen/`（名前を変えたあと）
+
+### 画像（8）
+| ファイル名 | 中身 | 使う場面 |
+|---|---|---|
+| card_1.png | 影宝石商ハナー | 2〜4 |
+| scene_hanar_secrets.png | 秘策が5個貼られたローグのヒーローの画面（相手の名前は隠す） | 5 |
+| card_2.png | キングプラッシュ | 6〜9 |
+| card_2_sub1.png | ドブネズミ | 10 |
+| card_2_sub2.png | お世話するドラゴンキン | 10 |
+| card_3.png | とりかへばや | 11〜13、17 |
+| card_3_sub1.png | ツインフィン・フィンツイン | 14 |
+| card_3_sub2.png | 破壊者デスウィング | 14 |
+
+### ゲーム内ボイス（4）
+| ファイル名 | 中身 | 使う場面 |
+|---|---|---|
+| voice_valeera.mp3 | ヴァリーラ「お付き合い願うわ」 | 5 |
+| voice_dirtyrat.mp3 | ドブネズミ「あっしタレコミしない！」 | 10 |
+| voice_dragonkin.mp3 | お世話するドラゴンキン「こんにちわ」 | 10 |
+| voice_anduin_concede.mp3 | アンドゥイン・リンの降参ボイス | 16 |
+
+### 効果音（11）
+| ファイル名 | 音 | 使う場面 |
+|---|---|---|
+| impact_don.mp3 | ドーン | 1 |
+| intro_jan.mp3 | ジャン | 2、6、11 |
+| info_pon.mp3 | ポン | 3、7、17 |
+| info_pi.mp3 | ピッ | 12 |
+| annoy_bubuu.mp3 | ブブー | 4 |
+| annoy_ira.mp3 | イラッ | 16 |
+| emphasis_kakiin.mp3 | カキーン | 8、13 |
+| emphasis_kiraan.mp3 | キラーン | 18 |
+| count_ka.mp3 | カッ | 5（×5）、14（×2） |
+| attack_zubaan.mp3 | ズバーン | 9 |
+| shock_gaan.mp3 | ガーン | 15 |
+
 ## 説明欄
 ```
 対戦で使われて、個人的に不快だったカードを3枚紹介するのだ。
