@@ -813,6 +813,8 @@
       mapRevealActive: false,
       attackEffect: null,
       missEffect: null,
+      throwFlightEffect: null, // 投げ物(矢・石)が飛んでいく最中の位置(animateThrowFlight)
+      wandBoltEffect: null, // 杖の弾がふわふわと飛んでいく最中の位置(animateWandBolt)
       lastDamageCause: null, // 直近でプレイヤーがダメージを受けた原因(結果画面の死因表示に使用)
       scrollIdentity: assignScrollIdentities(), // 巻物の種類ごとの識別状態と見た目の色名
       player: {
@@ -1714,6 +1716,37 @@
     saveGame();
   }
 
+  // 足元にアイテムが落ちているときだけ選べる「交換」。選んだスロットのスタックを
+  // 丸ごと手放してその場に置き、代わりに足元のアイテムを持ち物に加える。「捨てる」が
+  // 既に物がある床には置けない仕様のため、交換はこの制約を回避する専用の操作として
+  // 用意している。武器/盾/投げ物を手放した直後、その部位に何も装備していなければ
+  // 新しく拾った方を自動装備する(addItemToInventoryのautoEquipが、交換で空いた
+  // 直後の状態を見て判定するため、特別な処理は不要)。
+  function swapInventorySlot(index) {
+    var slot = G.player.inventory[index];
+    if (!slot) return;
+    var floorItem = findFloorItemAt(G.player.x, G.player.y);
+    if (!floorItem) return;
+    // 呪われた武器/盾は、装備を外す操作と同様に手放せない。
+    if (slot.equipped && (slot.cat === "weapon" || slot.cat === "shield") && G.player.curseTurns > 0) {
+      addMessage("呪いのせいで、今の" + (slot.cat === "weapon" ? "武器" : "盾") + "を外せない!", "warn");
+      return;
+    }
+    var floorDef = floorItem.def;
+    var floorCount = (typeof floorItem.count === "number") ? floorItem.count : (floorDef.bundle || 1);
+    var droppedDef = { key: slot.key, name: slot.name, cat: slot.cat, sub: slot.sub, value: slot.value, sym: slot.sym, color: slot.color, desc: slot.desc };
+    var droppedLabel = slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name;
+    var floorLabel = floorDef.cat === "scroll" ? scrollDisplayName(floorDef.key) : floorDef.name;
+    var floorIdx = G.floorItems.indexOf(floorItem);
+    if (floorIdx >= 0) G.floorItems.splice(floorIdx, 1);
+    G.player.inventory.splice(index, 1);
+    G.floorItems.push(makeFloorItemEntry(G.player.x, G.player.y, droppedDef, slot.count));
+    addItemToInventory(floorDef, floorCount, { autoEquip: true });
+    addMessage(droppedLabel + "と" + floorLabel + "を交換した。", "note");
+    renderAll();
+    saveGame();
+  }
+
   /* =========================================================
      戦闘
   ========================================================= */
@@ -2051,7 +2084,9 @@
   // 命中率は通常攻撃と同じ(HIT_CHANCE)。ダメージは素手の通常攻撃を基準にし、
   // アイテムごとの倍率(矢=1倍、石=2倍)を掛ける(武器を装備していても影響しない)。
   // 命中すれば投げたものは消費されるだけだが、外れた場合・壁にぶつかった場合・
-  // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。
+  // 誰にも当たらず射程が尽きた場合は、その場に落ちて拾い直せる。着弾するまでは
+  // animateThrowFlightで矢・石が飛んでいく様子を見せ、その間はturnBusyで他の
+  // 入力を受け付けない(命中判定・ダメージ適用は着弾後に行う)。
   function performThrowAction() {
     if (!G || G.gameOver || turnBusy || quickInvOpen) return;
     if (handlePlayerIncapacitated()) return;
@@ -2078,31 +2113,38 @@
       if (found) { target = found; break; }
     }
 
-    consumeOneFromSlot(quiver); // 撃ち尽くしたら持ち物からも消える(装備状態も自然に解除される)
+    var thisG = G;
+    turnBusy = true;
+    var flyToX = target ? target.x : landX, flyToY = target ? target.y : landY;
+    animateThrowFlight(px, py, flyToX, flyToY, itemDef, function () {
+      if (G !== thisG) return; // 飛んでいる間に新しいゲームが始まっていたら何もしない
+      consumeOneFromSlot(quiver); // 撃ち尽くしたら持ち物からも消える(装備状態も自然に解除される)
 
-    if (target) {
-      target.awake = true;
-      if (chance(HIT_CHANCE)) {
-        var dmg = computeDamage(unarmedAtk() * dmgMult, target.def);
-        addMessage(quiver.name + "が" + target.name + "に命中!" + dmg + "のダメージ!", "");
-        var killed = applyEnemyDamage(target, dmg);
-        if (!killed && target.ability === "split") trySplitEnemy(target);
-      } else {
-        addMessage(quiver.name + "は" + target.name + "に外れて足元に落ちた。", "warn");
-        if (itemDef) dropThrownItem(target.x, target.y, itemDef);
-        clearParalysis(target); // 金縛りの杖:投擲が外れると解ける
+      if (target) {
+        target.awake = true;
+        if (chance(HIT_CHANCE)) {
+          var dmg = computeDamage(unarmedAtk() * dmgMult, target.def);
+          addMessage(quiver.name + "が" + target.name + "に命中!" + dmg + "のダメージ!", "");
+          var killed = applyEnemyDamage(target, dmg);
+          if (!killed && target.ability === "split") trySplitEnemy(target);
+        } else {
+          addMessage(quiver.name + "は" + target.name + "に外れて足元に落ちた。", "warn");
+          if (itemDef) dropThrownItem(target.x, target.y, itemDef);
+          clearParalysis(target); // 金縛りの杖:投擲が外れると解ける
+        }
+      } else if (itemDef) {
+        dropThrownItem(landX, landY, itemDef);
       }
-    } else if (itemDef) {
-      dropThrownItem(landX, landY, itemDef);
-    }
 
-    // 攻撃(投擲)の結果が見えるよう、敵の行動は少し遅らせる。
-    doTurn(ENEMY_TURN_DELAY_MS);
+      // 攻撃(投擲)の結果が見えるよう、敵の行動は少し遅らせる。
+      doTurn(ENEMY_TURN_DELAY_MS);
+    });
   }
 
   // 杖を振る:プレイヤーの向いている方向へ、壁に当たるまで(射程無限)まっすぐ進め、
   // 最初に見つかった敵に杖ごとの効果を与える(ダメージは与えない)。使用回数を1消費し、
-  // 0になったらその杖は持ち物から消える。攻撃と同様、演出が見えるよう敵の行動を少し遅らせる。
+  // 0になったらその杖は持ち物から消える。animateWandBoltで弾が飛んでいく様子を見せ、
+  // その間はturnBusyで他の入力を受け付けない(効果の適用は着弾後に行う)。
   function castWand(index) {
     if (!G || G.gameOver || turnBusy) return;
     if (handlePlayerIncapacitated()) return;
@@ -2110,24 +2152,32 @@
     if (!slot || slot.cat !== "wand") return;
     var facing = G.player.facing || { dx: 0, dy: 1 };
     var dx = facing.dx, dy = facing.dy;
-    var tx = G.player.x, ty = G.player.y;
+    var px = G.player.x, py = G.player.y;
+    var tx = px, ty = py;
     var target = null;
     while (true) {
-      tx += dx; ty += dy;
-      if (!inBounds(tx, ty) || G.grid[ty][tx] === T_WALL) break;
+      var ntx = tx + dx, nty = ty + dy;
+      if (!inBounds(ntx, nty) || G.grid[nty][ntx] === T_WALL) break;
+      tx = ntx; ty = nty;
       var found = findEnemyAt(tx, ty);
       if (found) { target = found; break; }
     }
-    if (target) {
-      target.awake = true;
-      applyWandEffect(slot, target, dx, dy);
-    } else {
-      addMessage(slot.name + "を振ったが、何もいなかった。", "");
-    }
-    slot.count--;
-    if (slot.count <= 0) G.player.inventory.splice(index, 1);
-    // 演出が見えるよう、敵の行動は少し遅らせる。
-    doTurn(ENEMY_TURN_DELAY_MS);
+
+    var thisG = G;
+    turnBusy = true;
+    animateWandBolt(px, py, tx, ty, slot.color, function () {
+      if (G !== thisG) return; // 飛んでいる間に新しいゲームが始まっていたら何もしない
+      if (target) {
+        target.awake = true;
+        applyWandEffect(slot, target, dx, dy);
+      } else {
+        addMessage(slot.name + "を振ったが、何もいなかった。", "");
+      }
+      slot.count--;
+      if (slot.count <= 0) G.player.inventory.splice(index, 1);
+      // 演出が見えるよう、敵の行動は少し遅らせる。
+      doTurn(ENEMY_TURN_DELAY_MS);
+    });
   }
 
   // 杖/呪文が付与する状態異常の持続ターン数。杖(applyWandEffect)・呪術師の呪文
@@ -2560,6 +2610,7 @@
       return;
     }
     var html = "";
+    var hasFloorItemHere = !!findFloorItemAt(G.player.x, G.player.y);
     for (var i = 0; i < G.player.inventory.length; i++) {
       var it = G.player.inventory[i];
       var equipable = it.cat === "weapon" || it.cat === "shield" || it.cat === "throwable";
@@ -2572,7 +2623,8 @@
         '<div class="name">' + (it.equipped ? '<span class="equip-badge" title="装備中">E</span>' : '') +
         escapeHtml(dispName) + (it.count > 1 ? " ×" + it.count : "") + '<small>' + escapeHtml(dispDesc) + '</small></div>' +
         '<div class="acts"><button data-act="use" data-idx="' + i + '">' + actionLabel + '</button>' +
-        '<button data-act="drop" data-idx="' + i + '">捨てる</button></div>' +
+        '<button data-act="drop" data-idx="' + i + '">捨てる</button>' +
+        (hasFloorItemHere ? '<button data-act="swap" data-idx="' + i + '">交換</button>' : '') + '</div>' +
         '</div>';
     }
     el.innerHTML = html;
@@ -2703,17 +2755,26 @@
     renderQuickInv();
   }
 
-  // 選択中のアイテムに対する「使う/装備する・捨てる」の確認サブメニュー。
-  // 武器・盾・投げ物は「装備する」、それ以外は「使う」とラベルを出し分ける
-  // (サイドバーのactionLabelと同じ判定)。
+  // 確認サブメニューの選択肢一覧(使う/装備する・外す、捨てる、交換)。足元に
+  // アイテムが落ちているときだけ「交換」が末尾に加わる。選択肢の数は
+  // moveQuickInvActionCursorの折り返し判定にも使うため、ここに切り出している。
+  function quickInvActionOptions(slot) {
+    var equipable = slot.cat === "weapon" || slot.cat === "shield" || slot.cat === "throwable";
+    var actionLabel = equipable ? (slot.equipped ? "外す" : "装備する") : "使う";
+    var options = [actionLabel, "捨てる"];
+    if (findFloorItemAt(G.player.x, G.player.y)) options.push("交換");
+    return options;
+  }
+
+  // 選択中のアイテムに対する「使う/装備する・外す」「捨てる」(「交換」)の確認
+  // サブメニュー。武器・盾・投げ物は装備中かどうかで「外す」「装備する」を
+  // 出し分ける(サイドバーのactionLabelと同じ判定)。
   function renderQuickInvActionMenu() {
     var el = document.getElementById("quick-inv-confirm");
     var slot = G.player.inventory[quickInvIndex];
     if (!slot) return;
-    var equipable = slot.cat === "weapon" || slot.cat === "shield" || slot.cat === "throwable";
-    var actionLabel = equipable ? (slot.equipped ? "外す" : "装備する") : "使う";
     var dispName = slot.cat === "scroll" ? scrollDisplayName(slot.key) : slot.name;
-    var options = [actionLabel, "捨てる"];
+    var options = quickInvActionOptions(slot);
     var html = '<div class="quick-inv-confirm-title">' + escapeHtml(dispName) + '</div>';
     for (var i = 0; i < options.length; i++) {
       html += '<div class="quick-inv-confirm-row' + (i === quickInvConfirmIndex ? " sel" : "") + '">' + options[i] + '</div>';
@@ -2735,18 +2796,23 @@
   }
 
   function moveQuickInvActionCursor(delta) {
-    quickInvConfirmIndex = (quickInvConfirmIndex + delta + 2) % 2;
+    var slot = G.player.inventory[quickInvIndex];
+    if (!slot) return;
+    var count = quickInvActionOptions(slot).length;
+    quickInvConfirmIndex = (quickInvConfirmIndex + delta + count) % count;
     renderQuickInvActionMenu();
   }
 
-  // 確認サブメニューでの選択を実行する。「使う/装備する」ならuseInventorySlotへ
-  // (既存の使用処理と完全に同じ)、「捨てる」ならdropInventorySlotへ委譲する。
+  // 確認サブメニューでの選択を実行する。「使う/装備する/外す」ならuseInventorySlotへ
+  // (既存の使用・装備・解除処理と完全に同じ)、「捨てる」ならdropInventorySlotへ、
+  // 「交換」(足元にアイテムがあるときだけ表示)ならswapInventorySlotへ委譲する。
   function confirmQuickInvAction() {
     var idx = quickInvIndex;
-    var useSelected = quickInvConfirmIndex === 0;
+    var choice = quickInvConfirmIndex;
     closeQuickInv();
-    if (useSelected) useInventorySlot(idx);
-    else dropInventorySlot(idx);
+    if (choice === 0) useInventorySlot(idx);
+    else if (choice === 1) dropInventorySlot(idx);
+    else swapInventorySlot(idx);
   }
 
   /* ---- タイルの質感描画ヘルパー ---- */
@@ -3832,6 +3898,8 @@
     drawPlayerFigure(G.player.x, G.player.y);
     drawAttackEffect();
     drawMissEffect();
+    drawThrowFlightEffect();
+    drawWandBoltEffect();
   }
 
   // 一定時間だけ表示される視覚エフェクト(攻撃の拳/剣マーク・敵の踏み込みモーション・
@@ -3983,6 +4051,123 @@
     ctx.restore();
   }
 
+  // requestAnimationFrameで(fromX,fromY)→(toX,toY)の間を時間tに応じて補間し、
+  // applyFrame(t, dx, dy)で毎フレームの見た目用データを更新・再描画する。t=1に
+  // 達したらclearEffectで消してからdoneCallbackを呼ぶ(ここで命中判定やダメージ
+  // 付与など、演出後に行うべき本処理を行う)。矢・石のまっすぐな飛翔(animateThrowFlight)と
+  // 杖の弾のふわふわとした飛翔(animateWandBolt)の両方で使う共通の骨組み。
+  function animateProjectile(fromX, fromY, toX, toY, durationMs, applyFrame, clearEffect, doneCallback) {
+    var dx = toX - fromX, dy = toY - fromY;
+    var startTime = null;
+    function step(now) {
+      if (startTime === null) startTime = now;
+      var t = Math.min(1, (now - startTime) / durationMs);
+      applyFrame(t, dx, dy);
+      renderStage();
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        clearEffect();
+        renderStage();
+        doneCallback();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  // 投げ物(矢・石)が着弾/落下地点まで一直線に飛んでいく視覚効果。距離に応じて
+  // 飛行時間を決める(最低120ms・最大500ms)。矢は進行方向を向くよう回転させ、
+  // 石は回転させず転がるように見せる。
+  var PROJECTILE_MS_PER_TILE = 40;
+
+  function animateThrowFlight(fromX, fromY, toX, toY, def, doneCallback) {
+    var dist = Math.max(Math.abs(toX - fromX), Math.abs(toY - fromY));
+    var duration = Math.min(500, Math.max(120, dist * PROJECTILE_MS_PER_TILE));
+    var angle = Math.atan2(toY - fromY, toX - fromX) + Math.PI / 2;
+    animateProjectile(
+      fromX, fromY, toX, toY, duration,
+      function (t, dx, dy) { G.throwFlightEffect = { x: fromX + dx * t, y: fromY + dy * t, sub: def.sub, color: def.color, angle: angle }; },
+      function () { if (G) G.throwFlightEffect = null; },
+      doneCallback
+    );
+  }
+
+  function drawThrowFlightEffect() {
+    if (!G.throwFlightEffect) return;
+    var fx = G.throwFlightEffect;
+    var cx = fx.x * TILE + TILE / 2, cy = fx.y * TILE + TILE / 2;
+    ctx.save();
+    if (fx.sub === "stone") {
+      // 石:進行方向への回転は付けず、塊がそのまま滑っていくように見せる
+      ctx.fillStyle = fx.color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, TILE * 0.13, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = shadeColor(fx.color, -0.35);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      // 矢:進行方向を向けた軸+鏃のシンプルな形
+      ctx.translate(cx, cy);
+      ctx.rotate(fx.angle);
+      ctx.strokeStyle = fx.color;
+      ctx.lineWidth = Math.max(1, TILE * 0.05);
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(0, TILE * 0.2);
+      ctx.lineTo(0, -TILE * 0.2);
+      ctx.stroke();
+      ctx.fillStyle = "#c7ccd2";
+      ctx.beginPath();
+      ctx.moveTo(0, -TILE * 0.3);
+      ctx.lineTo(TILE * 0.07, -TILE * 0.12);
+      ctx.lineTo(-TILE * 0.07, -TILE * 0.12);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // 杖の弾がふわふわと(進行方向と直交に小さく波打ちながら)飛んでいく視覚効果。
+  // 射程無限のため距離が長くなることがあるので、飛行時間に上限を設けてテンポを保つ。
+  var WAND_BOLT_MS_PER_TILE = 28;
+
+  function animateWandBolt(fromX, fromY, toX, toY, color, doneCallback) {
+    var dist = Math.max(Math.abs(toX - fromX), Math.abs(toY - fromY));
+    var duration = Math.min(600, Math.max(150, dist * WAND_BOLT_MS_PER_TILE));
+    var len = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2)) || 1;
+    var perpX = -(toY - fromY) / len, perpY = (toX - fromX) / len;
+    animateProjectile(
+      fromX, fromY, toX, toY, duration,
+      function (t, dx, dy) {
+        var wave = Math.sin(t * Math.PI * 3) * 0.15;
+        G.wandBoltEffect = { x: fromX + dx * t + perpX * wave, y: fromY + dy * t + perpY * wave, color: color };
+      },
+      function () { if (G) G.wandBoltEffect = null; },
+      doneCallback
+    );
+  }
+
+  function drawWandBoltEffect() {
+    if (!G.wandBoltEffect) return;
+    var fx = G.wandBoltEffect;
+    var cx = fx.x * TILE + TILE / 2, cy = fx.y * TILE + TILE / 2;
+    ctx.save();
+    var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, TILE * 0.3);
+    grad.addColorStop(0, "#fff8e0");
+    grad.addColorStop(0.45, fx.color);
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, TILE * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#fff8e0";
+    ctx.beginPath();
+    ctx.arc(cx, cy, TILE * 0.09, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   /* =========================================================
      セーブ / ロード
   ========================================================= */
@@ -4041,6 +4226,8 @@
     G.gameOver = false;
     G.attackEffect = null; // 保存前に表示中だったエフェクトは復元時に消しておく
     G.missEffect = null;
+    G.throwFlightEffect = null;
+    G.wandBoltEffect = null;
     if (G.player) G.player.lungeOffset = null; // 保存前に表示中だった踏み込みモーションも復元時に消しておく
     // 装備を持ち物に統合する前のセーブデータ(旧形式:G.player.weapon/shield/throwableが
     // 独立フィールドだった)からの移行。残っていれば、持ち物内のequipped:trueなスロット
@@ -4270,6 +4457,7 @@
     var act = btn.getAttribute("data-act");
     if (act === "use") useInventorySlot(idx);
     else if (act === "drop") dropInventorySlot(idx);
+    else if (act === "swap") swapInventorySlot(idx);
   });
 
   document.getElementById("btn-new-game").addEventListener("click", startNewGame);
