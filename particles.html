@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>粒子シミュレーション</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0d12; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #reset { position: fixed; top: 12px; left: 16px; padding: 8px 14px; font: 600 14px sans-serif;
+           color: #fff; background: #1d2230; border: 1px solid #3a4157; border-radius: 6px; cursor: pointer; }
+  #reset:hover { background: #2a3045; }
+  #reset:focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="reset" type="button">初期状態に戻す</button>
+<script>
+(() => {
+  const N = 80;
+  const COLORS = ['#ff4d4d', '#4dff6a', '#4d8dff'];
+  const R = 5;               // 粒子の半径
+  const LINK_DIST = 45;      // 「隣接」とみなす距離
+  const K_ATTR = 18;         // 引力の係数 (同色)
+  const K_REP = 26;          // 斥力の係数 (異色)
+  const NEAR = 28;           // これより近いと反発を強める
+  const K_NEAR = 900;        // 近距離反発の係数
+  const MAX_FORCE_DIST = 250;// 力が届く最大距離
+  const DAMPING = 0.995;
+  const MAX_SPEED = 3;
+
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const p of particles) {
+      p.x = Math.min(Math.max(p.x, R), W - R);
+      p.y = Math.min(Math.max(p.y, R), H - R);
+    }
+  }
+
+  // 色を均等配分 (80個 → 27/27/26) してシャッフルし、位置・速度をランダムに初期化
+  const particles = [];
+  for (let i = 0; i < N; i++) particles.push({ x: 0, y: 0, vx: 0, vy: 0, c: i % 3 });
+
+  function init() {
+    for (let i = N - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [particles[i].c, particles[j].c] = [particles[j].c, particles[i].c];
+    }
+    for (const p of particles) {
+      p.x = R + Math.random() * (W - 2 * R);
+      p.y = R + Math.random() * (H - 2 * R);
+      p.vx = (Math.random() - 0.5) * 1;
+      p.vy = (Math.random() - 0.5) * 1;
+    }
+  }
+  W = window.innerWidth; H = window.innerHeight;
+  init();
+  document.getElementById('reset').addEventListener('click', init);
+  window.addEventListener('resize', resize);
+  resize();
+
+  function step() {
+    for (let i = 0; i < N; i++) {
+      const a = particles[i];
+      let fx = 0, fy = 0;
+      for (let j = 0; j < N; j++) {
+        if (i === j) continue;
+        const b = particles[j];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const d2 = dx * dx + dy * dy;
+        const d = Math.sqrt(d2) || 0.001;
+        if (d > MAX_FORCE_DIST) continue;
+        const ux = dx / d, uy = dy / d;
+        // 距離の逆数に比例。同色=引力(+)、異色=斥力(-)
+        let f = (a.c === b.c ? K_ATTR : -K_REP) / Math.max(d, 1);
+        // 近すぎる場合は色に関係なく強く反発
+        if (d < NEAR) {
+          const t = (NEAR - d) / NEAR;
+          f -= K_NEAR * t * t / Math.max(d, 1);
+        }
+        fx += f * ux;
+        fy += f * uy;
+      }
+      a.vx += fx * 0.05;
+      a.vy += fy * 0.05;
+    }
+    for (const p of particles) {
+      p.vx *= DAMPING; p.vy *= DAMPING;
+      const s = Math.hypot(p.vx, p.vy);
+      if (s > MAX_SPEED) { p.vx *= MAX_SPEED / s; p.vy *= MAX_SPEED / s; }
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < R)     { p.x = R;     p.vx = Math.abs(p.vx); }
+      if (p.x > W - R) { p.x = W - R; p.vx = -Math.abs(p.vx); }
+      if (p.y < R)     { p.y = R;     p.vy = Math.abs(p.vy); }
+      if (p.y > H - R) { p.y = H - R; p.vy = -Math.abs(p.vy); }
+    }
+  }
+
+  // 同色かつ LINK_DIST 以内の粒子を辺で結んだ連結成分の数 (Union-Find)
+  function countClusters() {
+    const parent = Array.from({ length: N }, (_, i) => i);
+    const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+    for (let i = 0; i < N; i++) {
+      for (let j = i + 1; j < N; j++) {
+        const a = particles[i], b = particles[j];
+        if (a.c !== b.c) continue;
+        if (Math.hypot(a.x - b.x, a.y - b.y) <= LINK_DIST) {
+          parent[find(i)] = find(j);
+        }
+      }
+    }
+    const roots = new Set();
+    for (let i = 0; i < N; i++) roots.add(find(i));
+    return roots.size;
+  }
+
+  function draw(clusters) {
+    ctx.fillStyle = '#0b0d12';
+    ctx.fillRect(0, 0, W, H);
+    for (const p of particles) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
+      ctx.fillStyle = COLORS[p.c];
+      ctx.fill();
+    }
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('同色クラスタ数: ' + clusters, W - 16, 16);
+  }
+
+  function loop() {
+    step();
+    draw(countClusters());
+    requestAnimationFrame(loop);
+  }
+  loop();
+})();
+</script>
+</body>
+</html>
