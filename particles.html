@@ -7,10 +7,15 @@
 <style>
   html, body { margin: 0; height: 100%; background: #0b0d12; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; }
+  #reset { position: fixed; top: 12px; left: 16px; padding: 8px 14px; font: 600 14px sans-serif;
+           color: #fff; background: #1d2230; border: 1px solid #3a4157; border-radius: 6px; cursor: pointer; }
+  #reset:hover { background: #2a3045; }
+  #reset:focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="reset" type="button">初期状態に戻す</button>
 <script>
 (() => {
   const N = 80;
@@ -42,22 +47,25 @@
     }
   }
 
-  // 色を均等配分 (80個 → 27/27/26) してシャッフル
+  // 色を均等配分 (80個 → 27/27/26) してシャッフルし、位置・速度をランダムに初期化
   const particles = [];
-  for (let i = 0; i < N; i++) {
-    particles.push({ x: 0, y: 0, vx: 0, vy: 0, c: i % 3 });
-  }
-  for (let i = N - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [particles[i].c, particles[j].c] = [particles[j].c, particles[i].c];
+  for (let i = 0; i < N; i++) particles.push({ x: 0, y: 0, vx: 0, vy: 0, c: i % 3 });
+
+  function init() {
+    for (let i = N - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [particles[i].c, particles[j].c] = [particles[j].c, particles[i].c];
+    }
+    for (const p of particles) {
+      p.x = R + Math.random() * (W - 2 * R);
+      p.y = R + Math.random() * (H - 2 * R);
+      p.vx = (Math.random() - 0.5) * 1;
+      p.vy = (Math.random() - 0.5) * 1;
+    }
   }
   W = window.innerWidth; H = window.innerHeight;
-  for (const p of particles) {
-    p.x = R + Math.random() * (W - 2 * R);
-    p.y = R + Math.random() * (H - 2 * R);
-    p.vx = (Math.random() - 0.5) * 1;
-    p.vy = (Math.random() - 0.5) * 1;
-  }
+  init();
+  document.getElementById('reset').addEventListener('click', init);
   window.addEventListener('resize', resize);
   resize();
 
