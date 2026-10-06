@@ -56,7 +56,7 @@
   const ARROW_MAX = 100;         // 矢印の最大長
   const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
   const BALL_R = R * 2;          // 玉の半径 (粒子の2倍)
-  const BALL_SPEED = 3;          // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
+  const BALL_SPEED = 15;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
@@ -161,7 +161,8 @@
   }
 
   function spawnBall() {
-    const ang = Math.random() * Math.PI * 2;
+    // 発射方向は 45°/135°/225°/315° のいずれか (単位円上の向き)
+    const ang = (45 + 90 * Math.floor(Math.random() * 4)) * Math.PI / 180;
     ball = {
       x: BALL_R + Math.random() * (W - 2 * BALL_R),
       y: BALL_R + Math.random() * (H - 2 * BALL_R),
@@ -196,7 +197,14 @@
 
   function step(dt) {
     computeForces();
-    if (ball) moveBall(dt);
+    if (ball) {
+      // 高速なので、粒子をすり抜けないよう数px刻みで動かしながら衝突判定する
+      const n = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) * dt / 4));
+      for (let k = 0; k < n; k++) {
+        moveBall(dt / n);
+        for (const p of particles) collideWithBall(p);
+      }
+    }
     for (const p of particles) {
       p.vx += p.fx * 0.05 * dt;
       p.vy += p.fy * 0.05 * dt;
