@@ -27,7 +27,7 @@
 <div id="panel">
   <label>色数 <input id="colors" type="number" min="2" max="12" step="1" value="3"></label>
   <label>粒子数 <input id="count" type="number" min="2" max="300" step="1" value="240"></label>
-  <label>速度 <input id="speed" type="range" min="0" max="5" step="0.1" value="0.3"> <span id="speedLabel">×0.3</span></label>
+  <label>速度 <input id="speed" type="range" min="0" max="5" step="0.1" value="0.2"> <span id="speedLabel">×0.2</span></label>
   <span id="timer"></span>
   <button id="reset" type="button">初期状態に戻す</button>
 </div>
@@ -57,8 +57,9 @@
   const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
   const TOUCH_MS = 5000;         // 玉に触れた粒子の斥力が弱まる時間 (実時間。速度倍率に依存しない)
   const TOUCH_REP = 0.5;         // そのときの、粒子が発する斥力の倍率
+  const BALL_REP_COUNT = 20;     // 玉は、粒子20個のクラスタ相当の斥力を全色に対して発する
   const BALL_R = R * 6;          // 玉の半径 (粒子の6倍。当初の2倍の3倍)
-  const BALL_SPEED = 15;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
+  const BALL_SPEED = 10;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
@@ -121,7 +122,7 @@
   colorsInput.addEventListener('change', applyCount);
   countInput.addEventListener('change', applyCount);
 
-  let speed = 0.3;            // 速度倍率
+  let speed = 0.2;            // 速度倍率
   const speedInput = document.getElementById('speed');
   const speedLabel = document.getElementById('speedLabel');
   function applySpeed() {
@@ -159,6 +160,15 @@
         }
         fx += f * ux;
         fy += f * uy;
+      }
+      if (ball) {
+        const dx = a.x - ball.x, dy = a.y - ball.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+        if (d <= MAX_FORCE_DIST) {
+          const f = BALL_REP_COUNT * K_REP / Math.max(d, 1);   // 粒子間の異色斥力 × 20個分
+          fx += f * dx / d;
+          fy += f * dy / d;
+        }
       }
       a.fx = fx; a.fy = fy;
     }
