@@ -55,6 +55,8 @@
   const ARROW_SCALE = 40;        // 矢印の長さ = ARROW_SCALE × √(力の大きさ)
   const ARROW_MAX = 100;         // 矢印の最大長
   const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
+  const TOUCH_MS = 5000;         // 玉に触れた粒子の斥力が弱まる時間 (実時間。速度倍率に依存しない)
+  const TOUCH_REP = 0.5;         // そのときの、粒子が発する斥力の倍率
   const BALL_R = R * 2;          // 玉の半径 (粒子の2倍)
   const BALL_SPEED = 15;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
@@ -135,6 +137,8 @@
 
   // dt: 時間刻み (1 = 通常速度)。倍率が大きいときは loop で小刻みに分割して呼ぶ
   function computeForces() {
+    const now = performance.now();
+    for (const p of particles) p.rep = now - (p.touchedAt ?? -Infinity) < TOUCH_MS ? TOUCH_REP : 1;
     for (let i = 0; i < N; i++) {
       const a = particles[i];
       let fx = 0, fy = 0;
@@ -147,7 +151,7 @@
         if (d > MAX_FORCE_DIST) continue;
         const ux = dx / d, uy = dy / d;
         // 距離の逆数に比例。同色=引力(+)、異色=斥力(-)
-        let f = (a.c === b.c ? K_ATTR : -K_REP) / Math.max(d, 1);
+        let f = (a.c === b.c ? K_ATTR : -K_REP * b.rep) / Math.max(d, 1);
         // 近すぎる場合は色に関係なく強く反発
         if (d < NEAR) {
           const t = (NEAR - d) / NEAR;
@@ -185,6 +189,7 @@
     const minD = R + BALL_R;
     const d2 = dx * dx + dy * dy;
     if (d2 >= minD * minD) return;
+    p.touchedAt = performance.now();
     const d = Math.sqrt(d2) || 0.001;
     const nx = dx / d, ny = dy / d;
     p.x = ball.x + nx * minD;
@@ -274,6 +279,13 @@
       ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
       ctx.fillStyle = COLORS[p.c];
       ctx.fill();
+      if (p.rep < 1) {            // 斥力が弱まっている粒子には金色のリングを付ける
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, R + 3, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     }
     if (ball) {
       ctx.beginPath();
