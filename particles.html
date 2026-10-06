@@ -41,6 +41,9 @@
   const MAX_FORCE_DIST = 250;// 力が届く最大距離
   const DAMPING = 0.995;
   const MAX_SPEED = 3;
+  const ARROW_MAX_CLUSTERS = 30; // クラスタ数がこれ以下のとき矢印を表示
+  const ARROW_SCALE = 40;        // 矢印の長さ = ARROW_SCALE × √(力の大きさ)
+  const ARROW_MAX = 100;         // 矢印の最大長
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
@@ -102,7 +105,7 @@
   resize();
 
   // dt: 時間刻み (1 = 通常速度)。倍率が大きいときは loop で小刻みに分割して呼ぶ
-  function step(dt) {
+  function computeForces() {
     for (let i = 0; i < N; i++) {
       const a = particles[i];
       let fx = 0, fy = 0;
@@ -124,10 +127,15 @@
         fx += f * ux;
         fy += f * uy;
       }
-      a.vx += fx * 0.05 * dt;
-      a.vy += fy * 0.05 * dt;
+      a.fx = fx; a.fy = fy;
     }
+  }
+
+  function step(dt) {
+    computeForces();
     for (const p of particles) {
+      p.vx += p.fx * 0.05 * dt;
+      p.vy += p.fy * 0.05 * dt;
       const damp = Math.pow(DAMPING, dt);
       p.vx *= damp; p.vy *= damp;
       const s = Math.hypot(p.vx, p.vy);
@@ -140,8 +148,8 @@
     }
   }
 
-  // 同色かつ LINK_DIST 以内の粒子を辺で結んだ連結成分の数 (Union-Find)
-  function countClusters() {
+  // 同色かつ LINK_DIST 以内の粒子を辺で結んだ連結成分 (Union-Find)。粒子の配列の配列を返す
+  function findClusters() {
     const parent = Array.from({ length: N }, (_, i) => i);
     const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
     for (let i = 0; i < N; i++) {
@@ -153,12 +161,39 @@
         }
       }
     }
-    const roots = new Set();
-    for (let i = 0; i < N; i++) roots.add(find(i));
-    return roots.size;
+    const groups = new Map();
+    for (let i = 0; i < N; i++) {
+      const r = find(i);
+      if (!groups.has(r)) groups.set(r, []);
+      groups.get(r).push(particles[i]);
+    }
+    return [...groups.values()];
+  }
+
+  // クラスタ内の粒子が受ける力を合計する。同クラスタ内の力は作用・反作用で打ち消し合うので、
+  // 残るのはクラスタ外から受ける力 (≒ クラスタが動こうとする方向)
+  function drawArrow(cluster) {
+    let fx = 0, fy = 0, cx = 0, cy = 0;
+    for (const p of cluster) { fx += p.fx || 0; fy += p.fy || 0; cx += p.x; cy += p.y; }
+    cx /= cluster.length; cy /= cluster.length;
+    const mag = Math.hypot(fx, fy);
+    if (mag < 1e-6) return;
+    const len = Math.min(ARROW_MAX, ARROW_SCALE * Math.sqrt(mag));
+    const ux = fx / mag, uy = fy / mag;
+    const tx = cx + ux * len, ty = cy + uy * len;
+    ctx.strokeStyle = ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+    const h = Math.min(9, len * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - ux * h + uy * h * 0.5, ty - uy * h - ux * h * 0.5);
+    ctx.lineTo(tx - ux * h - uy * h * 0.5, ty - uy * h + ux * h * 0.5);
+    ctx.closePath(); ctx.fill();
   }
 
   function draw(clusters) {
+    const showArrows = clusters.length <= ARROW_MAX_CLUSTERS;
     ctx.fillStyle = '#0b0d12';
     ctx.fillRect(0, 0, W, H);
     for (const p of particles) {
@@ -167,17 +202,24 @@
       ctx.fillStyle = COLORS[p.c];
       ctx.fill();
     }
+    if (showArrows) for (const c of clusters) drawArrow(c);
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('同色クラスタ数: ' + clusters, W - 16, 16);
+    ctx.fillText('同色クラスタ数: ' + clusters.length, W - 16, 16);
+    if (showArrows) {
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#b8c0d4';
+      ctx.fillText('矢印: 各クラスタが受ける力の合成方向', W - 16, 42);
+    }
   }
 
   function loop() {
     // 速度倍率ぶんの時間を、1以下の刻みに分けて進める (高倍率でも粒子がすり抜けにくい)
     for (let t = speed; t > 1e-6; t -= 1) step(Math.min(1, t));
-    draw(countClusters());
+    if (speed <= 0) computeForces(); // 停止中も矢印を表示できるよう力だけ更新
+    draw(findClusters());
     requestAnimationFrame(loop);
   }
   loop();
