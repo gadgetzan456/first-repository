@@ -57,7 +57,7 @@
   const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
   const TOUCH_MS = 5000;         // 玉に触れた粒子の斥力が弱まる時間 (実時間。速度倍率に依存しない)
   const TOUCH_REP = 0.5;         // そのときの、粒子が発する斥力の倍率
-  const BALL_R = R * 2;          // 玉の半径 (粒子の2倍)
+  const BALL_R = R * 6;          // 玉の半径 (粒子の6倍。当初の2倍の3倍)
   const BALL_SPEED = 15;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
   const canvas = document.getElementById('c');
