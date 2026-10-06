@@ -12,7 +12,8 @@
            font: 600 14px sans-serif; color: #fff; }
   #panel input, #panel button { padding: 8px 10px; font: inherit; color: #fff; background: #1d2230;
            border: 1px solid #3a4157; border-radius: 6px; }
-  #count { width: 4.5em; }
+  #panel label { display: flex; align-items: center; gap: 6px; }
+  #count, #colors { width: 4.5em; }
   #speed { width: 9em; vertical-align: middle; padding: 0; }
   #speedLabel { display: inline-block; min-width: 3em; font-variant-numeric: tabular-nums; }
   #reset { padding: 8px 14px; cursor: pointer; }
@@ -23,15 +24,22 @@
 <body>
 <canvas id="c"></canvas>
 <div id="panel">
-  <label>粒子数 <input id="count" type="number" min="3" max="300" step="1" value="80"></label>
+  <label>色数 <input id="colors" type="number" min="2" max="12" step="1" value="3"></label>
+  <label>粒子数 <input id="count" type="number" min="2" max="300" step="1" value="80"></label>
   <label>速度 <input id="speed" type="range" min="0" max="5" step="0.1" value="1"> <span id="speedLabel">×1.0</span></label>
   <button id="reset" type="button">初期状態に戻す</button>
 </div>
 <script>
 (() => {
   let N = 80;                // 粒子数 (画面の入力欄で変更可)
-  const N_MIN = 3, N_MAX = 300;
-  const COLORS = ['#ff4d4d', '#4dff6a', '#4d8dff'];
+  const N_MAX = 300;
+  const K_MIN = 2, K_MAX = 12;
+  let K = 3;                 // 色数 (画面の入力欄で変更可)
+  let COLORS = [];
+  function makeColors() {    // 色相を等間隔に配る (3色なら赤・緑・青)
+    COLORS = Array.from({ length: K }, (_, i) => `hsl(${(360 * i / K).toFixed(1)}, 100%, 65%)`);
+  }
+  makeColors();
   const R = 5;               // 粒子の半径
   const LINK_DIST = 45;      // 「隣接」とみなす距離
   const K_ATTR = 18;         // 引力の係数 (同色)
@@ -71,7 +79,7 @@
         y: R + Math.random() * (H - 2 * R),
         vx: (Math.random() - 0.5) * 1,
         vy: (Math.random() - 0.5) * 1,
-        c: i % 3
+        c: i % K
       });
     }
     for (let i = N - 1; i > 0; i--) {
@@ -81,13 +89,24 @@
   }
   const countInput = document.getElementById('count');
   countInput.value = N;
+  const colorsInput = document.getElementById('colors');
+  colorsInput.value = K;
+  // 粒子数を色数の倍数に丸める (入力値に最も近い倍数。同距離なら大きい方)
+  function nearestMultiple(v, k) {
+    const m = Math.round(v / k) * k;
+    return Math.min(Math.floor(N_MAX / k) * k, Math.max(k, m));
+  }
   function applyCount() {
+    const k = Math.round(Number(colorsInput.value));
     const v = Math.round(Number(countInput.value));
-    if (!Number.isFinite(v)) { countInput.value = N; return; }
-    N = Math.min(N_MAX, Math.max(N_MIN, v));
+    if (Number.isFinite(k)) K = Math.min(K_MAX, Math.max(K_MIN, k));
+    colorsInput.value = K;
+    makeColors();
+    N = nearestMultiple(Number.isFinite(v) ? v : N, K);
     countInput.value = N;
     init();
   }
+  colorsInput.addEventListener('change', applyCount);
   countInput.addEventListener('change', applyCount);
 
   let speed = 1;             // 速度倍率
@@ -100,7 +119,7 @@
   speedInput.addEventListener('input', applySpeed);
   applySpeed();
   init();
-  document.getElementById('reset').addEventListener('click', applyCount);
+  document.getElementById('reset').addEventListener('click', init);
   window.addEventListener('resize', resize);
   resize();
 
