@@ -54,6 +54,9 @@
   const ARROW_MAX_CLUSTERS = 30; // クラスタ数がこれ以下のとき矢印を表示
   const ARROW_SCALE = 40;        // 矢印の長さ = ARROW_SCALE × √(力の大きさ)
   const ARROW_MAX = 100;         // 矢印の最大長
+  const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
+  const BALL_R = R * 2;          // 玉の半径 (粒子の2倍)
+  const BALL_SPEED = 3;          // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
@@ -74,9 +77,11 @@
   const particles = [];
   const RESET_INTERVAL_MS = 90 * 1000; // 速度倍率に関係なく実時間で1分30秒ごとに初期化
   let resetAt = 0;
+  let ball = null;           // 金色の玉。引力・斥力の影響を受けず、粒子をかき混ぜる
 
   function init() {
     resetAt = performance.now();
+    ball = null;
     particles.length = 0;
     for (let i = 0; i < N; i++) {
       particles.push({
@@ -155,8 +160,43 @@
     }
   }
 
+  function spawnBall() {
+    const ang = Math.random() * Math.PI * 2;
+    ball = {
+      x: BALL_R + Math.random() * (W - 2 * BALL_R),
+      y: BALL_R + Math.random() * (H - 2 * BALL_R),
+      vx: Math.cos(ang) * BALL_SPEED,
+      vy: Math.sin(ang) * BALL_SPEED
+    };
+  }
+
+  function moveBall(dt) {
+    ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+    if (ball.x < BALL_R)     { ball.x = BALL_R;     ball.vx = Math.abs(ball.vx); }
+    if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -Math.abs(ball.vx); }
+    if (ball.y < BALL_R)     { ball.y = BALL_R;     ball.vy = Math.abs(ball.vy); }
+    if (ball.y > H - BALL_R) { ball.y = H - BALL_R; ball.vy = -Math.abs(ball.vy); }
+  }
+
+  // 玉は質量無限大の弾性体として扱う: 玉の速度は変わらず、粒子だけが弾かれる
+  function collideWithBall(p) {
+    const dx = p.x - ball.x, dy = p.y - ball.y;
+    const minD = R + BALL_R;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= minD * minD) return;
+    const d = Math.sqrt(d2) || 0.001;
+    const nx = dx / d, ny = dy / d;
+    p.x = ball.x + nx * minD;
+    p.y = ball.y + ny * minD;
+    const vn = (p.vx - ball.vx) * nx + (p.vy - ball.vy) * ny;
+    if (vn < 0) { p.vx -= 2 * vn * nx; p.vy -= 2 * vn * ny; }
+    p.x = Math.min(Math.max(p.x, R), W - R);
+    p.y = Math.min(Math.max(p.y, R), H - R);
+  }
+
   function step(dt) {
     computeForces();
+    if (ball) moveBall(dt);
     for (const p of particles) {
       p.vx += p.fx * 0.05 * dt;
       p.vy += p.fy * 0.05 * dt;
@@ -169,6 +209,7 @@
       if (p.x > W - R) { p.x = W - R; p.vx = -Math.abs(p.vx); }
       if (p.y < R)     { p.y = R;     p.vy = Math.abs(p.vy); }
       if (p.y > H - R) { p.y = H - R; p.vy = -Math.abs(p.vy); }
+      if (ball) collideWithBall(p);
     }
   }
 
@@ -226,6 +267,12 @@
       ctx.fillStyle = COLORS[p.c];
       ctx.fill();
     }
+    if (ball) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd700';
+      ctx.fill();
+    }
     if (showArrows) for (const c of clusters) drawArrow(c);
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'right';
@@ -249,6 +296,7 @@
 
   function loop() {
     if (performance.now() - resetAt >= RESET_INTERVAL_MS) init();
+    if (!ball && performance.now() - resetAt >= BALL_APPEAR_MS) spawnBall();
     updateTimer();
     // 速度倍率ぶんの時間を、1以下の刻みに分けて進める (高倍率でも粒子がすり抜けにくい)
     for (let t = speed; t > 1e-6; t -= 1) step(Math.min(1, t));
