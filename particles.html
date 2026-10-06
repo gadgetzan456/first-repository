@@ -13,6 +13,8 @@
   #panel input, #panel button { padding: 8px 10px; font: inherit; color: #fff; background: #1d2230;
            border: 1px solid #3a4157; border-radius: 6px; }
   #count { width: 4.5em; }
+  #speed { width: 9em; vertical-align: middle; padding: 0; }
+  #speedLabel { display: inline-block; min-width: 3em; font-variant-numeric: tabular-nums; }
   #reset { padding: 8px 14px; cursor: pointer; }
   #reset:hover { background: #2a3045; }
   #panel :focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
@@ -22,6 +24,7 @@
 <canvas id="c"></canvas>
 <div id="panel">
   <label>粒子数 <input id="count" type="number" min="3" max="300" step="1" value="80"></label>
+  <label>速度 <input id="speed" type="range" min="0" max="5" step="0.1" value="1"> <span id="speedLabel">×1.0</span></label>
   <button id="reset" type="button">初期状態に戻す</button>
 </div>
 <script>
@@ -83,12 +86,23 @@
     init();
   }
   countInput.addEventListener('change', applyCount);
+
+  let speed = 1;             // 速度倍率
+  const speedInput = document.getElementById('speed');
+  const speedLabel = document.getElementById('speedLabel');
+  function applySpeed() {
+    speed = Number(speedInput.value);
+    speedLabel.textContent = '×' + speed.toFixed(1);
+  }
+  speedInput.addEventListener('input', applySpeed);
+  applySpeed();
   init();
   document.getElementById('reset').addEventListener('click', applyCount);
   window.addEventListener('resize', resize);
   resize();
 
-  function step() {
+  // dt: 時間刻み (1 = 通常速度)。倍率が大きいときは loop で小刻みに分割して呼ぶ
+  function step(dt) {
     for (let i = 0; i < N; i++) {
       const a = particles[i];
       let fx = 0, fy = 0;
@@ -110,14 +124,15 @@
         fx += f * ux;
         fy += f * uy;
       }
-      a.vx += fx * 0.05;
-      a.vy += fy * 0.05;
+      a.vx += fx * 0.05 * dt;
+      a.vy += fy * 0.05 * dt;
     }
     for (const p of particles) {
-      p.vx *= DAMPING; p.vy *= DAMPING;
+      const damp = Math.pow(DAMPING, dt);
+      p.vx *= damp; p.vy *= damp;
       const s = Math.hypot(p.vx, p.vy);
       if (s > MAX_SPEED) { p.vx *= MAX_SPEED / s; p.vy *= MAX_SPEED / s; }
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.x < R)     { p.x = R;     p.vx = Math.abs(p.vx); }
       if (p.x > W - R) { p.x = W - R; p.vx = -Math.abs(p.vx); }
       if (p.y < R)     { p.y = R;     p.vy = Math.abs(p.vy); }
@@ -160,7 +175,8 @@
   }
 
   function loop() {
-    step();
+    // 速度倍率ぶんの時間を、1以下の刻みに分けて進める (高倍率でも粒子がすり抜けにくい)
+    for (let t = speed; t > 1e-6; t -= 1) step(Math.min(1, t));
     draw(countClusters());
     requestAnimationFrame(loop);
   }
