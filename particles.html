@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>粒子シミュレーション</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0b0d12; overflow: hidden; }
-  canvas { display: block; width: 100vw; height: 100vh; }
+  html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #0b0d12; }
   #reset { position: fixed; top: 12px; left: 16px; padding: 8px 14px; font: 600 14px sans-serif;
            color: #fff; background: #1d2230; border: 1px solid #3a4157; border-radius: 6px; cursor: pointer; }
   #reset:hover { background: #2a3045; }
@@ -32,19 +33,17 @@
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  let W = 0, H = 0;
+  // シミュレーション空間は固定サイズ。ウィンドウに合わせて表示だけ拡大縮小する
+  const W = 960, H = 600;
 
   function resize() {
     const dpr = window.devicePixelRatio || 1;
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    for (const p of particles) {
-      p.x = Math.min(Math.max(p.x, R), W - R);
-      p.y = Math.min(Math.max(p.y, R), H - R);
-    }
+    const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    canvas.style.width = W * scale + 'px';
+    canvas.style.height = H * scale + 'px';
+    canvas.width = Math.round(W * scale * dpr);
+    canvas.height = Math.round(H * scale * dpr);
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
   }
 
   // 色を均等配分 (80個 → 27/27/26) してシャッフルし、位置・速度をランダムに初期化
@@ -63,7 +62,6 @@
       p.vy = (Math.random() - 0.5) * 1;
     }
   }
-  W = window.innerWidth; H = window.innerHeight;
   init();
   document.getElementById('reset').addEventListener('click', init);
   window.addEventListener('resize', resize);
