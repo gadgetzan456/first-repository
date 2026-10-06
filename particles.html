@@ -72,7 +72,7 @@
 
   // 色を均等配分 (例: 80個 → 27/27/26) し、位置・速度をランダムに初期化
   const particles = [];
-  const RESET_INTERVAL_MS = 3 * 60 * 1000; // 速度倍率に関係なく実時間で3分ごとに初期化
+  const RESET_INTERVAL_MS = 90 * 1000; // 速度倍率に関係なく実時間で1分30秒ごとに初期化
   let resetAt = 0;
 
   function init() {
