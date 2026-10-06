@@ -8,18 +8,26 @@
   html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; }
   body { display: flex; align-items: center; justify-content: center; }
   canvas { display: block; background: #0b0d12; }
-  #reset { position: fixed; top: 12px; left: 16px; padding: 8px 14px; font: 600 14px sans-serif;
-           color: #fff; background: #1d2230; border: 1px solid #3a4157; border-radius: 6px; cursor: pointer; }
+  #panel { position: fixed; top: 12px; left: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+           font: 600 14px sans-serif; color: #fff; }
+  #panel input, #panel button { padding: 8px 10px; font: inherit; color: #fff; background: #1d2230;
+           border: 1px solid #3a4157; border-radius: 6px; }
+  #count { width: 4.5em; }
+  #reset { padding: 8px 14px; cursor: pointer; }
   #reset:hover { background: #2a3045; }
-  #reset:focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
+  #panel :focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<button id="reset" type="button">初期状態に戻す</button>
+<div id="panel">
+  <label>粒子数 <input id="count" type="number" min="3" max="300" step="1" value="80"></label>
+  <button id="reset" type="button">初期状態に戻す</button>
+</div>
 <script>
 (() => {
-  const N = 80;
+  let N = 80;                // 粒子数 (画面の入力欄で変更可)
+  const N_MIN = 3, N_MAX = 300;
   const COLORS = ['#ff4d4d', '#4dff6a', '#4d8dff'];
   const R = 5;               // 粒子の半径
   const LINK_DIST = 45;      // 「隣接」とみなす距離
@@ -46,24 +54,37 @@
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
   }
 
-  // 色を均等配分 (80個 → 27/27/26) してシャッフルし、位置・速度をランダムに初期化
+  // 色を均等配分 (例: 80個 → 27/27/26) し、位置・速度をランダムに初期化
   const particles = [];
-  for (let i = 0; i < N; i++) particles.push({ x: 0, y: 0, vx: 0, vy: 0, c: i % 3 });
 
   function init() {
+    particles.length = 0;
+    for (let i = 0; i < N; i++) {
+      particles.push({
+        x: R + Math.random() * (W - 2 * R),
+        y: R + Math.random() * (H - 2 * R),
+        vx: (Math.random() - 0.5) * 1,
+        vy: (Math.random() - 0.5) * 1,
+        c: i % 3
+      });
+    }
     for (let i = N - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [particles[i].c, particles[j].c] = [particles[j].c, particles[i].c];
     }
-    for (const p of particles) {
-      p.x = R + Math.random() * (W - 2 * R);
-      p.y = R + Math.random() * (H - 2 * R);
-      p.vx = (Math.random() - 0.5) * 1;
-      p.vy = (Math.random() - 0.5) * 1;
-    }
   }
+  const countInput = document.getElementById('count');
+  countInput.value = N;
+  function applyCount() {
+    const v = Math.round(Number(countInput.value));
+    if (!Number.isFinite(v)) { countInput.value = N; return; }
+    N = Math.min(N_MAX, Math.max(N_MIN, v));
+    countInput.value = N;
+    init();
+  }
+  countInput.addEventListener('change', applyCount);
   init();
-  document.getElementById('reset').addEventListener('click', init);
+  document.getElementById('reset').addEventListener('click', applyCount);
   window.addEventListener('resize', resize);
   resize();
 
