@@ -5,21 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>粒子シミュレーション</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0b0d12; overflow: hidden; }
-  canvas { display: block; width: 100vw; height: 100vh; }
-  #reset { position: fixed; top: 12px; left: 16px; padding: 8px 14px; font: 600 14px sans-serif;
-           color: #fff; background: #1d2230; border: 1px solid #3a4157; border-radius: 6px; cursor: pointer; }
+  html, body { margin: 0; height: 100%; background: #05060a; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #0b0d12; }
+  #panel { position: fixed; top: 12px; left: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+           font: 600 14px sans-serif; color: #fff; }
+  #panel input, #panel button { padding: 8px 10px; font: inherit; color: #fff; background: #1d2230;
+           border: 1px solid #3a4157; border-radius: 6px; }
+  #panel label { display: flex; align-items: center; gap: 6px; }
+  #count, #colors { width: 4.5em; }
+  #speed { width: 9em; vertical-align: middle; padding: 0; }
+  #speedLabel { display: inline-block; min-width: 3em; font-variant-numeric: tabular-nums; }
+  #timer { font-variant-numeric: tabular-nums; font-weight: 400; color: #b8c0d4; }
+  #reset { padding: 8px 14px; cursor: pointer; }
   #reset:hover { background: #2a3045; }
-  #reset:focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
+  #panel :focus-visible { outline: 2px solid #4d8dff; outline-offset: 2px; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<button id="reset" type="button">初期状態に戻す</button>
+<div id="panel">
+  <label>色数 <input id="colors" type="number" min="2" max="12" step="1" value="3"></label>
+  <label>粒子数 <input id="count" type="number" min="2" max="300" step="1" value="240"></label>
+  <label>速度 <input id="speed" type="range" min="0" max="5" step="0.1" value="0.2"> <span id="speedLabel">×0.2</span></label>
+  <span id="timer"></span>
+  <button id="reset" type="button">初期状態に戻す</button>
+</div>
 <script>
 (() => {
-  const N = 80;
-  const COLORS = ['#ff4d4d', '#4dff6a', '#4d8dff'];
+  let N = 240;               // 粒子数 (画面の入力欄で変更可)
+  const N_MAX = 300;
+  const K_MIN = 2, K_MAX = 12;
+  let K = 3;                 // 色数 (画面の入力欄で変更可)
+  let COLORS = [];
+  function makeColors() {    // 色相を等間隔に配る (3色なら赤・緑・青)
+    COLORS = Array.from({ length: K }, (_, i) => `hsl(${(360 * i / K).toFixed(1)}, 100%, 65%)`);
+  }
+  makeColors();
   const R = 5;               // 粒子の半径
   const LINK_DIST = 45;      // 「隣接」とみなす距離
   const K_ATTR = 18;         // 引力の係数 (同色)
@@ -29,47 +51,95 @@
   const MAX_FORCE_DIST = 250;// 力が届く最大距離
   const DAMPING = 0.995;
   const MAX_SPEED = 3;
+  const ARROW_MAX_CLUSTERS = 30; // クラスタ数がこれ以下のとき矢印を表示
+  const ARROW_SCALE = 40;        // 矢印の長さ = ARROW_SCALE × √(力の大きさ)
+  const ARROW_MAX = 100;         // 矢印の最大長
+  const BALL_APPEAR_MS = 60 * 1000; // 開始から1分で金色の玉が現れる (実時間)
+  const TOUCH_MS = 5000;         // 玉に触れた粒子の斥力が弱まる時間 (実時間。速度倍率に依存しない)
+  const TOUCH_REP = 0.5;         // そのときの、粒子が発する斥力の倍率
+  const BALL_REP_COUNT = 20;     // 玉は、粒子20個のクラスタ相当の斥力を全色に対して発する
+  const BALL_R = R * 6;          // 玉の半径 (粒子の6倍。当初の2倍の3倍)
+  const BALL_SPEED = 10;         // 玉の速さ (等速。速度倍率は他の粒子と同様に掛かる)
 
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  let W = 0, H = 0;
+  // シミュレーション空間は固定サイズ。ウィンドウに合わせて表示だけ拡大縮小する
+  const W = 960, H = 600;
 
   function resize() {
     const dpr = window.devicePixelRatio || 1;
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    for (const p of particles) {
-      p.x = Math.min(Math.max(p.x, R), W - R);
-      p.y = Math.min(Math.max(p.y, R), H - R);
-    }
+    const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    canvas.style.width = W * scale + 'px';
+    canvas.style.height = H * scale + 'px';
+    canvas.width = Math.round(W * scale * dpr);
+    canvas.height = Math.round(H * scale * dpr);
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
   }
 
-  // 色を均等配分 (80個 → 27/27/26) してシャッフルし、位置・速度をランダムに初期化
+  // 色を均等配分 (例: 80個 → 27/27/26) し、位置・速度をランダムに初期化
   const particles = [];
-  for (let i = 0; i < N; i++) particles.push({ x: 0, y: 0, vx: 0, vy: 0, c: i % 3 });
+  const RESET_INTERVAL_MS = 120 * 1000; // 速度倍率に関係なく実時間で2分ごとに初期化
+  let resetAt = 0;
+  let ball = null;           // 金色の玉。引力・斥力の影響を受けず、粒子をかき混ぜる
 
   function init() {
+    resetAt = performance.now();
+    ball = null;
+    particles.length = 0;
+    for (let i = 0; i < N; i++) {
+      particles.push({
+        x: R + Math.random() * (W - 2 * R),
+        y: R + Math.random() * (H - 2 * R),
+        vx: (Math.random() - 0.5) * 1,
+        vy: (Math.random() - 0.5) * 1,
+        c: i % K
+      });
+    }
     for (let i = N - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [particles[i].c, particles[j].c] = [particles[j].c, particles[i].c];
     }
-    for (const p of particles) {
-      p.x = R + Math.random() * (W - 2 * R);
-      p.y = R + Math.random() * (H - 2 * R);
-      p.vx = (Math.random() - 0.5) * 1;
-      p.vy = (Math.random() - 0.5) * 1;
-    }
   }
-  W = window.innerWidth; H = window.innerHeight;
+  const countInput = document.getElementById('count');
+  countInput.value = N;
+  const colorsInput = document.getElementById('colors');
+  colorsInput.value = K;
+  // 粒子数を色数の倍数に丸める (入力値に最も近い倍数。同距離なら大きい方)
+  function nearestMultiple(v, k) {
+    const m = Math.round(v / k) * k;
+    return Math.min(Math.floor(N_MAX / k) * k, Math.max(k, m));
+  }
+  function applyCount() {
+    const k = Math.round(Number(colorsInput.value));
+    const v = Math.round(Number(countInput.value));
+    if (Number.isFinite(k)) K = Math.min(K_MAX, Math.max(K_MIN, k));
+    colorsInput.value = K;
+    makeColors();
+    N = nearestMultiple(Number.isFinite(v) ? v : N, K);
+    countInput.value = N;
+    init();
+  }
+  colorsInput.addEventListener('change', applyCount);
+  countInput.addEventListener('change', applyCount);
+
+  let speed = 0.2;            // 速度倍率
+  const speedInput = document.getElementById('speed');
+  const speedLabel = document.getElementById('speedLabel');
+  function applySpeed() {
+    speed = Number(speedInput.value);
+    speedLabel.textContent = '×' + speed.toFixed(1);
+  }
+  speedInput.addEventListener('input', applySpeed);
+  applySpeed();
   init();
   document.getElementById('reset').addEventListener('click', init);
   window.addEventListener('resize', resize);
   resize();
 
-  function step() {
+  // dt: 時間刻み (1 = 通常速度)。倍率が大きいときは loop で小刻みに分割して呼ぶ
+  function computeForces() {
+    const now = performance.now();
+    for (const p of particles) p.rep = now - (p.touchedAt ?? -Infinity) < TOUCH_MS ? TOUCH_REP : 1;
     for (let i = 0; i < N; i++) {
       const a = particles[i];
       let fx = 0, fy = 0;
@@ -82,7 +152,7 @@
         if (d > MAX_FORCE_DIST) continue;
         const ux = dx / d, uy = dy / d;
         // 距離の逆数に比例。同色=引力(+)、異色=斥力(-)
-        let f = (a.c === b.c ? K_ATTR : -K_REP) / Math.max(d, 1);
+        let f = (a.c === b.c ? K_ATTR : -K_REP * b.rep) / Math.max(d, 1);
         // 近すぎる場合は色に関係なく強く反発
         if (d < NEAR) {
           const t = (NEAR - d) / NEAR;
@@ -91,23 +161,83 @@
         fx += f * ux;
         fy += f * uy;
       }
-      a.vx += fx * 0.05;
-      a.vy += fy * 0.05;
+      if (ball) {
+        const dx = a.x - ball.x, dy = a.y - ball.y;
+        const d = Math.sqrt(dx * dx + dy * dy) || 0.001;
+        if (d <= MAX_FORCE_DIST) {
+          const f = BALL_REP_COUNT * K_REP / Math.max(d, 1);   // 粒子間の異色斥力 × 20個分
+          fx += f * dx / d;
+          fy += f * dy / d;
+        }
+      }
+      a.fx = fx; a.fy = fy;
+    }
+  }
+
+  function spawnBall() {
+    // 発射方向は 45°/135°/225°/315° のいずれか (単位円上の向き)
+    const ang = (45 + 90 * Math.floor(Math.random() * 4)) * Math.PI / 180;
+    ball = {
+      x: BALL_R + Math.random() * (W - 2 * BALL_R),
+      y: BALL_R + Math.random() * (H - 2 * BALL_R),
+      vx: Math.cos(ang) * BALL_SPEED,
+      vy: Math.sin(ang) * BALL_SPEED
+    };
+  }
+
+  function moveBall(dt) {
+    ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+    if (ball.x < BALL_R)     { ball.x = BALL_R;     ball.vx = Math.abs(ball.vx); }
+    if (ball.x > W - BALL_R) { ball.x = W - BALL_R; ball.vx = -Math.abs(ball.vx); }
+    if (ball.y < BALL_R)     { ball.y = BALL_R;     ball.vy = Math.abs(ball.vy); }
+    if (ball.y > H - BALL_R) { ball.y = H - BALL_R; ball.vy = -Math.abs(ball.vy); }
+  }
+
+  // 玉は質量無限大の弾性体として扱う: 玉の速度は変わらず、粒子だけが弾かれる
+  function collideWithBall(p) {
+    const dx = p.x - ball.x, dy = p.y - ball.y;
+    const minD = R + BALL_R;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= minD * minD) return;
+    p.touchedAt = performance.now();
+    const d = Math.sqrt(d2) || 0.001;
+    const nx = dx / d, ny = dy / d;
+    p.x = ball.x + nx * minD;
+    p.y = ball.y + ny * minD;
+    const vn = (p.vx - ball.vx) * nx + (p.vy - ball.vy) * ny;
+    if (vn < 0) { p.vx -= 2 * vn * nx; p.vy -= 2 * vn * ny; }
+    p.x = Math.min(Math.max(p.x, R), W - R);
+    p.y = Math.min(Math.max(p.y, R), H - R);
+  }
+
+  function step(dt) {
+    computeForces();
+    if (ball) {
+      // 高速なので、粒子をすり抜けないよう数px刻みで動かしながら衝突判定する
+      const n = Math.max(1, Math.ceil(Math.hypot(ball.vx, ball.vy) * dt / 4));
+      for (let k = 0; k < n; k++) {
+        moveBall(dt / n);
+        for (const p of particles) collideWithBall(p);
+      }
     }
     for (const p of particles) {
-      p.vx *= DAMPING; p.vy *= DAMPING;
+      p.vx += p.fx * 0.05 * dt;
+      p.vy += p.fy * 0.05 * dt;
+      const damp = Math.pow(DAMPING, dt);
+      p.vx *= damp; p.vy *= damp;
       const s = Math.hypot(p.vx, p.vy);
       if (s > MAX_SPEED) { p.vx *= MAX_SPEED / s; p.vy *= MAX_SPEED / s; }
-      p.x += p.vx; p.y += p.vy;
+      p.x += p.vx * dt; p.y += p.vy * dt;
       if (p.x < R)     { p.x = R;     p.vx = Math.abs(p.vx); }
       if (p.x > W - R) { p.x = W - R; p.vx = -Math.abs(p.vx); }
       if (p.y < R)     { p.y = R;     p.vy = Math.abs(p.vy); }
       if (p.y > H - R) { p.y = H - R; p.vy = -Math.abs(p.vy); }
+      if (ball) collideWithBall(p);
     }
   }
 
-  // 同色かつ LINK_DIST 以内の粒子を辺で結んだ連結成分の数 (Union-Find)
-  function countClusters() {
+  // 同色かつ LINK_DIST 以内の粒子を辺で結んだ連結成分 (Union-Find)。粒子の配列の配列を返す
+  function findClusters() {
     const parent = Array.from({ length: N }, (_, i) => i);
     const find = x => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
     for (let i = 0; i < N; i++) {
@@ -119,12 +249,39 @@
         }
       }
     }
-    const roots = new Set();
-    for (let i = 0; i < N; i++) roots.add(find(i));
-    return roots.size;
+    const groups = new Map();
+    for (let i = 0; i < N; i++) {
+      const r = find(i);
+      if (!groups.has(r)) groups.set(r, []);
+      groups.get(r).push(particles[i]);
+    }
+    return [...groups.values()];
+  }
+
+  // クラスタ内の粒子が受ける力を合計する。同クラスタ内の力は作用・反作用で打ち消し合うので、
+  // 残るのはクラスタ外から受ける力 (≒ クラスタが動こうとする方向)
+  function drawArrow(cluster) {
+    let fx = 0, fy = 0, cx = 0, cy = 0;
+    for (const p of cluster) { fx += p.fx || 0; fy += p.fy || 0; cx += p.x; cy += p.y; }
+    cx /= cluster.length; cy /= cluster.length;
+    const mag = Math.hypot(fx, fy);
+    if (mag < 1e-6) return;
+    const len = Math.min(ARROW_MAX, ARROW_SCALE * Math.sqrt(mag));
+    const ux = fx / mag, uy = fy / mag;
+    const tx = cx + ux * len, ty = cy + uy * len;
+    ctx.strokeStyle = ctx.fillStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+    const h = Math.min(9, len * 0.5);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - ux * h + uy * h * 0.5, ty - uy * h - ux * h * 0.5);
+    ctx.lineTo(tx - ux * h - uy * h * 0.5, ty - uy * h + ux * h * 0.5);
+    ctx.closePath(); ctx.fill();
   }
 
   function draw(clusters) {
+    const showArrows = clusters.length <= ARROW_MAX_CLUSTERS;
     ctx.fillStyle = '#0b0d12';
     ctx.fillRect(0, 0, W, H);
     for (const p of particles) {
@@ -132,17 +289,49 @@
       ctx.arc(p.x, p.y, R, 0, Math.PI * 2);
       ctx.fillStyle = COLORS[p.c];
       ctx.fill();
+      if (p.rep < 1) {            // 斥力が弱まっている粒子には金色のリングを付ける
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, R + 3, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
     }
+    if (ball) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffd700';
+      ctx.fill();
+    }
+    if (showArrows) for (const c of clusters) drawArrow(c);
     ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('同色クラスタ数: ' + clusters, W - 16, 16);
+    ctx.fillText('同色クラスタ数: ' + clusters.length, W - 16, 16);
+    if (showArrows) {
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#b8c0d4';
+      ctx.fillText('矢印: 各クラスタが受ける力の合成方向', W - 16, 42);
+    }
+  }
+
+  const timerEl = document.getElementById('timer');
+  let timerText = '';
+  function updateTimer() {
+    const rest = Math.max(0, Math.ceil((RESET_INTERVAL_MS - (performance.now() - resetAt)) / 1000));
+    const t = Math.floor(rest / 60) + ':' + String(rest % 60).padStart(2, '0');
+    if (t !== timerText) { timerText = t; timerEl.textContent = '自動リセットまで ' + t; }
   }
 
   function loop() {
-    step();
-    draw(countClusters());
+    if (performance.now() - resetAt >= RESET_INTERVAL_MS) init();
+    if (!ball && performance.now() - resetAt >= BALL_APPEAR_MS) spawnBall();
+    updateTimer();
+    // 速度倍率ぶんの時間を、1以下の刻みに分けて進める (高倍率でも粒子がすり抜けにくい)
+    for (let t = speed; t > 1e-6; t -= 1) step(Math.min(1, t));
+    if (speed <= 0) computeForces(); // 停止中も矢印を表示できるよう力だけ更新
+    draw(findClusters());
     requestAnimationFrame(loop);
   }
   loop();
