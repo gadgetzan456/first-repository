@@ -20,7 +20,8 @@ static bool     long_press_done;
 /* ライトの状態 */
 static light_mode_t mode;
 static uint8_t  short_press_count;
-static uint8_t  step;        /* 0:全消灯, 1〜3:そのLEDだけ点灯 */
+static uint8_t  step;        /* 0:まだ点灯していない, 1〜3:最後に点灯したLED */
+static bool     step_lit;    /* step のLEDが点灯中か */
 static uint16_t blink_ticks;
 static bool     blink_on;
 
@@ -34,7 +35,7 @@ static void leds_write_all(bool on)
 static void leds_show_step(void)
 {
     for (uint8_t i = 0; i < LIGHT_LED_NUM; i++) {
-        hal_led_write(i, (uint8_t)(i + 1u) == step);
+        hal_led_write(i, step_lit && (uint8_t)(i + 1u) == step);
     }
 }
 
@@ -43,6 +44,7 @@ static void enter_normal(void)
     mode = MODE_NORMAL;
     short_press_count = 0;
     step = 0;
+    step_lit = false;
     leds_show_step();
 }
 
@@ -64,8 +66,12 @@ static void on_short_press(void)
         return;
     }
     short_press_count = 0;
-    if (step < LIGHT_LED_NUM) {
+    if (step_lit && step < LIGHT_LED_NUM) {
+        step_lit = false; /* 次のLEDへ進む前に一度消灯する */
+        leds_show_step();
+    } else if (step < LIGHT_LED_NUM) {
         step++;
+        step_lit = true;
         leds_show_step();
     } else {
         enter_blink(); /* LED3の次＝2周目に入った */

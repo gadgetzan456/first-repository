@@ -267,7 +267,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
       <div class="sw-area">
         <button class="sw" id="sw" type="button" aria-label="スイッチ（押している間ON）"><span></span></button>
         <div class="silk">SW1</div>
-        <div class="sw-hint">2回短押しで次のLEDへ ／ 点滅中は3秒長押しで解除</div>
+        <div class="sw-hint">2回短押しごとに点灯／消灯 ／ 点滅中は3秒長押しで解除</div>
       </div>
       <div class="board-foot">
         <label class="toggle"><input type="checkbox" id="chatter" checked> チャタリングを発生させる</label>
@@ -328,7 +328,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
     <ol>
       <li>スイッチは10msecごとに読み取り、3回続けて同じ値なら ON／OFF を確定する（チャタリング防止）</li>
       <li>3秒未満で離したら短押し。3秒に達した時点で長押し（離したときに短押しとは数えない）</li>
-      <li>短押し2回ごとに LED1 → LED2 → LED3 の順に1つずつ点灯する</li>
+      <li>短押し2回ごとに LED1点灯 → 消灯 → LED2点灯 → 消灯 → LED3点灯 と進む</li>
       <li>LED3 の次（2周目）で全LEDが0.5秒ごとに点滅し、短押しが無効になる</li>
       <li>点滅中に3秒長押しすると全消灯に戻り、短押しが有効になる</li>
     </ol>
@@ -347,19 +347,20 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
   const MODE_NORMAL = 0, MODE_BLINK = 1;
 
   let sw_on, sw_match_count, press_ticks, long_press_done;
-  let mode, short_press_count, step, blink_ticks, blink_on;
+  let mode, short_press_count, step, step_lit, blink_ticks, blink_on;
 
   const ledState = [false, false, false];
   function hal_led_write(i, on) { ledState[i] = on; }
   function hal_switch_is_on() { return rawNow; }
 
   function leds_write_all(on) { for (let i = 0; i < LIGHT_LED_NUM; i++) hal_led_write(i, on); }
-  function leds_show_step() { for (let i = 0; i < LIGHT_LED_NUM; i++) hal_led_write(i, i + 1 === step); }
+  function leds_show_step() { for (let i = 0; i < LIGHT_LED_NUM; i++) hal_led_write(i, step_lit && i + 1 === step); }
 
   function enter_normal() {
     mode = MODE_NORMAL;
     short_press_count = 0;
     step = 0;
+    step_lit = false;
     leds_show_step();
   }
   function enter_blink() {
@@ -380,8 +381,13 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
       return;
     }
     short_press_count = 0;
-    if (step < LIGHT_LED_NUM) {
+    if (step_lit && step < LIGHT_LED_NUM) {
+      step_lit = false;  // 次のLEDへ進む前に一度消灯する
+      leds_show_step();
+      log(`短押し（${fmtSec(press_ticks)}）2回目 → LED${step} 消灯`);
+    } else if (step < LIGHT_LED_NUM) {
       step++;
+      step_lit = true;
       leds_show_step();
       log(`短押し（${fmtSec(press_ticks)}）2回目 → LED${step} 点灯`);
     } else {
@@ -498,7 +504,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
     pill.textContent = blink ? "短押し無効" : "短押し有効";
     pill.className = "pill " + (blink ? "ng" : "ok");
 
-    $("stepVal").textContent = blink ? "全LED 0.5秒ごとに点滅" : step === 0 ? "なし（全消灯）" : `LED${step}`;
+    $("stepVal").textContent = blink ? "全LED 0.5秒ごとに点滅" : !step_lit ? (step === 0 ? "なし（全消灯）" : `なし（次は LED${step + 1}）`) : `LED${step}`;
     for (let i = 0; i < 2; i++) {
       const d = $("dot" + i);
       d.classList.toggle("fill", !blink && i < short_press_count);

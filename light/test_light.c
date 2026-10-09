@@ -94,7 +94,14 @@ int main(void)
     short_press();
     expect_leds("長押しは無視、短押し1回では変化なし", 1, 0, 0);
     short_press();
+    expect_leds("短押し2回でLED1消灯", 0, 0, 0);
+    short_press();
+    expect_leds("短押し1回では変化なし", 0, 0, 0);
+    short_press();
     expect_leds("短押し2回でLED2", 0, 1, 0);
+    short_press();
+    short_press();
+    expect_leds("短押し2回でLED2消灯", 0, 0, 0);
 
     /* 2.99秒押しは短押し（ON/OFFとも確定が同じだけ遅れるので押下時間はそのまま） */
     run_ms(true, 2990);
