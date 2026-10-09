@@ -1,0 +1,648 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3連LEDライト シミュレータ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=DotGothic16&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* レイアウト：左に「基板」（LED3個＋スイッチ）、右に内部状態とロジアナ波形。狭い画面では縦に積む */
+:root {
+  --bg: #e9ebe5;
+  --surface: #f7f8f3;
+  --ink: #1c2320;
+  --muted: #5b6660;
+  --line: #c6cbc1;
+  --accent: #b5470f;
+  --board: #23463a;
+  --board-ink: #d6e6d9;
+  --board-line: #3b6656;
+  --led-on: #ff3b26;
+  --led-glow: rgba(255, 70, 40, .55);
+  --lens-a: #7a2e24;
+  --lens-b: #3d1410;
+  --sig-raw: #7d8a83;
+  --sig-deb: #b5470f;
+  --ok: #2f7a4f;
+  --warn: #b5470f;
+
+  --f-display: "DotGothic16", "BIZ UDPGothic", system-ui, sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121614; --surface: #1a201d; --ink: #e2e7e2; --muted: #95a19a; --line: #2f3833;
+    --accent: #f08a4b; --board: #183128; --board-ink: #cfe3d5; --board-line: #2d5243;
+    --lens-a: #5a231c; --lens-b: #2a0d0a; --sig-raw: #7a8780; --sig-deb: #f08a4b;
+    --ok: #6cc28f; --warn: #f08a4b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121614; --surface: #1a201d; --ink: #e2e7e2; --muted: #95a19a; --line: #2f3833;
+  --accent: #f08a4b; --board: #183128; --board-ink: #cfe3d5; --board-line: #2d5243;
+  --lens-a: #5a231c; --lens-b: #2a0d0a; --sig-raw: #7a8780; --sig-deb: #f08a4b;
+  --ok: #6cc28f; --warn: #f08a4b;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.6;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-inline: 20px;
+  padding-block: 28px 48px;
+  display: grid;
+  gap: 24px;
+}
+header { display: grid; gap: 6px; }
+h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  letter-spacing: .02em;
+  text-wrap: balance;
+}
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 820px) { .main { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---- 基板 ---- */
+.board {
+  background: var(--board);
+  color: var(--board-ink);
+  border-radius: 14px;
+  padding: 22px 22px 26px;
+  display: grid;
+  gap: 26px;
+  position: relative;
+  background-image:
+    radial-gradient(circle at 14px 14px, var(--board-line) 3px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 14px) 14px, var(--board-line) 3px, transparent 3.5px),
+    radial-gradient(circle at 14px calc(100% - 14px), var(--board-line) 3px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 14px) calc(100% - 14px), var(--board-line) 3px, transparent 3.5px);
+}
+.silk {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .8;
+}
+.leds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  justify-items: center;
+}
+.led-cell { display: grid; gap: 10px; justify-items: center; }
+.led {
+  width: clamp(56px, 14vw, 78px);
+  aspect-ratio: 1;
+  max-width: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--lens-a), var(--lens-b) 70%);
+  box-shadow: inset 0 -4px 8px rgba(0,0,0,.35), 0 0 0 3px var(--board-line);
+  transition: background .04s, box-shadow .04s;
+}
+.led.on {
+  background: radial-gradient(circle at 35% 30%, #fff3e6 0 12%, var(--led-on) 45%, #b4160b 85%);
+  box-shadow: 0 0 0 3px var(--board-line), 0 0 22px 6px var(--led-glow), 0 0 60px 10px var(--led-glow);
+}
+.sw-area { display: grid; justify-items: center; gap: 12px; }
+.sw {
+  width: 132px;
+  height: 132px;
+  border-radius: 16px;
+  border: 0;
+  padding: 0;
+  background: linear-gradient(145deg, #3b3f3d, #1f2221);
+  box-shadow: 0 6px 0 #0d0f0e, 0 10px 18px rgba(0,0,0,.35);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform .05s, box-shadow .05s;
+}
+.sw span {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #f1f1ec, #b9bab3 70%);
+  box-shadow: inset 0 -3px 6px rgba(0,0,0,.25), 0 2px 3px rgba(0,0,0,.4);
+}
+.sw.pressed { transform: translateY(5px); box-shadow: 0 1px 0 #0d0f0e, 0 3px 8px rgba(0,0,0,.35); }
+.sw.pressed span { background: radial-gradient(circle at 40% 35%, #dcdcd6, #a3a49d 70%); }
+.sw:focus-visible { outline: 3px solid var(--accent); outline-offset: 5px; }
+.sw-hint { font-size: 13px; text-align: center; opacity: .85; }
+.board-foot { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; justify-content: space-between; }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.btn {
+  font: inherit;
+  font-size: 13px;
+  color: var(--board-ink);
+  background: transparent;
+  border: 1px solid var(--board-line);
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.btn:hover { border-color: var(--board-ink); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- 状態パネル ---- */
+.panel { display: grid; gap: 18px; min-width: 0; }
+.mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.mode-name { font-family: var(--f-display); font-size: 1.5rem; }
+.pill {
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  border: 1px solid currentColor;
+}
+.pill.ok { color: var(--ok); }
+.pill.ng { color: var(--warn); }
+
+.rows { display: grid; gap: 14px; }
+.row {
+  display: grid;
+  grid-template-columns: 8.5em minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+.label { color: var(--muted); font-size: 13px; letter-spacing: .04em; }
+.val { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 14px; min-width: 0; }
+.dots { display: inline-flex; gap: 6px; vertical-align: middle; }
+.dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--muted); }
+.dot.fill { background: var(--accent); border-color: var(--accent); }
+.dot.dim { opacity: .35; }
+
+.bar {
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+.bar i { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--sig-raw); }
+.bar.long i { background: var(--accent); }
+.bar-cap { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 12px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+.scope {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px 10px;
+  display: grid;
+  gap: 6px;
+}
+.scope-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 13px; }
+.legend { display: inline-flex; gap: 14px; color: var(--muted); font-size: 12px; }
+.legend b { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; }
+canvas { width: 100%; height: 110px; display: block; }
+
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: 13px; }
+.log li { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: 8px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+.log time { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .muted { color: var(--muted); }
+.log .hot { color: var(--accent); font-weight: 700; }
+.log-empty { color: var(--muted); font-size: 13px; margin: 0; }
+h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+
+.spec {
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+}
+.spec ol { margin: 0; padding-left: 1.4em; display: grid; gap: 4px; max-width: 70ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sw, .led { transition: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>3連LEDライト シミュレータ</h1>
+    <p>light.c と同じ制御ロジックを JavaScript に移植し、10msec ごとのタイマ割り込みを再現しています。スイッチはクリック・タップで押し、押したままにすると長押しです（スペースキーでも操作できます）。</p>
+  </header>
+
+  <div class="main">
+    <section class="board" aria-label="基板">
+      <div class="silk">LED x3 / SW x1 · TICK 10ms</div>
+      <div class="leds">
+        <div class="led-cell"><div class="led" id="led0"></div><div class="silk">LED1</div></div>
+        <div class="led-cell"><div class="led" id="led1"></div><div class="silk">LED2</div></div>
+        <div class="led-cell"><div class="led" id="led2"></div><div class="silk">LED3</div></div>
+      </div>
+      <div class="sw-area">
+        <button class="sw" id="sw" type="button" aria-label="スイッチ（押している間ON）"><span></span></button>
+        <div class="silk">SW1</div>
+        <div class="sw-hint">2回短押しで次のLEDへ ／ 点滅中は3秒長押しで解除</div>
+      </div>
+      <div class="board-foot">
+        <label class="toggle"><input type="checkbox" id="chatter" checked> チャタリングを発生させる</label>
+        <button class="btn" id="reset" type="button">リセット</button>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="内部状態">
+      <div class="mode">
+        <span class="mode-name" id="modeName">通常</span>
+        <span class="pill ok" id="modePill">短押し有効</span>
+      </div>
+
+      <div class="rows">
+        <div class="row">
+          <span class="label">点灯中</span>
+          <span class="val" id="stepVal">なし（全消灯）</span>
+        </div>
+        <div class="row">
+          <span class="label">短押し回数</span>
+          <span class="val"><span class="dots"><i class="dot" id="dot0"></i><i class="dot" id="dot1"></i></span> <span id="countVal">0 / 2</span></span>
+        </div>
+        <div class="row">
+          <span class="label">スイッチ入力</span>
+          <span class="val" id="swVal">生 OFF ／ 確定 OFF</span>
+        </div>
+        <div class="row">
+          <span class="label">連続一致</span>
+          <span class="val"><span class="dots"><i class="dot" id="m0"></i><i class="dot" id="m1"></i><i class="dot" id="m2"></i></span> <span id="matchVal">0 / 3</span></span>
+        </div>
+        <div class="row">
+          <span class="label" id="pressLabel">押下時間</span>
+          <div class="val">
+            <div class="bar" id="bar"><i id="barFill"></i></div>
+            <div class="bar-cap"><span id="pressVal">0.00 秒</span><span>3.00 秒で長押し</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="scope">
+        <div class="scope-head">
+          <h2>スイッチ波形（直近3秒）</h2>
+          <span class="legend"><span><b style="background: var(--sig-raw)"></b>生入力</span><span><b style="background: var(--sig-deb)"></b>確定後</span></span>
+        </div>
+        <canvas id="scope" aria-label="生入力と確定後のスイッチ波形"></canvas>
+      </div>
+
+      <div class="rows">
+        <h2>イベント</h2>
+        <ul class="log" id="log"></ul>
+        <p class="log-empty" id="logEmpty">スイッチを押すと、ここに判定結果が出ます。</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="spec">
+    <h2>動作仕様</h2>
+    <ol>
+      <li>スイッチは10msecごとに読み取り、3回続けて同じ値なら ON／OFF を確定する（チャタリング防止）</li>
+      <li>3秒未満で離したら短押し。3秒に達した時点で長押し（離したときに短押しとは数えない）</li>
+      <li>短押し2回ごとに LED1 → LED2 → LED3 の順に1つずつ点灯する</li>
+      <li>LED3 の次（2周目）で全LEDが0.5秒ごとに点滅し、短押しが無効になる</li>
+      <li>点滅中に3秒長押しすると全消灯に戻り、短押しが有効になる</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(() => {
+  /* ===== light.c の移植 ===== */
+  const TICK_MS = 10;
+  const DEBOUNCE_COUNT = 3;
+  const LONG_PRESS_TICKS = 3000 / TICK_MS;
+  const BLINK_TICKS = 500 / TICK_MS;
+  const PRESSES_PER_STEP = 2;
+  const LIGHT_LED_NUM = 3;
+  const MODE_NORMAL = 0, MODE_BLINK = 1;
+
+  let sw_on, sw_match_count, press_ticks, long_press_done;
+  let mode, short_press_count, step, blink_ticks, blink_on;
+
+  const ledState = [false, false, false];
+  function hal_led_write(i, on) { ledState[i] = on; }
+  function hal_switch_is_on() { return rawNow; }
+
+  function leds_write_all(on) { for (let i = 0; i < LIGHT_LED_NUM; i++) hal_led_write(i, on); }
+  function leds_show_step() { for (let i = 0; i < LIGHT_LED_NUM; i++) hal_led_write(i, i + 1 === step); }
+
+  function enter_normal() {
+    mode = MODE_NORMAL;
+    short_press_count = 0;
+    step = 0;
+    leds_show_step();
+  }
+  function enter_blink() {
+    mode = MODE_BLINK;
+    blink_ticks = 0;
+    blink_on = true;
+    leds_write_all(blink_on);
+    log("2周目に入りました：全LED点滅、短押し無効", "hot");
+  }
+  function on_short_press() {
+    if (mode !== MODE_NORMAL) {
+      log(`短押し（${fmtSec(press_ticks)}）→ 点滅中のため無効`, "muted");
+      return;
+    }
+    short_press_count++;
+    if (short_press_count < PRESSES_PER_STEP) {
+      log(`短押し（${fmtSec(press_ticks)}）1回目`);
+      return;
+    }
+    short_press_count = 0;
+    if (step < LIGHT_LED_NUM) {
+      step++;
+      leds_show_step();
+      log(`短押し（${fmtSec(press_ticks)}）2回目 → LED${step} 点灯`);
+    } else {
+      log(`短押し（${fmtSec(press_ticks)}）2回目`);
+      enter_blink();
+    }
+  }
+  function on_long_press() {
+    if (mode === MODE_BLINK) {
+      enter_normal();
+      log("3秒長押し → 点滅解除、短押しが有効に戻りました", "hot");
+    } else {
+      log("3秒長押し → 点滅中ではないため何もしない", "muted");
+    }
+  }
+  function debounce_switch() {
+    const raw = hal_switch_is_on();
+    if (raw === sw_on) { sw_match_count = 0; return; }
+    if (++sw_match_count < DEBOUNCE_COUNT) return;
+    sw_match_count = 0;
+    sw_on = raw;
+    if (sw_on) {
+      press_ticks = 0;
+      long_press_done = false;
+    } else if (!long_press_done) {
+      on_short_press();
+    }
+  }
+  function update_press_time() {
+    if (!sw_on || long_press_done) return;
+    if (++press_ticks >= LONG_PRESS_TICKS) {
+      long_press_done = true;
+      on_long_press();
+    }
+  }
+  function update_blink() {
+    if (mode !== MODE_BLINK) return;
+    if (++blink_ticks >= BLINK_TICKS) {
+      blink_ticks = 0;
+      blink_on = !blink_on;
+      leds_write_all(blink_on);
+    }
+  }
+  function light_init() {
+    sw_on = false;
+    sw_match_count = 0;
+    press_ticks = 0;
+    long_press_done = false;
+    enter_normal();
+  }
+  function light_tick_10ms() {
+    update_blink();
+    debounce_switch();
+    update_press_time();
+  }
+
+  /* ===== スイッチ入力（チャタリング再現つき） ===== */
+  let pressed = false;      // 指が押しているか
+  let bounce = [];          // 確定前に入る ON/OFF のばたつき（1要素 = 10ms）
+  let rawNow = false;
+  const chatterEl = document.getElementById("chatter");
+
+  function setPressed(p) {
+    if (p === pressed) return;
+    pressed = p;
+    bounce = [];
+    if (chatterEl.checked) {
+      // 1〜2回ずつ交互にばたつく（3回連続で同じ値にはならない）
+      const runs = 3 + Math.floor(Math.random() * 3);
+      let v = p;
+      for (let r = 0; r < runs; r++) {
+        const len = 1 + Math.floor(Math.random() * 2);
+        for (let k = 0; k < len; k++) bounce.push(v);
+        v = !v;
+      }
+    }
+    swEl.classList.toggle("pressed", p);
+  }
+  function sampleRaw() {
+    rawNow = bounce.length ? bounce.shift() : pressed;
+  }
+
+  /* ===== 表示 ===== */
+  const $ = (id) => document.getElementById(id);
+  const swEl = $("sw");
+  const ledEls = [$("led0"), $("led1"), $("led2")];
+  const logEl = $("log");
+  let tickCount = 0;
+  let lastPressTicks = 0;
+  const HIST = 300;
+  const histRaw = new Array(HIST).fill(false);
+  const histDeb = new Array(HIST).fill(false);
+
+  function fmtSec(ticks) { return (ticks * TICK_MS / 1000).toFixed(2) + "秒"; }
+  function log(text, cls) {
+    const li = document.createElement("li");
+    const t = document.createElement("time");
+    t.textContent = (tickCount * TICK_MS / 1000).toFixed(2) + "s";
+    const s = document.createElement("span");
+    s.textContent = text;
+    if (cls) s.className = cls;
+    li.append(t, s);
+    logEl.prepend(li);
+    while (logEl.children.length > 8) logEl.lastChild.remove();
+    $("logEmpty").hidden = true;
+  }
+
+  function render() {
+    ledEls.forEach((el, i) => el.classList.toggle("on", ledState[i]));
+
+    const blink = mode === MODE_BLINK;
+    $("modeName").textContent = blink ? "点滅（2周目）" : "通常";
+    const pill = $("modePill");
+    pill.textContent = blink ? "短押し無効" : "短押し有効";
+    pill.className = "pill " + (blink ? "ng" : "ok");
+
+    $("stepVal").textContent = blink ? "全LED 0.5秒ごとに点滅" : step === 0 ? "なし（全消灯）" : `LED${step}`;
+    for (let i = 0; i < 2; i++) {
+      const d = $("dot" + i);
+      d.classList.toggle("fill", !blink && i < short_press_count);
+      d.classList.toggle("dim", blink);
+    }
+    $("countVal").textContent = blink ? "無効" : `${short_press_count} / 2`;
+
+    $("swVal").textContent = `生 ${rawNow ? "ON " : "OFF"} ／ 確定 ${sw_on ? "ON " : "OFF"}`;
+    for (let i = 0; i < 3; i++) $("m" + i).classList.toggle("fill", i < sw_match_count);
+    $("matchVal").textContent = `${sw_match_count} / 3`;
+
+    const shown = sw_on ? press_ticks : lastPressTicks;
+    const isLong = shown >= LONG_PRESS_TICKS;
+    $("pressLabel").textContent = sw_on ? "押下時間" : "前回の押下";
+    $("barFill").style.width = Math.min(100, shown / LONG_PRESS_TICKS * 100) + "%";
+    $("bar").classList.toggle("long", isLong);
+    $("pressVal").textContent = isLong ? "3.00 秒以上（長押し）" : (shown * TICK_MS / 1000).toFixed(2) + " 秒";
+
+    drawScope();
+  }
+
+  const canvas = $("scope");
+  const ctx = canvas.getContext("2d");
+  function drawScope() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const cs = getComputedStyle(document.documentElement);
+    const cLine = cs.getPropertyValue("--line").trim();
+    const cMuted = cs.getPropertyValue("--muted").trim();
+    const labelW = 44;
+    const plotW = w - labelW;
+
+    // 0.5秒ごとの目盛り
+    ctx.strokeStyle = cLine;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let s = 0; s <= 6; s++) {
+      const x = Math.round(labelW + plotW * s / 6) + .5;
+      ctx.moveTo(x, 0); ctx.lineTo(x, h - 14);
+    }
+    ctx.stroke();
+    ctx.fillStyle = cMuted;
+    ctx.font = "11px " + cs.getPropertyValue("--f-mono");
+    ctx.textBaseline = "middle";
+    ctx.fillText("生", 4, h * .22);
+    ctx.fillText("確定", 4, h * .62);
+    ctx.textBaseline = "bottom";
+    ctx.textAlign = "right";
+    ctx.fillText("いま", w - 2, h);
+    ctx.textAlign = "left";
+    ctx.fillText("-3s", labelW + 2, h);
+
+    trace(histRaw, h * .08, h * .34, cs.getPropertyValue("--sig-raw").trim());
+    trace(histDeb, h * .48, h * .74, cs.getPropertyValue("--sig-deb").trim());
+
+    function trace(hist, yHi, yLo, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      const start = (tickCount % HIST);
+      for (let i = 0; i < HIST; i++) {
+        const v = hist[(start + i) % HIST];
+        const x0 = labelW + plotW * i / HIST;
+        const x1 = labelW + plotW * (i + 1) / HIST;
+        const y = v ? yHi : yLo;
+        if (i === 0) ctx.moveTo(x0, y); else ctx.lineTo(x0, y);
+        ctx.lineTo(x1, y);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /* ===== 10msec タイマ割り込み ===== */
+  function tick() {
+    sampleRaw();
+    const wasOn = sw_on;
+    light_tick_10ms();
+    if (wasOn && !sw_on) lastPressTicks = press_ticks;
+    histRaw[tickCount % HIST] = rawNow;
+    histDeb[tickCount % HIST] = sw_on;
+    tickCount++;
+  }
+
+  let last = performance.now();
+  let acc = 0;
+  function frame(now) {
+    acc += now - last;
+    last = now;
+    if (acc > 200) acc = 200;          // タブが非表示だった後は追いつきすぎない
+    while (acc >= TICK_MS) { tick(); acc -= TICK_MS; }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  /* ===== 操作 ===== */
+  swEl.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    swEl.focus();
+    try { swEl.setPointerCapture(e.pointerId); } catch (_) {}
+    setPressed(true);
+  });
+  const release = () => setPressed(false);
+  swEl.addEventListener("pointerup", release);
+  swEl.addEventListener("pointercancel", release);
+  swEl.addEventListener("lostpointercapture", release);
+  swEl.addEventListener("contextmenu", (e) => e.preventDefault());
+
+  const isSpace = (e) => e.code === "Space" || e.key === " ";
+  document.addEventListener("keydown", (e) => {
+    if (!isSpace(e)) return;
+    const t = e.target;
+    if (t !== swEl && t !== document.body && t !== document.documentElement) return;
+    e.preventDefault();
+    if (!e.repeat) setPressed(true);
+  });
+  document.addEventListener("keyup", (e) => {
+    if (!isSpace(e)) return;
+    const t = e.target;
+    if (t !== swEl && t !== document.body && t !== document.documentElement) return;
+    e.preventDefault();
+    setPressed(false);
+  });
+  window.addEventListener("blur", release);
+
+  $("reset").addEventListener("click", () => {
+    setPressed(false);
+    bounce = [];
+    light_init();
+    tickCount = 0;
+    lastPressTicks = 0;
+    histRaw.fill(false);
+    histDeb.fill(false);
+    logEl.replaceChildren();
+    $("logEmpty").hidden = false;
+  });
+
+  light_init();
+  render();
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+})();
+</script>
