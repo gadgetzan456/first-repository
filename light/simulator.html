@@ -328,8 +328,8 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
     <ol>
       <li>スイッチは10msecごとに読み取り、3回続けて同じ値なら ON／OFF を確定する（チャタリング防止）</li>
       <li>3秒未満で離したら短押し。3秒に達した時点で長押し（離したときに短押しとは数えない）</li>
-      <li>短押し2回ごとに LED1点灯 → 消灯 → LED2点灯 → 消灯 → LED3点灯 と進む</li>
-      <li>LED3 の次（2周目）で全LEDが0.5秒ごとに点滅し、短押しが無効になる</li>
+      <li>短押し2回ごとに LED1点灯 → 消灯 → LED2点灯 → 消灯 → LED3点灯 → 消灯 と進む</li>
+      <li>LED3 消灯の次（2周目）で全LEDが0.5秒ごとに点滅し、短押しが無効になる</li>
       <li>点滅中に3秒長押しすると全消灯に戻り、短押しが有効になる</li>
     </ol>
   </section>
@@ -381,8 +381,8 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
       return;
     }
     short_press_count = 0;
-    if (step_lit && step < LIGHT_LED_NUM) {
-      step_lit = false;  // 次のLEDへ進む前に一度消灯する
+    if (step_lit) {
+      step_lit = false;  // 次へ進む前に一度消灯する
       leds_show_step();
       log(`短押し（${fmtSec(press_ticks)}）2回目 → LED${step} 消灯`);
     } else if (step < LIGHT_LED_NUM) {
@@ -504,7 +504,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
     pill.textContent = blink ? "短押し無効" : "短押し有効";
     pill.className = "pill " + (blink ? "ng" : "ok");
 
-    $("stepVal").textContent = blink ? "全LED 0.5秒ごとに点滅" : !step_lit ? (step === 0 ? "なし（全消灯）" : `なし（次は LED${step + 1}）`) : `LED${step}`;
+    $("stepVal").textContent = blink ? "全LED 0.5秒ごとに点滅" : !step_lit ? (step === 0 ? "なし（全消灯）" : (step < LIGHT_LED_NUM ? `なし（次は LED${step + 1}）` : "なし（次は 2周目＝点滅）")) : `LED${step}`;
     for (let i = 0; i < 2; i++) {
       const d = $("dot" + i);
       d.classList.toggle("fill", !blink && i < short_press_count);

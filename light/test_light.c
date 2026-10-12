@@ -108,13 +108,16 @@ int main(void)
     run_ms(false, 100);
     short_press();
     expect_leds("2.99秒押し＋短押しでLED3", 0, 0, 1);
+    short_press();
+    short_press();
+    expect_leds("短押し2回でLED3消灯（まだ2周目ではない）", 0, 0, 0);
 
     /* 2周目：短押し2回目を離した瞬間（OFF確定）に点滅開始 */
     run_ms(true, 100);
     run_ms(false, 100);
     run_ms(true, 100);
     run_ms(false, 20);
-    expect_leds("離す直前はLED3のまま", 0, 0, 1);
+    expect_leds("離す直前は全消灯のまま", 0, 0, 0);
     run_ms(false, 10);
     expect_leds("2周目突入で全点灯（点滅開始）", 1, 1, 1);
     expect_blink("全LEDが0.5秒ごとに点滅", false, 4);

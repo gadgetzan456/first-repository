@@ -66,15 +66,15 @@ static void on_short_press(void)
         return;
     }
     short_press_count = 0;
-    if (step_lit && step < LIGHT_LED_NUM) {
-        step_lit = false; /* 次のLEDへ進む前に一度消灯する */
+    if (step_lit) {
+        step_lit = false; /* 次へ進む前に一度消灯する */
         leds_show_step();
     } else if (step < LIGHT_LED_NUM) {
         step++;
         step_lit = true;
         leds_show_step();
     } else {
-        enter_blink(); /* LED3の次＝2周目に入った */
+        enter_blink(); /* LED3消灯の次＝2周目に入った */
     }
 }
 
