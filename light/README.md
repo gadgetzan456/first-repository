@@ -8,7 +8,7 @@
 | `test_light.c` | PC 上で動作を確かめるシミュレーションテスト |
 | `simulator.html` | ブラウザで操作できるシミュレータ（`light.c` を JavaScript に移植） |
 | `flowchart.md` / `flowchart.html` | 状態遷移図と関数ごとのフローチャート（Mermaid） |
-| `flowchart_fixed.drawio` | 演習用フローチャートの修正版（draw.io で編集可）。main と 10ms 割り込みを左右に並べた図、状態遷移図、動作トレース、変数一覧と仕様の対応の4ページ |
+| `flowchart_fixed.drawio` | 演習用フローチャートの修正版（draw.io で編集可）。main と 10ms 割り込みを左右に並べた図、割り込みの詳細（定義済み処理の中身）、状態遷移図、動作トレース、変数一覧と仕様の対応の5ページ |
 | `flowchart_fixed_preview.pdf` | 上の draw.io ファイルを画像にした見本 |
 | `flow_check.c` | 修正版フローチャートを C に書き写し、`light.c` とランダム入力で LED 出力を比べる検証プログラム（`./flow_check trace` で動作トレースを出力） |
 

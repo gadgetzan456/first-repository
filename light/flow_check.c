@@ -73,42 +73,42 @@ static void flow_main_loop_once(void)
     }
 }
 
-/* ----- 10ms タイマ割り込み ----- */
-static void flow_isr(void)
+/* ----- 定義済み処理：スイッチ判定（チャタリング防止・短押し） ----- */
+static void sw_judge(int sw)
 {
-    /* 割り込み要因フラグのクリア（シミュレーションでは不要） */
-    int sw = sim_switch;
-
     if (sw == sw_state) {
         sw_cnt = 0;
-    } else {
-        sw_cnt++;
-        if (sw_cnt >= 3) {
-            sw_cnt = 0;
-            sw_state = sw;
-            if (sw_state == 1) {
-                press_time = 0;
-                long_done = 0;
-                TRACE("割り込み\t押下が確定（sw_state = 1）");
-            } else {
-                TRACE("割り込み\t離したことが確定（sw_state = 0、押下時間 %d0ms）", press_time);
-                if (long_done == 0) {
-                    if (mode == 0) {
-                        short_cnt++;
-                        TRACE("割り込み\t短押し → short_cnt = %d", short_cnt);
-                        if (short_cnt >= 2) {
-                            short_cnt = 0;
-                            short_flag = 1;
-                            TRACE("割り込み\tshort_cnt = 0、short_flag = 1");
-                        }
-                    } else {
-                        TRACE("割り込み\t短押しだが mode = 1（点滅中）なので数えない");
-                    }
-                }
-            }
-        }
+        return;
     }
+    sw_cnt++;
+    if (sw_cnt < 3) {
+        return;
+    }
+    sw_cnt = 0;
+    sw_state = sw;
+    if (sw_state == 1) {
+        press_time = 0;
+        long_done = 0;
+        TRACE("割り込み\t押下が確定（sw_state = 1）");
+        return;
+    }
+    TRACE("割り込み\t離したことが確定（sw_state = 0、押下時間 %d0ms）", press_time);
+    if (long_done == 0 && mode == 0) {
+        short_cnt++;
+        TRACE("割り込み\t短押し → short_cnt = %d", short_cnt);
+        if (short_cnt >= 2) {
+            short_cnt = 0;
+            short_flag = 1;
+            TRACE("割り込み\tshort_cnt = 0、short_flag = 1");
+        }
+    } else if (long_done == 0) {
+        TRACE("割り込み\t短押しだが mode = 1（点滅中）なので数えない");
+    }
+}
 
+/* ----- 定義済み処理：長押し判定 ----- */
+static void long_judge(void)
+{
     if (sw_state == 1 && long_done == 0) {
         press_time++;
         if (press_time >= 300) {
@@ -117,7 +117,11 @@ static void flow_isr(void)
             TRACE("割り込み\tpress_time = 300（3秒）→ long_done = 1、long_flag = 1");
         }
     }
+}
 
+/* ----- 定義済み処理：点滅タイマ ----- */
+static void blink_timer(void)
+{
     if (mode == 1) {
         blink_cnt++;
         if (blink_cnt >= 50) {
@@ -128,6 +132,16 @@ static void flow_isr(void)
     } else {
         blink_cnt = 0;
     }
+}
+
+/* ----- 10ms タイマ割り込み ----- */
+static void flow_isr(void)
+{
+    /* 割り込み要因フラグのクリア（シミュレーションでは不要） */
+    int sw = sim_switch;
+    sw_judge(sw);
+    long_judge();
+    blink_timer();
 }
 
 /* ===== light.c 側 ===== */

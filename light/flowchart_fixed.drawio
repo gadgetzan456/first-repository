@@ -1,190 +1,193 @@
 <mxfile host="app.diagrams.net">
   <diagram name="フローチャート" id="page-0">
-    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="2700" math="0" shadow="0">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="2700" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="f-b1" value="&lt;b style=&quot;font-size:18px&quot;&gt;3連LEDライト　フローチャート（main と 10ms タイマ割り込み）&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="0" y="10" width="1700" height="40" as="geometry" />
+          <mxGeometry x="0" y="10" width="1500" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-b2" value="&lt;b&gt;仕様&lt;/b&gt;&lt;br&gt;1. LED が3つ、スイッチが1つ&lt;br&gt;2. スイッチは 10ms ごとのタイマ割り込みで読む&lt;br&gt;3. 3回連続で同じ値を読んだら ON／OFF を確定する（チャタリング防止）&lt;br&gt;4. 3秒未満で離したら短押し。3秒押し続けたら長押し&lt;br&gt;5. 短押し2回ごとに、点いている LED を消してすぐ次を点灯（LED1 → LED2 → LED3）&lt;br&gt;6. LED3 の次（2周目）は LED3 を消してすぐ、全 LED が 0.5秒ごとに点滅（消灯から開始）。点滅中は短押し無効&lt;br&gt;7. 点滅中に 3秒長押しすると全消灯に戻り、短押しが有効になる" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
-          <mxGeometry x="0" y="60" width="820" height="190" as="geometry" />
+        <mxCell id="f-b2" value="&lt;b&gt;仕様&lt;/b&gt;&lt;br&gt;1. LED が3つ、スイッチが1つ&lt;br&gt;2. スイッチは 10ms ごとのタイマ割り込みで読む&lt;br&gt;3. 3回連続で同じ値を読んだら ON／OFF を確定する（チャタリング防止）&lt;br&gt;4. 3秒未満で離したら短押し。3秒押し続けたら長押し&lt;br&gt;5. 短押し2回ごとに、点いている LED を消してすぐ次を点灯（LED1 → LED2 → LED3）&lt;br&gt;6. LED3 の次（2周目）は LED3 を消してすぐ、全 LED が 0.5秒ごとに点滅&lt;br&gt;　（消灯から開始）。点滅中は短押し無効&lt;br&gt;7. 点滅中に 3秒長押しすると全消灯に戻り、短押しが有効になる" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="0" y="60" width="700" height="190" as="geometry" />
         </mxCell>
         <mxCell id="f-b3" value="&lt;b&gt;凡例&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#ffffff;strokeColor=#999999;" vertex="1" parent="1">
-          <mxGeometry x="840" y="60" width="860" height="190" as="geometry" />
+          <mxGeometry x="720" y="60" width="780" height="190" as="geometry" />
         </mxCell>
         <mxCell id="f-b4" value="端子" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="860" y="90" width="80" height="34" as="geometry" />
+          <mxGeometry x="740" y="90" width="80" height="34" as="geometry" />
         </mxCell>
         <mxCell id="f-b5" value="処理" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="960" y="90" width="80" height="34" as="geometry" />
+          <mxGeometry x="840" y="90" width="80" height="34" as="geometry" />
         </mxCell>
         <mxCell id="f-b6" value="判断" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1060" y="85" width="90" height="44" as="geometry" />
+          <mxGeometry x="940" y="85" width="90" height="44" as="geometry" />
         </mxCell>
         <mxCell id="f-b7" value="ループ始端" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;" vertex="1" parent="1">
-          <mxGeometry x="1170" y="90" width="100" height="34" as="geometry" />
+          <mxGeometry x="1050" y="90" width="100" height="34" as="geometry" />
         </mxCell>
         <mxCell id="f-b8" value="ループ終端" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;flipV=1;" vertex="1" parent="1">
-          <mxGeometry x="1290" y="90" width="100" height="34" as="geometry" />
+          <mxGeometry x="1170" y="90" width="100" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="f-b9" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="860" y="140" width="40" height="20" as="geometry" />
+        <mxCell id="f-b9" value="定義済み処理" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;size=0.06;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="90" width="110" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="f-b10" value="short_flag（短押し2回）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="910" y="138" width="300" height="24" as="geometry" />
+        <mxCell id="f-b10" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="140" width="40" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="f-b11" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="860" y="166" width="40" height="20" as="geometry" />
+        <mxCell id="f-b11" value="short_flag（短押し2回）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="138" width="300" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="f-b12" value="long_flag（3秒長押し）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="910" y="164" width="300" height="24" as="geometry" />
+        <mxCell id="f-b12" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="166" width="40" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="f-b13" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="860" y="192" width="40" height="20" as="geometry" />
+        <mxCell id="f-b13" value="long_flag（3秒長押し）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="164" width="300" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="f-b14" value="blink_flag（0.5秒経過）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="910" y="190" width="300" height="24" as="geometry" />
+        <mxCell id="f-b14" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="192" width="40" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="f-b15" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="860" y="218" width="40" height="20" as="geometry" />
+        <mxCell id="f-b15" value="blink_flag（0.5秒経過）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="190" width="300" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="f-b16" value="mode（main が書き、割り込みが読む）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
-          <mxGeometry x="910" y="216" width="300" height="24" as="geometry" />
+        <mxCell id="f-b16" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="740" y="218" width="40" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="f-b17" value="&lt;b&gt;- - - ▷&lt;/b&gt;　破線の矢印＝割り込みが立てた合図を main が受け取る（制御の流れではない）&lt;br&gt;同じ色の箱どうしが、同じ変数を書く／読む処理" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1240" y="140" width="440" height="100" as="geometry" />
+        <mxCell id="f-b17" value="mode（main が書き、割り込みが読む）" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="790" y="216" width="300" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="f-b18" value="&lt;b&gt;main（メイン処理）&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
+        <mxCell id="f-b18" value="&lt;b&gt;- - - ▷&lt;/b&gt;　破線の矢印＝割り込みが立てた合図を main が受け取る（制御の流れではない）&lt;br&gt;同じ色の箱どうしが、同じ変数を書く／読む処理" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="140" width="390" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="f-b19" value="&lt;b&gt;main（メイン処理）&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="0" y="270" width="760" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-b19" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="f-b20" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="0" y="310" width="760" height="2350" as="geometry" />
         </mxCell>
-        <mxCell id="f-b20" value="&lt;b&gt;合図（共有変数）&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
+        <mxCell id="f-b21" value="&lt;b&gt;合図（共有変数）&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fafafa;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="760" y="270" width="180" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-b21" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
+        <mxCell id="f-b22" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="760" y="310" width="180" height="2350" as="geometry" />
         </mxCell>
-        <mxCell id="f-b22" value="&lt;b&gt;10ms タイマ割り込み&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
-          <mxGeometry x="940" y="270" width="760" height="40" as="geometry" />
+        <mxCell id="f-b23" value="&lt;b&gt;10ms タイマ割り込み&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0f0f0;strokeColor=#666666;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="940" y="270" width="560" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-b23" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
-          <mxGeometry x="940" y="310" width="760" height="2350" as="geometry" />
+        <mxCell id="f-b24" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="940" y="310" width="560" height="2350" as="geometry" />
         </mxCell>
-        <mxCell id="f-b24" value="割り込みは main の&lt;br&gt;どの処理の途中でも&lt;br&gt;10ms ごとに入り、&lt;br&gt;終わると main の&lt;br&gt;続きに戻る" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#555555;" vertex="1" parent="1">
+        <mxCell id="f-b25" value="割り込みは main の&lt;br&gt;どの処理の途中でも&lt;br&gt;10ms ごとに入り、&lt;br&gt;終わると main の&lt;br&gt;続きに戻る" style="text;html=1;align=center;verticalAlign=top;whiteSpace=wrap;fontColor=#555555;" vertex="1" parent="1">
           <mxGeometry x="770" y="325" width="160" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_start" value="main" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="f-n-m_start" value="main" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="330.0" y="330" width="140" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_port" value="ポート初期化&lt;br&gt;LED1〜LED3：出力（全消灯）&lt;br&gt;スイッチ：入力" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_port" value="ポート初期化&lt;br&gt;LED1〜LED3：出力（全消灯）&lt;br&gt;スイッチ：入力" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="270.0" y="410" width="260" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_var" value="変数の初期化（すべて 0）&lt;br&gt;i、mode、blink_on&lt;br&gt;short_flag、long_flag、blink_flag&lt;br&gt;sw_state、sw_cnt、press_time、long_done&lt;br&gt;short_cnt、blink_cnt" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_var" value="変数の初期化（すべて 0）&lt;br&gt;i、mode、blink_on&lt;br&gt;short_flag、long_flag、blink_flag&lt;br&gt;sw_state、sw_cnt、press_time、long_done&lt;br&gt;short_cnt、blink_cnt" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="250.0" y="500" width="300" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_timer" value="タイマ設定&lt;br&gt;10ms ごとに割り込み" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_timer" value="タイマ設定&lt;br&gt;10ms ごとに割り込み" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="270.0" y="650" width="260" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_irq" value="割り込み許可&lt;br&gt;（変数の初期化が済んでから）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_irq" value="割り込み許可&lt;br&gt;（変数の初期化が済んでから）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="270.0" y="730" width="260" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_loops" value="無限ループ" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_loops" value="無限ループ" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="810" width="200" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_ds" value="short_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_ds" value="short_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="890" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_sf0" value="short_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_sf0" value="short_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1010" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_i3" value="i == 3?&lt;br&gt;（LED3 点灯中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="f-n-m_i3" value="i == 3?&lt;br&gt;（LED3 点灯中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1090" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_bst" value="LED[2] = 0（LED3 消灯）&lt;br&gt;blink_on = 0&lt;br&gt;mode = 1&lt;br&gt;（点滅開始・短押し無効）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_bst" value="LED[2] = 0（LED3 消灯）&lt;br&gt;blink_on = 0&lt;br&gt;mode = 1&lt;br&gt;（点滅開始・短押し無効）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="40.0" y="1210" width="220" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_i0" value="i == 0?&lt;br&gt;（最初の1回）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="f-n-m_i0" value="i == 0?&lt;br&gt;（最初の1回）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1210" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_prev" value="LED[i - 1] = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_prev" value="LED[i - 1] = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1330" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_on" value="LED[i] = 1" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_on" value="LED[i] = 1" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1410" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_inc" value="i++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_inc" value="i++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1490" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_dl" value="long_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_dl" value="long_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1590" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_lf0" value="long_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_lf0" value="long_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1710" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_dm" value="mode == 1?&lt;br&gt;（点滅中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+        <mxCell id="f-n-m_dm" value="mode == 1?&lt;br&gt;（点滅中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="1790" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_rst" value="mode = 0&lt;br&gt;blink_flag = 0（届いていた合図を捨てる）&lt;br&gt;i = 0、blink_on = 0&lt;br&gt;LED1,2,3 = 0（全消灯）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_rst" value="mode = 0&lt;br&gt;blink_flag = 0（届いていた合図を捨てる）&lt;br&gt;i = 0、blink_on = 0&lt;br&gt;LED1,2,3 = 0（全消灯）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="270.0" y="1910" width="260" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_db" value="blink_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_db" value="blink_flag == 1?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="2090" width="200" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_bf0" value="blink_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="f-n-m_bf0" value="blink_flag = 0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="2210" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_tog" value="blink_on = 1 - blink_on" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_tog" value="blink_on = 1 - blink_on" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="2290" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_out" value="LED1,2,3 = blink_on" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_out" value="LED1,2,3 = blink_on" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="2370" width="200" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="f-m_loope" value="無限ループ" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;flipV=1;" vertex="1" parent="1">
+        <mxCell id="f-n-m_loope" value="無限ループ" style="html=1;shape=mxgraph.flowchart.loop_limit;whiteSpace=wrap;strokeWidth=1;flipV=1;" vertex="1" parent="1">
           <mxGeometry x="300.0" y="2470" width="200" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-e25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_start" target="f-m_port">
+        <mxCell id="f-e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_start" target="f-n-m_port">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_port" target="f-m_var">
+        <mxCell id="f-e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_port" target="f-n-m_var">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_var" target="f-m_timer">
+        <mxCell id="f-e28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_var" target="f-n-m_timer">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_timer" target="f-m_irq">
+        <mxCell id="f-e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_timer" target="f-n-m_irq">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_irq" target="f-m_loops">
+        <mxCell id="f-e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_irq" target="f-n-m_loops">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_loops" target="f-m_ds">
+        <mxCell id="f-e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_loops" target="f-n-m_ds">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_sf0" target="f-m_i3">
+        <mxCell id="f-e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_sf0" target="f-n-m_i3">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_prev" target="f-m_on">
+        <mxCell id="f-e33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_prev" target="f-n-m_on">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_on" target="f-m_inc">
+        <mxCell id="f-e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_on" target="f-n-m_inc">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_lf0" target="f-m_dm">
+        <mxCell id="f-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_lf0" target="f-n-m_dm">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_bf0" target="f-m_tog">
+        <mxCell id="f-e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_bf0" target="f-n-m_tog">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-m_tog" target="f-m_out">
+        <mxCell id="f-e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-m_tog" target="f-n-m_out">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e37" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_ds" target="f-m_sf0">
+        <mxCell id="f-e38" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_ds" target="f-n-m_sf0">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e38" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_ds" target="f-m_dl">
+        <mxCell id="f-e39" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_ds" target="f-n-m_dl">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="20" y="930" />
@@ -193,20 +196,20 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e39" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_i3" target="f-m_bst">
+        <mxCell id="f-e40" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_i3" target="f-n-m_bst">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="150" y="1130" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e40" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_i3" target="f-m_i0">
+        <mxCell id="f-e41" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_i3" target="f-n-m_i0">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e41" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_i0" target="f-m_prev">
+        <mxCell id="f-e42" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_i0" target="f-n-m_prev">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e42" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_i0" target="f-m_on">
+        <mxCell id="f-e43" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_i0" target="f-n-m_on">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="560" y="1250" />
@@ -214,10 +217,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e43" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_inc" target="f-m_dl">
+        <mxCell id="f-e44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_inc" target="f-n-m_dl">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_bst" target="f-m_dl">
+        <mxCell id="f-e45" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_bst" target="f-n-m_dl">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="150" y="1560" />
@@ -225,10 +228,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e45" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_dl" target="f-m_lf0">
+        <mxCell id="f-e46" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_dl" target="f-n-m_lf0">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e46" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_dl" target="f-m_db">
+        <mxCell id="f-e47" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_dl" target="f-n-m_db">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="20" y="1630" />
@@ -237,10 +240,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e47" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_dm" target="f-m_rst">
+        <mxCell id="f-e48" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_dm" target="f-n-m_rst">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e48" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_dm" target="f-m_db">
+        <mxCell id="f-e49" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_dm" target="f-n-m_db">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="150" y="1830" />
@@ -249,13 +252,13 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e49" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_rst" target="f-m_db">
+        <mxCell id="f-e50" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_rst" target="f-n-m_db">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e50" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_db" target="f-m_bf0">
+        <mxCell id="f-e51" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_db" target="f-n-m_bf0">
           <mxGeometry relative="1" as="geometry" x="-0.5" />
         </mxCell>
-        <mxCell id="f-e51" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_db" target="f-m_loope">
+        <mxCell id="f-e52" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_db" target="f-n-m_loope">
           <mxGeometry relative="1" as="geometry" x="-0.9">
             <Array as="points">
               <mxPoint x="20" y="2130" />
@@ -264,279 +267,347 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e52" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-m_out" target="f-m_loope">
+        <mxCell id="f-e53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-m_out" target="f-n-m_loope">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_start" value="10ms タイマ割り込み" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1240.0" y="330" width="180" height="50" as="geometry" />
+        <mxCell id="f-n-i_start" value="10ms タイマ割り込み" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1150.0" y="330" width="180" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_clr" value="割り込み要因フラグをクリア&lt;br&gt;（必要なマイコンのみ）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1200.0" y="410" width="260" height="50" as="geometry" />
+        <mxCell id="f-n-i_clr" value="割り込み要因フラグをクリア&lt;br&gt;（必要なマイコンのみ）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1120.0" y="410" width="240" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_read" value="sw = スイッチ入力ポートの値&lt;br&gt;（押下 = 1 に揃える）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1200.0" y="490" width="260" height="50" as="geometry" />
+        <mxCell id="f-n-i_read" value="sw = スイッチ入力ポートの値&lt;br&gt;（押下 = 1 に揃える）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1120.0" y="490" width="240" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_d1" value="sw == sw_state?&lt;br&gt;（確定状態と同じ）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="570" width="220" height="80" as="geometry" />
+        <mxCell id="f-n-i_sw" value="スイッチ判定&lt;br&gt;（チャタリング防止・短押し）" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;size=0.06;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1120.0" y="570" width="240" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_c0" value="sw_cnt = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1490.0" y="590" width="140" height="40" as="geometry" />
+        <mxCell id="f-n-i_long" value="長押し判定" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;size=0.06;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1120.0" y="660" width="240" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_cinc" value="sw_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="690" width="220" height="40" as="geometry" />
+        <mxCell id="f-n-i_blink" value="点滅タイマ" style="shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;size=0.06;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1120.0" y="750" width="240" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_d2" value="sw_cnt &gt;= 3?&lt;br&gt;（3回連続で違う）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="770" width="220" height="80" as="geometry" />
+        <mxCell id="f-n-i_end" value="割り込み終了&lt;br&gt;（main の続きへ戻る）" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1140.0" y="840" width="200" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="f-i_fix" value="sw_cnt = 0&lt;br&gt;sw_state = sw（確定）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="890" width="220" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d3" value="sw_state == 1?&lt;br&gt;（押された）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="990" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_p0" value="press_time = 0&lt;br&gt;long_done = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="980.0" y="1100" width="200" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d4" value="long_done == 0?&lt;br&gt;（3秒未満で離した）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1110" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d5" value="mode == 0?&lt;br&gt;（短押し有効）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1230" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_sinc" value="short_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1350" width="220" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d6" value="short_cnt &gt;= 2?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1430" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_sflag" value="short_cnt = 0&lt;br&gt;short_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1550" width="220" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d7" value="sw_state == 1 かつ&lt;br&gt;long_done == 0?&lt;br&gt;（押している最中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1210.0" y="1670" width="240" height="90" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_tinc" value="press_time++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1800" width="220" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d8" value="press_time &gt;= 300?&lt;br&gt;（3秒）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="1880" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_lflag" value="long_done = 1&lt;br&gt;long_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="2000" width="220" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d9" value="mode == 1?&lt;br&gt;（点滅中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="2120" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_b0" value="blink_cnt = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="980.0" y="2230" width="200" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_binc" value="blink_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="2240" width="220" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_d10" value="blink_cnt &gt;= 50?&lt;br&gt;（0.5秒）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="2320" width="220" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_bflag" value="blink_cnt = 0&lt;br&gt;blink_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
-          <mxGeometry x="1220.0" y="2440" width="220" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="f-i_end" value="割り込み終了&lt;br&gt;（main の続きへ戻る）" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
-          <mxGeometry x="1230.0" y="2570" width="200" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="f-e53" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_start" target="f-i_clr">
+        <mxCell id="f-e54" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_start" target="f-n-i_clr">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e54" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_clr" target="f-i_read">
+        <mxCell id="f-e55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_clr" target="f-n-i_read">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e55" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_read" target="f-i_d1">
+        <mxCell id="f-e56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_read" target="f-n-i_sw">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e56" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_cinc" target="f-i_d2">
+        <mxCell id="f-e57" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_sw" target="f-n-i_long">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e57" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_fix" target="f-i_d3">
+        <mxCell id="f-e58" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_long" target="f-n-i_blink">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e58" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_sinc" target="f-i_d6">
+        <mxCell id="f-e59" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-n-i_blink" target="f-n-i_end">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="f-e59" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_tinc" target="f-i_d8">
-          <mxGeometry relative="1" as="geometry" />
+        <mxCell id="f-b60" value="&lt;b&gt;定義済み処理の中身は&lt;br&gt;2ページ目「割り込みの詳細」&lt;/b&gt;&lt;br&gt;&lt;br&gt;割り込みでは、数える・比べる・合図（フラグ）を立てるだけ。LED を動かす判断は main が行う。&lt;br&gt;1回の割り込みは比較が10回ほどで終わり、待つ処理はない。&lt;br&gt;&lt;br&gt;スイッチ判定と点滅タイマは mode（紫）を読む。" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="1070" y="930" width="340" height="190" as="geometry" />
         </mxCell>
-        <mxCell id="f-e60" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="f-i_binc" target="f-i_d10">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="f-e61" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d1" target="f-i_c0">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e62" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_c0" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1560" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e63" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d1" target="f-i_cinc">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e64" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d2" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="810" />
-              <mxPoint x="1560" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e65" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d2" target="f-i_fix">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e66" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d3" target="f-i_p0">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1080" y="1030" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e67" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_p0" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1080" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e68" value="No（離された）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d3" target="f-i_d4">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e69" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d4" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="1150" />
-              <mxPoint x="1560" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e70" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d4" target="f-i_d5">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e71" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d5" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="1270" />
-              <mxPoint x="1560" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e72" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d5" target="f-i_sinc">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e73" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d6" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="1470" />
-              <mxPoint x="1560" y="1640" />
-              <mxPoint x="1330" y="1640" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e74" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d6" target="f-i_sflag">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e75" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_sflag" target="f-i_d7">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="f-e76" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d7" target="f-i_d9">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="1715" />
-              <mxPoint x="1560" y="2090" />
-              <mxPoint x="1330" y="2090" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e77" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d7" target="f-i_tinc">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e78" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d8" target="f-i_d9">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="1920" />
-              <mxPoint x="1560" y="2090" />
-              <mxPoint x="1330" y="2090" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e79" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d8" target="f-i_lflag">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e80" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_lflag" target="f-i_d9">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="f-e81" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d9" target="f-i_b0">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1080" y="2160" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e82" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_b0" target="f-i_end">
-          <mxGeometry relative="1" as="geometry">
-            <Array as="points">
-              <mxPoint x="1080" y="2530" />
-              <mxPoint x="1330" y="2530" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e83" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d9" target="f-i_binc">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e84" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d10" target="f-i_end">
-          <mxGeometry relative="1" as="geometry" x="-0.9">
-            <Array as="points">
-              <mxPoint x="1560" y="2360" />
-              <mxPoint x="1560" y="2530" />
-              <mxPoint x="1330" y="2530" />
-            </Array>
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="f-e85" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_d10" target="f-i_bflag">
-          <mxGeometry relative="1" as="geometry" x="-0.5" />
-        </mxCell>
-        <mxCell id="f-e86" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_bflag" target="f-i_end">
-          <mxGeometry relative="1" as="geometry" />
-        </mxCell>
-        <mxCell id="f-e87" value="short_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#d79b00;fontColor=#d79b00;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_sflag" target="f-m_ds">
+        <mxCell id="f-e61" value="short_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#d79b00;fontColor=#d79b00;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-i_sw" target="f-n-m_ds">
           <mxGeometry relative="1" as="geometry" x="0">
             <Array as="points">
-              <mxPoint x="910" y="1575" />
-              <mxPoint x="910" y="930" />
+              <mxPoint x="790" y="600" />
+              <mxPoint x="790" y="930" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e88" value="long_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#b85450;fontColor=#b85450;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_lflag" target="f-m_dl">
+        <mxCell id="f-e62" value="long_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#b85450;fontColor=#b85450;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-i_long" target="f-n-m_dl">
           <mxGeometry relative="1" as="geometry" x="0">
             <Array as="points">
-              <mxPoint x="850" y="2025" />
+              <mxPoint x="850" y="690" />
               <mxPoint x="850" y="1630" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="f-e89" value="blink_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-i_bflag" target="f-m_db">
+        <mxCell id="f-e63" value="blink_flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=open;endSize=10;dashed=1;dashPattern=8 4;strokeWidth=2;strokeColor=#6c8ebf;fontColor=#6c8ebf;fontStyle=1;labelBackgroundColor=#ffffff;jumpStyle=arc;jumpSize=12;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="f-n-i_blink" target="f-n-m_db">
           <mxGeometry relative="1" as="geometry" x="0">
             <Array as="points">
-              <mxPoint x="790" y="2465" />
-              <mxPoint x="790" y="2130" />
+              <mxPoint x="910" y="780" />
+              <mxPoint x="910" y="2130" />
             </Array>
           </mxGeometry>
         </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram name="状態遷移図" id="page-1">
+  <diagram name="割り込みの詳細" id="page-1">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1250" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="d-b1" value="&lt;b style=&quot;font-size:18px&quot;&gt;割り込みの詳細（1ページ目の定義済み処理の中身）&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="0" y="10" width="1600" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b2" value="&lt;b&gt;スイッチ判定（チャタリング防止・短押し）&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="0" y="60" width="540" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b3" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="0" y="96" width="540" height="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a0" value="スイッチ判定" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="190.0" y="120" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a1" value="sw == sw_state?&lt;br&gt;（確定状態と同じ）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-ac0" value="sw_cnt = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390.0" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a2" value="sw_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="320" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a3" value="sw_cnt &gt;= 3?&lt;br&gt;（3回連続で違う）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="400" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a4" value="sw_cnt = 0&lt;br&gt;sw_state = sw（確定）" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="520" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a5" value="sw_state == 1?&lt;br&gt;（押された）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="610" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-ap0" value="press_time = 0&lt;br&gt;long_done = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="15.0" y="850" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a6" value="long_done == 0 かつ&lt;br&gt;mode == 0?&lt;br&gt;（3秒未満・短押し有効）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="150.0" y="720" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a7" value="short_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="860" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a8" value="short_cnt &gt;= 2?" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="940" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-a9" value="short_cnt = 0&lt;br&gt;short_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="160.0" y="1060" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-aend" value="戻る" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="210.0" y="1160" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-a0" target="d-n-a1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-a2" target="d-n-a3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-a4" target="d-n-a5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-a7" target="d-n-a8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e8" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a1" target="d-n-ac0">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-ac0" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="1140" />
+              <mxPoint x="270" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e10" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a1" target="d-n-a2">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e11" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a3" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="450" y="440" />
+              <mxPoint x="450" y="1140" />
+              <mxPoint x="270" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e12" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a3" target="d-n-a4">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e13" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a5" target="d-n-ap0">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="80" y="650" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-ap0" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="1140" />
+              <mxPoint x="270" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e15" value="No（離された）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a5" target="d-n-a6">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e16" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a6" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="450" y="770" />
+              <mxPoint x="450" y="1140" />
+              <mxPoint x="270" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e17" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a6" target="d-n-a7">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e18" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a8" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="450" y="980" />
+              <mxPoint x="450" y="1140" />
+              <mxPoint x="270" y="1140" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e19" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a8" target="d-n-a9">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-a9" target="d-n-aend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b21" value="&lt;b&gt;長押し判定&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="560" y="60" width="500" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b22" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="96" width="500" height="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-b0" value="長押し判定" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="710.0" y="120" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-b1" value="sw_state == 1 かつ&lt;br&gt;long_done == 0?&lt;br&gt;（押している最中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="670.0" y="200" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-b2" value="press_time++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="680.0" y="340" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-b3" value="press_time &gt;= 300?&lt;br&gt;（3秒）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="680.0" y="420" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-b4" value="long_done = 1&lt;br&gt;long_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="680.0" y="540" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-bend" value="戻る" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="730.0" y="640" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-b0" target="d-n-b1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-b2" target="d-n-b3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e25" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-b1" target="d-n-bend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="990" y="250" />
+              <mxPoint x="990" y="620" />
+              <mxPoint x="790" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e26" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-b1" target="d-n-b2">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e27" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-b3" target="d-n-bend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="990" y="460" />
+              <mxPoint x="990" y="620" />
+              <mxPoint x="790" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e28" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-b3" target="d-n-b4">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-b4" target="d-n-bend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b30" value="&lt;b&gt;点滅タイマ&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="60" width="520" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b31" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="96" width="520" height="1130" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-c0" value="点滅タイマ" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1280.0" y="120" width="160" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-c1" value="mode == 1?&lt;br&gt;（点滅中）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1250.0" y="200" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-cb0" value="blink_cnt = 0" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1095.0" y="300" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-c2" value="blink_cnt++" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="1250.0" y="320" width="220" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-c3" value="blink_cnt &gt;= 50?&lt;br&gt;（0.5秒）" style="html=1;shape=mxgraph.flowchart.decision;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1250.0" y="400" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-c4" value="blink_cnt = 0&lt;br&gt;blink_flag = 1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1250.0" y="520" width="220" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d-n-cend" value="戻る" style="strokeWidth=2;html=1;shape=mxgraph.flowchart.start_1;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1300.0" y="620" width="120" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-c0" target="d-n-c1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;" edge="1" parent="1" source="d-n-c2" target="d-n-c3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-e34" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-c1" target="d-n-cb0">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="1170" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-cb0" target="d-n-cend">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1170" y="600" />
+              <mxPoint x="1360" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e36" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-c1" target="d-n-c2">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e37" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-c3" target="d-n-cend">
+          <mxGeometry relative="1" as="geometry" x="-0.9">
+            <Array as="points">
+              <mxPoint x="1540" y="440" />
+              <mxPoint x="1540" y="600" />
+              <mxPoint x="1360" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d-e38" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-c3" target="d-n-c4">
+          <mxGeometry relative="1" as="geometry" x="-0.5" />
+        </mxCell>
+        <mxCell id="d-e39" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="d-n-c4" target="d-n-cend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b40" value="&lt;b&gt;点滅を消灯から始めるしくみ&lt;/b&gt;&lt;br&gt;通常のあいだは毎回 blink_cnt = 0 に戻しておく。main が mode = 1 にした次の割り込みから数え始めるので、最初の消灯もちょうど 0.5秒になる。" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="700" width="480" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="d-b41" value="&lt;b&gt;長押しのあと離しても短押しにならないしくみ&lt;/b&gt;&lt;br&gt;3秒に達した時点で long_done = 1。離したときのスイッチ判定で long_done == 0 かつ mode == 0? が No になり、数えない。" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="580" y="720" width="460" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="状態遷移図" id="page-2">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="820" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -544,53 +615,53 @@
         <mxCell id="s-b1" value="&lt;b style=&quot;font-size:18px&quot;&gt;状態遷移図（スイッチ操作と LED の変化）&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="20" y="10" width="1300" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="s-init" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+        <mxCell id="s-n-init" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
           <mxGeometry x="48.0" y="190" width="24" height="24" as="geometry" />
         </mxCell>
-        <mxCell id="s-off" value="&lt;b&gt;全消灯&lt;/b&gt;&lt;br&gt;i = 0、mode = 0" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="s-n-off" value="&lt;b&gt;全消灯&lt;/b&gt;&lt;br&gt;i = 0、mode = 0" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="140.0" y="160" width="160" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="s-l1" value="&lt;b&gt;LED1 点灯&lt;/b&gt;&lt;br&gt;i = 1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="s-n-l1" value="&lt;b&gt;LED1 点灯&lt;/b&gt;&lt;br&gt;i = 1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="425.0" y="160" width="150" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="s-l2" value="&lt;b&gt;LED2 点灯&lt;/b&gt;&lt;br&gt;i = 2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="s-n-l2" value="&lt;b&gt;LED2 点灯&lt;/b&gt;&lt;br&gt;i = 2" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="705.0" y="160" width="150" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="s-l3" value="&lt;b&gt;LED3 点灯&lt;/b&gt;&lt;br&gt;i = 3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
+        <mxCell id="s-n-l3" value="&lt;b&gt;LED3 点灯&lt;/b&gt;&lt;br&gt;i = 3" style="rounded=1;whiteSpace=wrap;html=1;arcSize=20;strokeWidth=2;" vertex="1" parent="1">
           <mxGeometry x="985.0" y="160" width="150" height="84" as="geometry" />
         </mxCell>
-        <mxCell id="s-bl" value="&lt;b&gt;点滅（2周目）&lt;/b&gt;&lt;br&gt;i = 3、mode = 1&lt;br&gt;短押し無効" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;strokeWidth=2;verticalAlign=top;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+        <mxCell id="s-n-bl" value="&lt;b&gt;点滅（2周目）&lt;/b&gt;&lt;br&gt;i = 3、mode = 1&lt;br&gt;短押し無効" style="rounded=1;whiteSpace=wrap;html=1;arcSize=6;strokeWidth=2;verticalAlign=top;spacingTop=8;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
           <mxGeometry x="1210.0" y="360" width="240" height="300" as="geometry" />
         </mxCell>
-        <mxCell id="s-boff" value="全 LED 消灯&lt;br&gt;0.5秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
+        <mxCell id="s-n-boff" value="全 LED 消灯&lt;br&gt;0.5秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
           <mxGeometry x="1255.0" y="450" width="150" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="s-bon" value="全 LED 点灯&lt;br&gt;0.5秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
+        <mxCell id="s-n-bon" value="全 LED 点灯&lt;br&gt;0.5秒" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;" vertex="1" parent="1">
           <mxGeometry x="1255.0" y="570" width="150" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="s-e2" value="電源ON" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-init" target="s-off">
+        <mxCell id="s-e2" value="電源ON" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-init" target="s-n-off">
           <mxGeometry relative="1" as="geometry" x="0" />
         </mxCell>
-        <mxCell id="s-e3" value="短押し2回" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-off" target="s-l1">
+        <mxCell id="s-e3" value="短押し2回" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-off" target="s-n-l1">
           <mxGeometry relative="1" as="geometry" x="0" />
         </mxCell>
-        <mxCell id="s-e4" value="短押し2回&lt;br&gt;LED1 を消して&lt;br&gt;すぐ LED2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-l1" target="s-l2">
+        <mxCell id="s-e4" value="短押し2回&lt;br&gt;LED1 を消して&lt;br&gt;すぐ LED2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-l1" target="s-n-l2">
           <mxGeometry relative="1" as="geometry" x="0" />
         </mxCell>
-        <mxCell id="s-e5" value="短押し2回&lt;br&gt;LED2 を消して&lt;br&gt;すぐ LED3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-l2" target="s-l3">
+        <mxCell id="s-e5" value="短押し2回&lt;br&gt;LED2 を消して&lt;br&gt;すぐ LED3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-l2" target="s-n-l3">
           <mxGeometry relative="1" as="geometry" x="0" />
         </mxCell>
-        <mxCell id="s-e6" value="短押し2回&lt;br&gt;LED3 を消してすぐ点滅&lt;br&gt;（消灯から開始）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-l3" target="s-bl">
+        <mxCell id="s-e6" value="短押し2回&lt;br&gt;LED3 を消してすぐ点滅&lt;br&gt;（消灯から開始）" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-l3" target="s-n-bl">
           <mxGeometry relative="1" as="geometry" x="0.3">
             <Array as="points">
               <mxPoint x="1330" y="202" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="s-e7" value="0.5秒" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-boff" target="s-bon">
+        <mxCell id="s-e7" value="0.5秒" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-boff" target="s-n-bon">
           <mxGeometry relative="1" as="geometry" x="0" />
         </mxCell>
-        <mxCell id="s-e8" value="0.5秒" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-bon" target="s-boff">
+        <mxCell id="s-e8" value="0.5秒" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-bon" target="s-n-boff">
           <mxGeometry relative="1" as="geometry" x="0">
             <Array as="points">
               <mxPoint x="1440" y="600" />
@@ -598,7 +669,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="s-e9" value="3秒長押し&lt;br&gt;全消灯・短押し有効に戻る" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-bl" target="s-off">
+        <mxCell id="s-e9" value="3秒長押し&lt;br&gt;全消灯・短押し有効に戻る" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;labelBackgroundColor=#ffffff;fontStyle=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="s-n-bl" target="s-n-off">
           <mxGeometry relative="1" as="geometry" x="0">
             <Array as="points">
               <mxPoint x="220" y="510" />
@@ -611,7 +682,7 @@
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram name="動作トレース" id="page-2">
+  <diagram name="動作トレース" id="page-3">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1450" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -628,7 +699,7 @@
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram name="変数一覧と仕様の対応" id="page-3">
+  <diagram name="変数一覧と仕様の対応" id="page-4">
     <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
@@ -645,10 +716,10 @@
         <mxCell id="v-b4" value="&lt;b style=&quot;font-size:18px&quot;&gt;仕様との対応&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="20" y="480" width="1100" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="v-b5" value="&lt;table style=&quot;border-collapse:collapse;font-size:12px;&quot;&gt;&lt;tr&gt;&lt;th style=&quot;border:1px solid #666;padding:4px 8px;background:#e6e6e6;text-align:left;&quot;&gt;仕様&lt;/th&gt;&lt;th style=&quot;border:1px solid #666;padding:4px 8px;background:#e6e6e6;text-align:left;&quot;&gt;図のどこで実現しているか&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;1. LED 3つ、スイッチ 1つ&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：ポート初期化&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;2. 10ms ごとのタイマ割り込みでスイッチを読む&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：タイマ設定・割り込み許可 ／ 割り込み：sw = スイッチ入力ポートの値&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;3. 3回連続で同じ値なら ON／OFF を確定&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;割り込み：sw == sw_state? → sw_cnt++ → sw_cnt &gt;= 3?（違う値が続いた回数を、割り込みをまたいで数える）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;4. 3秒未満で離したら短押し&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;割り込み：離したことが確定した時点で long_done == 0? を見る（押した瞬間には数えない）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;4. 3秒押し続けたら長押し&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;割り込み：sw_state == 1 かつ long_done == 0? → press_time++ → press_time &gt;= 300?（離すのを待たない）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;5. 短押し2回で次の LED（前を消してすぐ次）&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;割り込み：short_cnt &gt;= 2? → short_flag = 1 ／ main：i == 0? → LED[i-1] = 0 → LED[i] = 1 → i++&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;6. 2周目は全 LED が 0.5秒ごとに点滅（消灯から）&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：i == 3? → LED[2] = 0、blink_on = 0、mode = 1 ／ 割り込み：blink_cnt &gt;= 50? → blink_flag = 1 ／ main：blink_on を反転して出力&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;6. 点滅中は短押し無効&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;割り込み：mode == 0? が No なら数えない（割り込み自体は止めない。止めると長押しも判定できなくなる）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;7. 点滅中に 3秒長押しで短押し有効に戻る&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：long_flag == 1? → mode == 1? → mode = 0、blink_flag = 0、i = 0、全消灯&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;overflow=fill;" vertex="1" parent="1">
+        <mxCell id="v-b5" value="&lt;table style=&quot;border-collapse:collapse;font-size:12px;&quot;&gt;&lt;tr&gt;&lt;th style=&quot;border:1px solid #666;padding:4px 8px;background:#e6e6e6;text-align:left;&quot;&gt;仕様&lt;/th&gt;&lt;th style=&quot;border:1px solid #666;padding:4px 8px;background:#e6e6e6;text-align:left;&quot;&gt;図のどこで実現しているか&lt;/th&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;1. LED 3つ、スイッチ 1つ&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：ポート初期化&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;2. 10ms ごとのタイマ割り込みでスイッチを読む&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：タイマ設定・割り込み許可 ／ 割り込み：sw = スイッチ入力ポートの値 → スイッチ判定&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;3. 3回連続で同じ値なら ON／OFF を確定&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;スイッチ判定：sw == sw_state? → sw_cnt++ → sw_cnt &gt;= 3?（違う値が続いた回数を、割り込みをまたいで数える）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;4. 3秒未満で離したら短押し&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;スイッチ判定：離したことが確定した時点で long_done == 0 かつ mode == 0? を見る（押した瞬間には数えない）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;4. 3秒押し続けたら長押し&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;長押し判定：sw_state == 1 かつ long_done == 0? → press_time++ → press_time &gt;= 300?（離すのを待たない）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;5. 短押し2回で次の LED（前を消してすぐ次）&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;スイッチ判定：short_cnt &gt;= 2? → short_flag = 1 ／ main：i == 0? → LED[i-1] = 0 → LED[i] = 1 → i++&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;6. 2周目は全 LED が 0.5秒ごとに点滅（消灯から）&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：i == 3? → LED[2] = 0、blink_on = 0、mode = 1 ／ 点滅タイマ：blink_cnt &gt;= 50? → blink_flag = 1 ／ main：blink_on を反転して出力&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;6. 点滅中は短押し無効&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;スイッチ判定：long_done == 0 かつ mode == 0? が No なら数えない（割り込み自体は止めない。止めると長押しも判定できなくなる）&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:300px;&quot;&gt;7. 点滅中に 3秒長押しで短押し有効に戻る&lt;/td&gt;&lt;td style=&quot;border:1px solid #666;padding:4px 8px;vertical-align:top;width:800px;&quot;&gt;main：long_flag == 1? → mode == 1? → mode = 0、blink_flag = 0、i = 0、全消灯&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;" style="text;html=1;align=left;verticalAlign=top;whiteSpace=wrap;overflow=fill;" vertex="1" parent="1">
           <mxGeometry x="20" y="520" width="1120" height="250" as="geometry" />
         </mxCell>
-        <mxCell id="v-b6" value="&lt;b&gt;確認方法&lt;/b&gt;&lt;br&gt;flow_check.c（このフローチャートを C に書き写したもの）と、テスト済みの light.c に同じスイッチ入力を与え、10ms ごとに LED の出力を比べた。ランダムな短押し・長押し・チャタリングで 33,094,692 周期（約 92 時間ぶん）すべて一致。&lt;br&gt;わざと図を間違えた版（フラグを 0 に戻さない、長押しの閾値を 3 にする、解除時に blink_flag を捨てない など 9 通り）は、すべて不一致として検出できた。" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
+        <mxCell id="v-b6" value="&lt;b&gt;確認方法&lt;/b&gt;&lt;br&gt;flow_check.c（このフローチャートを C に書き写したもの）と、テスト済みの light.c に同じスイッチ入力を与え、10ms ごとに LED の出力を比べた。ランダムな短押し・長押し・チャタリングで 33,094,692 周期（約 92 時間ぶん）すべて一致。&lt;br&gt;わざと図を間違えた版（フラグを 0 に戻さない、長押しの閾値を 3 にする、点滅中も短押しを数える など）は、すべて不一致として検出できた。" style="rounded=0;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=10;spacingTop=6;fillColor=#f5f5f5;strokeColor=#999999;" vertex="1" parent="1">
           <mxGeometry x="20" y="790" width="1120" height="90" as="geometry" />
         </mxCell>
       </root>
