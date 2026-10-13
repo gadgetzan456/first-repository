@@ -94,32 +94,22 @@ int main(void)
     short_press();
     expect_leds("長押しは無視、短押し1回では変化なし", 1, 0, 0);
     short_press();
-    expect_leds("短押し2回でLED1消灯", 0, 0, 0);
-    short_press();
-    expect_leds("短押し1回では変化なし", 0, 0, 0);
-    short_press();
-    expect_leds("短押し2回でLED2", 0, 1, 0);
-    short_press();
-    short_press();
-    expect_leds("短押し2回でLED2消灯", 0, 0, 0);
+    expect_leds("短押し2回でLED1消灯・LED2点灯", 0, 1, 0);
 
     /* 2.99秒押しは短押し（ON/OFFとも確定が同じだけ遅れるので押下時間はそのまま） */
     run_ms(true, 2990);
     run_ms(false, 100);
     short_press();
-    expect_leds("2.99秒押し＋短押しでLED3", 0, 0, 1);
-    short_press();
-    short_press();
-    expect_leds("短押し2回でLED3消灯（まだ2周目ではない）", 0, 0, 0);
+    expect_leds("2.99秒押し＋短押しでLED2消灯・LED3点灯", 0, 0, 1);
 
     /* 2周目：短押し2回目を離した瞬間（OFF確定）に点滅開始 */
     run_ms(true, 100);
     run_ms(false, 100);
     run_ms(true, 100);
     run_ms(false, 20);
-    expect_leds("離す直前は全消灯のまま", 0, 0, 0);
+    expect_leds("離す直前はLED3のまま", 0, 0, 1);
     run_ms(false, 10);
-    expect_leds("2周目突入で全点灯（点滅開始）", 1, 1, 1);
+    expect_leds("LED3消灯と同時に点滅開始（全点灯）", 1, 1, 1);
     expect_blink("全LEDが0.5秒ごとに点滅", false, 4);
 
     /* 点滅中の短押しは無効：押している間も周期が変わらない */
