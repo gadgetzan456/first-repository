@@ -10,6 +10,8 @@
 | `flowchart.md` / `flowchart.html` | 状態遷移図と関数ごとのフローチャート（Mermaid） |
 | `flowchart_fixed.drawio` | 演習用フローチャートの修正版（draw.io で編集可）。main と 10ms 割り込みを左右に並べた図、割り込みの詳細（定義済み処理の中身）、状態遷移図、動作トレース、変数一覧と仕様の対応の5ページ |
 | `flowchart_fixed_preview.pdf` | 上の draw.io ファイルを画像にした見本 |
+| `flowchart_工夫無しVer.drawio` | 上の修正版から凡例・仕様・レーン・合図の矢印・補足などを外し、フラグごとの色分けだけ残した版（main と割り込み／定義済み処理の2ページ） |
+| `flowchart_工夫無しVer_preview.pdf` | 工夫無しVer を画像にした見本 |
 | `flow_check.c` | 修正版フローチャートを C に書き写し、`light.c` とランダム入力で LED 出力を比べる検証プログラム（`./flow_check trace` で動作トレースを出力） |
 
 ## 動作
