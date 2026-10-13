@@ -7,6 +7,7 @@
 | `light.h` / `light.c` | ライト本体（状態管理） |
 | `test_light.c` | PC 上で動作を確かめるシミュレーションテスト |
 | `simulator.html` | ブラウザで操作できるシミュレータ（`light.c` を JavaScript に移植） |
+| `flowchart.md` / `flowchart.html` | 状態遷移図と関数ごとのフローチャート（Mermaid） |
 
 ## 動作
 

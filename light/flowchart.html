@@ -1,0 +1,283 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3連LEDライト フローチャート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=DotGothic16&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* レイアウト：1列の読み物。冒頭に目次チップ、各図は関数名つきの区画にまとめ、図だけ横スクロール可 */
+:root {
+  --bg: #e9ebe5;
+  --surface: #f7f8f3;
+  --ink: #1c2320;
+  --muted: #5b6660;
+  --line: #c6cbc1;
+  --accent: #b5470f;
+  --board: #23463a;
+  --board-ink: #d6e6d9;
+  --f-display: "DotGothic16", "BIZ UDPGothic", system-ui, sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121614; --surface: #1a201d; --ink: #e2e7e2; --muted: #95a19a; --line: #2f3833;
+    --accent: #f08a4b; --board: #183128; --board-ink: #cfe3d5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121614; --surface: #1a201d; --ink: #e2e7e2; --muted: #95a19a; --line: #2f3833;
+  --accent: #f08a4b; --board: #183128; --board-ink: #cfe3d5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 920px;
+  margin: 0 auto;
+  padding-inline: 20px;
+  padding-block: 28px 56px;
+  display: grid;
+  gap: 28px;
+}
+header { display: grid; gap: 10px; }
+h1 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  letter-spacing: .02em;
+  text-wrap: balance;
+}
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.spec {
+  background: var(--board);
+  color: var(--board-ink);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.spec span b { font-weight: 600; }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a {
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 12px;
+  background: var(--surface);
+}
+nav a:hover { border-color: var(--accent); color: var(--accent); }
+nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chart {
+  display: grid;
+  gap: 10px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 16px;
+}
+.chart-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+h2 { margin: 0; font-size: 1.2rem; text-wrap: balance; }
+code { font-family: var(--f-mono); font-size: 13px; color: var(--accent); }
+.tag { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; }
+.chart p { margin: 0; max-width: 65ch; }
+.diagram {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  overflow-x: auto;
+}
+.diagram pre { margin: 0; display: flex; justify-content: center; min-width: 0; }
+footer { color: var(--muted); font-size: 13px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>3連LEDライト フローチャート</h1>
+    <p>light.c の処理を、状態遷移図と関数ごとのフローチャートにまとめました。上から「全体像 → 起動 → 割り込み → 割り込みの中で呼ぶ処理」の順に並んでいます。</p>
+    <div class="spec">
+      <span><b>割り込み</b> 10msec</span>
+      <span><b>チャタリング防止</b> 3回連続一致</span>
+      <span><b>短押し</b> 3秒未満</span>
+      <span><b>長押し</b> 3秒</span>
+      <span><b>点滅周期</b> 0.5秒</span>
+    </div>
+    <nav aria-label="目次">
+      <a href="#overview">全体像（状態遷移）</a>
+      <a href="#main">起動処理</a>
+      <a href="#tick">10msec タイマ割り込み</a>
+      <a href="#debounce">スイッチ判定（チャタリング防止）</a>
+      <a href="#press">押下時間の計測</a>
+      <a href="#short">短押し処理</a>
+      <a href="#long">長押し処理</a>
+      <a href="#blink">点滅処理</a>
+    </nav>
+  </header>
+
+    <section class="chart" id="overview">
+      <div class="chart-head">
+        <h2>全体像（状態遷移）</h2>
+        <span class="tag">状態遷移図</span>
+      </div>
+      <p>ライトがとりうる状態と、どの操作で移るかを示します。点滅中の短押しと、点滅していないときの長押しは無視されます（状態は変わりません）。</p>
+      <div class="diagram"><pre class="mermaid">
+stateDiagram-v2
+    state &quot;全消灯&quot; as OFF
+    state &quot;LED1 点灯&quot; as L1
+    state &quot;LED2 点灯&quot; as L2
+    state &quot;LED3 点灯&quot; as L3
+    state &quot;点滅（2周目・短押し無効）&quot; as BLINK {
+        state &quot;全消灯 0.5秒&quot; as BOFF
+        state &quot;全点灯 0.5秒&quot; as BON
+        [*] --&gt; BOFF
+        BOFF --&gt; BON
+        BON --&gt; BOFF
+    }
+    [*] --&gt; OFF : 電源ON
+    OFF --&gt; L1 : 短押し2回
+    L1 --&gt; L2 : 短押し2回（LED1を消してすぐLED2）
+    L2 --&gt; L3 : 短押し2回（LED2を消してすぐLED3）
+    L3 --&gt; BLINK : 短押し2回（LED3を消してすぐ点滅）
+    BLINK --&gt; OFF : 3秒長押し
+</pre></div>
+    </section>
+    <section class="chart" id="main">
+      <div class="chart-head">
+        <h2>起動処理</h2>
+        <code>main() / light_init()</code>
+      </div>
+      <p>初期化のあとは何もせず、処理はすべて10msecのタイマ割り込みで行います。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    A([電源ON]) --&gt; B[&quot;GPIO・タイマを初期化&quot;]
+    B --&gt; C[&quot;light_init()&lt;br/&gt;スイッチの確定状態 = OFF&lt;br/&gt;一致カウント・押下時間 = 0&lt;br/&gt;通常モード・全消灯・短押し0回&quot;]
+    C --&gt; D[&quot;10msecタイマ割り込みを許可&quot;]
+    D --&gt; E[&quot;メインループ（何もしない）&quot;]
+    E --&gt; E
+</pre></div>
+    </section>
+    <section class="chart" id="tick">
+      <div class="chart-head">
+        <h2>10msec タイマ割り込み</h2>
+        <code>light_tick_10ms()</code>
+      </div>
+      <p>10msecごとに3つの処理をこの順で呼びます。点滅処理を先に置くことで、点滅開始直後の1周期もちょうど0.5秒になります。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([10msecタイマ割り込み]) --&gt; A[&quot;点滅処理&lt;br/&gt;update_blink()&quot;]
+    A --&gt; B[&quot;スイッチ判定（チャタリング防止）&lt;br/&gt;debounce_switch()&quot;]
+    B --&gt; C[&quot;押下時間の計測&lt;br/&gt;update_press_time()&quot;]
+    C --&gt; E([割り込み終了])
+</pre></div>
+    </section>
+    <section class="chart" id="debounce">
+      <div class="chart-head">
+        <h2>スイッチ判定（チャタリング防止）</h2>
+        <code>debounce_switch()</code>
+      </div>
+      <p>生入力が確定状態と3回続けて違ったときだけ、確定状態を切り替えます。離したことが確定した時点で、3秒未満なら短押しになります。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([スイッチ判定]) --&gt; R[&quot;生入力を読む&quot;]
+    R --&gt; Q1{&quot;生入力 = 確定状態？&quot;}
+    Q1 --&gt;|はい| Z[&quot;一致カウント = 0&quot;] --&gt; E([終了])
+    Q1 --&gt;|いいえ| I[&quot;一致カウント +1&quot;]
+    I --&gt; Q2{&quot;一致カウント ≥ 3？&quot;}
+    Q2 --&gt;|いいえ| E
+    Q2 --&gt;|はい| U[&quot;一致カウント = 0&lt;br/&gt;確定状態 = 生入力&quot;]
+    U --&gt; Q3{&quot;確定状態は ON？&quot;}
+    Q3 --&gt;|はい：押された| P[&quot;押下時間 = 0&lt;br/&gt;長押し済み = いいえ&quot;] --&gt; E
+    Q3 --&gt;|いいえ：離された| Q4{&quot;長押し済み？&quot;}
+    Q4 --&gt;|はい| E
+    Q4 --&gt;|いいえ：3秒未満| SP[[&quot;短押し処理&quot;]] --&gt; E
+</pre></div>
+    </section>
+    <section class="chart" id="press">
+      <div class="chart-head">
+        <h2>押下時間の計測</h2>
+        <code>update_press_time()</code>
+      </div>
+      <p>押している間、10msecずつ数えます。3秒に達した時点で、離すのを待たずに長押しとして処理します。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([押下時間の計測]) --&gt; Q1{&quot;確定状態が ON&lt;br/&gt;かつ 長押し済みでない？&quot;}
+    Q1 --&gt;|いいえ| E([終了])
+    Q1 --&gt;|はい| I[&quot;押下時間 +10msec&quot;]
+    I --&gt; Q2{&quot;押下時間 ≥ 3秒？&quot;}
+    Q2 --&gt;|いいえ| E
+    Q2 --&gt;|はい| L[&quot;長押し済み = はい&lt;br/&gt;（離しても短押しにしない）&quot;]
+    L --&gt; LP[[&quot;長押し処理&quot;]] --&gt; E
+</pre></div>
+    </section>
+    <section class="chart" id="short">
+      <div class="chart-head">
+        <h2>短押し処理</h2>
+        <code>on_short_press()</code>
+      </div>
+      <p>短押し2回ごとに、点いているLEDを消してすぐ次のLEDを点けます。LED3の次は、LED3を消してすぐ点滅（2周目）に入ります。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([短押し処理]) --&gt; Q1{&quot;点滅中？&quot;}
+    Q1 --&gt;|はい| X[&quot;何もしない（短押し無効）&quot;] --&gt; E([終了])
+    Q1 --&gt;|いいえ| C[&quot;短押し回数 +1&quot;]
+    C --&gt; Q2{&quot;短押し回数 = 2？&quot;}
+    Q2 --&gt;|いいえ| E
+    Q2 --&gt;|はい| R[&quot;短押し回数 = 0&quot;]
+    R --&gt; Q3{&quot;LED3 が点灯中？&quot;}
+    Q3 --&gt;|いいえ| Q4{&quot;点灯中のLEDがある？&quot;}
+    Q4 --&gt;|はい| OFF[&quot;そのLEDを消灯&quot;] --&gt; ON
+    Q4 --&gt;|いいえ：最初の1回| ON[&quot;すぐ次のLEDを点灯&lt;br/&gt;LED1 → LED2 → LED3&quot;]
+    ON --&gt; E
+    Q3 --&gt;|はい| O3[&quot;LED3を消灯&quot;]
+    O3 --&gt; B[&quot;すぐ点滅開始（2周目）&lt;br/&gt;モード = 点滅&lt;br/&gt;点滅カウント = 0&lt;br/&gt;全LED消灯の状態から始める&quot;]
+    B --&gt; E
+</pre></div>
+    </section>
+    <section class="chart" id="long">
+      <div class="chart-head">
+        <h2>長押し処理</h2>
+        <code>on_long_press()</code>
+      </div>
+      <p>点滅中だけ意味があります。点滅していないときの長押しは何もせず、短押しの回数にも数えません。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([長押し処理]) --&gt; Q{&quot;点滅中？&quot;}
+    Q --&gt;|はい| N[&quot;通常モードに戻す&lt;br/&gt;全消灯・短押し0回&lt;br/&gt;短押しが有効になる&quot;] --&gt; E([終了])
+    Q --&gt;|いいえ| X[&quot;何もしない&quot;] --&gt; E
+</pre></div>
+    </section>
+    <section class="chart" id="blink">
+      <div class="chart-head">
+        <h2>点滅処理</h2>
+        <code>update_blink()</code>
+      </div>
+      <p>点滅中は0.5秒（10msec × 50回）ごとに全LEDの点灯と消灯を入れ替えます。</p>
+      <div class="diagram"><pre class="mermaid">
+flowchart TD
+    S([点滅処理]) --&gt; Q1{&quot;点滅中？&quot;}
+    Q1 --&gt;|いいえ| E([終了])
+    Q1 --&gt;|はい| I[&quot;点滅カウント +10msec&quot;]
+    I --&gt; Q2{&quot;点滅カウント ≥ 0.5秒？&quot;}
+    Q2 --&gt;|いいえ| E
+    Q2 --&gt;|はい| T[&quot;点滅カウント = 0&lt;br/&gt;点灯と消灯を反転して&lt;br/&gt;全LEDに出力&quot;]
+    T --&gt; E
+</pre></div>
+    </section>
+
+  <footer>図の中の「短押し処理」「長押し処理」は、下の同じ名前のフローチャートを呼び出すことを表します。</footer>
+</div>
