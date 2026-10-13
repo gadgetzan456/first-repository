@@ -50,7 +50,7 @@ static void enter_blink(void)
 {
     mode = MODE_BLINK;
     blink_ticks = 0;
-    blink_on = true;
+    blink_on = false; /* 消灯状態から点滅を始める */
     leds_write_all(blink_on);
 }
 

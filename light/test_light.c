@@ -109,7 +109,7 @@ int main(void)
     run_ms(false, 20);
     expect_leds("離す直前はLED3のまま", 0, 0, 1);
     run_ms(false, 10);
-    expect_leds("LED3消灯と同時に点滅開始（全点灯）", 1, 1, 1);
+    expect_leds("LED3消灯と同時に点滅開始（全消灯から）", 0, 0, 0);
     expect_blink("全LEDが0.5秒ごとに点滅", false, 4);
 
     /* 点滅中の短押しは無効：押している間も周期が変わらない */
@@ -118,7 +118,7 @@ int main(void)
     expect_blink("点滅中にスイッチON（短押し）", true, 1);
     expect_blink("点滅中にスイッチOFF", false, 3);
     run_ms(false, 490);
-    expect_leds("点滅周期の終わりで全点灯", 1, 1, 1);
+    expect_leds("点滅周期の終わりで全消灯", 0, 0, 0);
 
     /* 3秒長押しで短押し有効に戻る */
     run_ms(true, 20);   /* 次の10msで押下確定 */

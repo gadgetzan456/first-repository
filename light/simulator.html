@@ -329,7 +329,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
       <li>スイッチは10msecごとに読み取り、3回続けて同じ値なら ON／OFF を確定する（チャタリング防止）</li>
       <li>3秒未満で離したら短押し。3秒に達した時点で長押し（離したときに短押しとは数えない）</li>
       <li>短押し2回ごとに、点いているLEDを消してすぐ次のLEDを点灯する（LED1 → LED2 → LED3）</li>
-      <li>LED3 の次の短押し2回で、LED3を消してすぐ2周目に入り、全LEDが0.5秒ごとに点滅する。点滅中は短押しが無効</li>
+      <li>LED3 の次の短押し2回で、LED3を消してすぐ2周目に入り、全LEDが0.5秒ごとに点滅する（消灯から始まる）。点滅中は短押しが無効</li>
       <li>点滅中に3秒長押しすると全消灯に戻り、短押しが有効になる</li>
     </ol>
   </section>
@@ -365,7 +365,7 @@ h2 { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .08em; color:
   function enter_blink() {
     mode = MODE_BLINK;
     blink_ticks = 0;
-    blink_on = true;
+    blink_on = false;  // 消灯状態から点滅を始める
     leds_write_all(blink_on);
     log("2周目に入りました：全LED点滅、短押し無効", "hot");
   }
