@@ -12,11 +12,12 @@
 1つの`<script>(function(){ "use strict"; ... })();`の中に全部入っている(グローバル汚染なし)。主なセクション(上から順):
 
 - `ITEM_TYPES` / `ENEMY_TYPES` / `BOSS_TABLE` / `SPELL_TYPES`(妖術師の呪文)などのデータテーブル
-- ダンジョン生成(`populateFloor` / `populateMonsterHouse` / 部屋・通路生成)
+- ダンジョン生成(`populateFloor` / `populateMonsterHouse` / 部屋・通路生成 / `placePitTraps` / `placeTerrainTiles` / `addSecretPocket`)
 - インベントリ操作(`addItemToInventory` / `useInventorySlot` / `equipInventorySlot` / `dropInventorySlot`)
-- 戦闘(`playerAttackEnemy` / `enemyAttackPlayer` / `applyEnemyDamage` / `computeDamage`)
+- 戦闘(`playerAttackEnemy` / `enemyAttackPlayer` / `applyEnemyDamage` / `computeDamage` / `comboCritChance` / `comboDefFactor`)
 - 杖・呪文(`castWand` / `applyWandEffect` / `applySpellToPlayer`)
-- ターン進行(`doTurn` — 空腹/毒/自然回復/状態異常のカウントダウンなどをここで一括処理)
+- ターン進行(`doTurn` — 空腹/毒/自然回復/状態異常のカウントダウン、隠し部屋の開放判定(`tryRevealSecretWalls`)などをここで一括処理)
+- 投げ物/杖の飛行演出(`animateProjectile` / `animateThrowFlight` / `animateWandBolt` / `resolveBombThrow`)
 - 描画(`renderAll` / `renderStage` / `renderHud` / `renderEquip` / `renderInventory`)
 - 入力(`keydown`/`keyup`ハンドラ、持ち物簡易選択メニューの開閉)
 - セーブ/ロード(`localStorage`、`saveGame` / `loadSavedGame`)
@@ -27,8 +28,10 @@
 
 - `G.player` — `{ x, y, hp, maxHp, hunger, maxHunger, level, exp, atk, def, inventory: [...], sleepTurns, paralyzed, confusedTurns, hasteTurns, weakenTurns, megaEvolveTurns, ironWallTurns, curseTurns, poison, ... }`
 - `G.floor` / `G.turn` / `G.grid` / `G.rooms` / `G.roomId` / `G.enemies` / `G.floorItems` / `G.log` / `G.scrollIdentity` / `G.gameOver`
+- `G.traps`(落とし穴など、`{x,y,type:"pit"}`。踏むまで見えない) / `G.terrain`(水場/毒沼、`{x,y,type:"water"|"swamp"}`。常に見える) / `G.secretWalls`(隠し部屋の入口、`{x,y}`。いずれも`enterFloor`でフロアごとにリセットされる)
+- `G.throwFlightEffect` / `G.wandBoltEffect` / `G.explosionEffect`(投げ物・杖・爆弾の飛行/着弾演出用の一時的な描画状態。`animateProjectile`系のヘルパーが書き換える)
 
-インベントリの1スロットは`{ key, name, cat, sub, value, sym, color, desc, count, equipped? }`。`makeInventoryEntry(def, count)`で作る。**装備中の武器/盾/投げ物も`G.player.inventory`の中に入っており、独立フィールド(`G.player.weapon`のようなもの)は存在しない。** 該当スロットに`equipped: true`が立っているかどうかで区別する(各カテゴリにつき同時に装備できるのは1つまで)。現在装備中のスロットを取得するには`findEquippedSlot(cat)`(`cat`は`"weapon"`/`"shield"`/`"throwable"`)を使うこと — `G.player.weapon`のような直接参照は存在しないので書かない。
+インベントリの1スロットは`{ key, name, cat, sub, value, sym, color, desc, count, equipped? }`。`makeInventoryEntry(def, count)`で作る。**装備中の武器/盾/投げ物/お守りも`G.player.inventory`の中に入っており、独立フィールド(`G.player.weapon`のようなもの)は存在しない。** 該当スロットに`equipped: true`が立っているかどうかで区別する(各カテゴリにつき同時に装備できるのは1つまで)。現在装備中のスロットを取得するには`findEquippedSlot(cat)`(`cat`は`"weapon"`/`"shield"`/`"throwable"`/`"charm"`)を使うこと — `G.player.weapon`のような直接参照は存在しないので書かない。お守り1種の現在値だけが欲しい場合は`equippedCharmSub()`(`findEquippedSlot("charm")`のsubを返す、無ければnull)を使う。
 
 ## 現時点で確立している仕様・設計方針
 
@@ -43,6 +46,11 @@
 - **巻物は種類ごとに未識別状態を持つ**(`G.scrollIdentity`、`assignScrollIdentities()`で新規ゲーム開始時に色名をシャッフル割り当て)。表示には`scrollDisplayName(key)`/`scrollDisplayDesc(key)`を使うこと(`slot.name`を直接使わない)。
 - **キー配置**: 矢印キー=移動、Z=攻撃/階段を降りる、S=射撃(投げ物)、左シフト+矢印=斜め移動コンボ、q/e/c=固定斜め移動、A=持ち物簡易選択メニューを開く、メニュー中は矢印上下=選択・Z=使用確定・X=キャンセルして閉じる。
 - 状態異常の管理: `isIncapacitated(e)`(睡眠・金縛り・モンスターハウス待機)、`clearParalysis(entity)`(ダメージ/命中ミスで金縛り解除)、`handlePlayerIncapacitated()`(プレイヤーの行動可否をまとめて判定、行動できない場合は代わりの処理をしてtrueを返す)。
+- **投げ物/杖の飛行演出は`requestAnimationFrame`駆動**(`animateProjectile(fromX,fromY,toX,toY,durationMs,applyFrame,clearEffect,doneCallback)`が唯一のrAFベースのアニメーション機構。それ以外の既存エフェクト(攻撃フラッシュ・MISS表示・爆発など)は`triggerTimedEffect`による`setTimeout`ベースの固定時間表示で、両者は別方式)。`performThrowAction`/`castWand`は、命中判定・ダメージ適用・`doTurn()`を飛行アニメーション完了後のコールバックに遅延させており、アニメーション開始時点で`turnBusy = true`にして入力をブロックする。コールバックの先頭では`var thisG = G;`で捕まえた参照と`if (G !== thisG) return;`のガードを必ず入れること(アニメーション中にプレイヤーが新しいゲームを始めてGが差し替わるケースに対する保険)。
+- **お守り(charm)は武器/盾/投げ物に次ぐ第3の装備枠。** ダメージ計算に加算する数値は持たず、`equippedCharmSub()`を各所(`doTurn`の空腹/自然回復、`stealRandomItem`、呪いの巻物の効果適用、罠感知の描画)で直接チェックする常時効果のみ。呪いの巻物の対象外(投げ物と同様)。識別システムは無く常に本名で表示される(巻物とは異なる)。
+- **合成の壺(`cat:"tool"`)のような「道具」カテゴリ、爆弾(`cat:"throwable", sub:"bomb"`)のような範囲攻撃の投げ物を今後追加する際は、既存の装備/スタック/ドロップの仕組みにできるだけ乗せる。** 例: 合成の壺はuseInventorySlotの既存の巻物ディスパッチと同じ形(効果適用→ターン消費)に乗せているだけで専用UIは無い。爆弾は投げ物カテゴリをそのまま使い回し、`performThrowAction`内で`itemDef.sub === "bomb"`のときだけ単体命中判定の代わりに`resolveBombThrow`(着弾点から`itemDef.aoe`マス以内の敵全員に確定ダメージ)に分岐している。
+- **落とし穴(`G.traps`)/水場・毒沼(`G.terrain`)/隠し部屋(`G.secretWalls`)はいずれも`G.grid`の壁/床の種類(`T_WALL`/`T_FLOOR`/`T_STAIRS`)そのものは変えず、別配列のオーバーレイとして持つ**(隠し部屋だけは例外で、入口の壁が開放されると実際に`G.grid`の該当セルを`T_FLOOR`へ書き換える)。落とし穴の発動(`triggerTileEffects`→`triggerPitFall`→`descend()`)は通常移動(`tryStepPlayer`)経由でのみ行い、衝撃の杖などによるノックバック(`knockbackPlayer`)では意図的に発動させていない(`enemyTurn`のループ中に`descend()`でフロアを丸ごと差し替えると、ループが古い敵リストを参照し続けてしまう危険があるため)。
+- **状態異常の組み合わせコンボ**: `comboCritChance(target)`/`comboDefFactor(target)`が、混乱中の敵への会心率上昇・弱体中の敵への防御力低下をそれぞれ返す(どちらでもない場合は`undefined`で`computeDamage`の既定値に委ねる、大鬼のheavycrit/竜鱗の戦士のpierceと同じ仕組み)。プレイヤーが与える攻撃(通常攻撃・投擲・爆弾)側にのみ適用しており、敵がプレイヤーを攻撃する側には適用していない(スコープを明示的に絞っている)。
 
 ## 開発ワークフロー(このセッションで確立した進め方)
 
