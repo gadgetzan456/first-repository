@@ -12,6 +12,9 @@
 | `flowchart_fixed_preview.pdf` | 上の draw.io ファイルを画像にした見本 |
 | `flowchart_工夫無しVer.drawio` | 上の修正版から凡例・仕様・レーン・合図の矢印・補足などを外し、フラグごとの色分けだけ残した版（main と割り込み／定義済み処理の2ページ） |
 | `flowchart_工夫無しVer_preview.pdf` | 工夫無しVer を画像にした見本 |
+| `flowchart_訂正版.drawio` | 演習者の main・割り込みの図を訂正した版（配列の範囲外書き込み・カウンタのあふれ対策込み） |
+| `flowchart_訂正版_preview.pdf` | 訂正版を画像にした見本 |
+| `flow_check_user.c` | 訂正版の図を C に書き写し、範囲外アクセスやあふれが起きないことと仕様どおりの動きを確かめるプログラム |
 | `flow_check.c` | 修正版フローチャートを C に書き写し、`light.c` とランダム入力で LED 出力を比べる検証プログラム（`./flow_check trace` で動作トレースを出力） |
 
 ## 動作
