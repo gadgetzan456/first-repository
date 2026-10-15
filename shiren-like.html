@@ -377,8 +377,11 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-height: 210px;
-    overflow-y: auto;
+    /* 以前は内部スクロール用にmax-height:210px+overflow-y:autoを付けていたが、
+       この箱自体がページの下の方にあり、画面が小さいとページの縦スクロールと
+       この箱の縦スクロールが競合して一部の環境でスクロールが効かなくなる不具合があった。
+       持ち物は最大INV_CAP個までしか増えないので高さの上限は不要と判断し、
+       ページ本体の縦スクロールだけで最後まで見られるようにしている。 */
   }
   .inv-item {
     display: flex;
@@ -509,6 +512,7 @@
         <div class="equip-row"><span class="label">武器</span><span id="equip-weapon">なし</span></div>
         <div class="equip-row"><span class="label">盾</span><span id="equip-shield">なし</span></div>
         <div class="equip-row"><span class="label">投げ物</span><span id="equip-throwable">なし</span></div>
+        <div class="equip-row"><span class="label">お守り</span><span id="equip-charm">なし</span></div>
         <div class="equip-row"><span class="label">攻撃力</span><span id="equip-atk">-</span></div>
         <div class="equip-row"><span class="label">防御力</span><span id="equip-def">-</span></div>
         <div class="equip-row" id="equip-status-row" hidden><span class="label">状態</span><span id="equip-status"></span></div>
@@ -2881,9 +2885,11 @@
     var eqWeapon = findEquippedSlot("weapon");
     var eqShield = findEquippedSlot("shield");
     var eqThrowable = findEquippedSlot("throwable");
+    var eqCharm = findEquippedSlot("charm");
     document.getElementById("equip-weapon").textContent = eqWeapon ? eqWeapon.name : "なし";
     document.getElementById("equip-shield").textContent = eqShield ? eqShield.name : "なし";
     document.getElementById("equip-throwable").textContent = eqThrowable ? (eqThrowable.name + " ×" + eqThrowable.count) : "なし";
+    document.getElementById("equip-charm").textContent = eqCharm ? eqCharm.name : "なし";
     document.getElementById("equip-atk").textContent = effAtk();
     document.getElementById("equip-def").textContent = effDef();
     var statuses = [];
@@ -3040,6 +3046,10 @@
         '</div>';
     }
     el.innerHTML = html;
+    // 選択中の行が、画面の高さの都合で見えていない場合は自動でスクロールして見えるようにする
+    // (キーボードの上下キーだけで操作していても選択位置を見失わないようにするため)。
+    var selRow = el.querySelector(".quick-inv-row.sel");
+    if (selRow) selRow.scrollIntoView({ block: "nearest" });
   }
 
   function openQuickInv() {
